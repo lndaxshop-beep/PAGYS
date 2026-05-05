@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getWordCountPresets, getFallbackSubtopics, renumberSubsections } from '../utils/writeHelpers.jsx';
 
 const useWriteChapter = (project, projectId, firestoreFunctions) => {
-  const { saveChapters, saveChapter, saveGeneratedContent, saveCitations, saveVisualData } = firestoreFunctions || {};
+  const { saveChapters, saveGeneratedContent, saveCitations, saveVisualData } = firestoreFunctions || {};
   
   const [chapters, setChapters] = useState([]);
   const [activeChapter, setActiveChapter] = useState(null);

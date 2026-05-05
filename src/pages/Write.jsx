@@ -61,7 +61,7 @@ const Write = () => {
 
   const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart);
 
@@ -172,7 +172,7 @@ const Write = () => {
       setActiveChapter(chapterId); setIsViewingReferences(false); setIsPreviewMode(true);
       const idx = result.firstIndex; setCurrentSubsectionIndex(idx >= 0 ? idx : 0);
       setCurrentContent(result.content); setShowReferenceInTextarea(false);
-      if (result.needsSubtopics) generateSubtopicsForChapter(chapterId);
+      if (result.needsSubtopics) handleWrappedGenerateSubtopics(chapterId);
     }
   };
 

@@ -5,8 +5,8 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
   const handleChapterClick = useCallback(async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (chapter && chapter.unlocked) {
-      const hasContent = chapter.generated || chapter.subsections.length > 0;
-      if (!hasContent) return { action: 'showStructure', chapterId };
+      const hasContent = chapter.generated || (chapter.subsections.length > 0 && chapter.subsections.some(s => s.title !== 'References'));
+      if (!hasContent && !chapter.completed) return { action: 'showStructure', chapterId };
       if (chapterId === 'chapter2' && !chapter.generated) return { action: 'showLitType', chapterId };
       if (!chapterWordCountSet[chapterId]) return { action: 'showWordCount', chapterId };
       return {

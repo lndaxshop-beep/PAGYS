@@ -167,53 +167,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (e) { console.error('Mermaid import error:', e); return null; }
   }, [activeChapter]);
 
-  const parseContentBlocks = useCallback((content) => {
-    if (!content) return [];
-    const blocks = [];
-    const lines = content.split('\n');
-    let currentText = '';
-    let inTable = false;
-    let tableRows = [];
-    let tableHeader = null;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('```mermaid')) {
-        if (currentText.trim()) { blocks.push({ type: 'text', content: currentText.trim() }); currentText = ''; }
-        let mermaidCode = '';
-        i++;
-        while (i < lines.length && !lines[i].trim().startsWith('```')) { mermaidCode += lines[i] + '\n'; i++; }
-        blocks.push({ type: 'diagram', content: mermaidCode.trim() });
-        continue;
-      }
-      if (line.match(/\[CHART:\{.*\}\]/)) {
-        if (currentText.trim()) { blocks.push({ type: 'text', content: currentText.trim() }); currentText = ''; }
-        try {
-          const chartMatch = line.match(/\[CHART:(\{.*\})\]/);
-          if (chartMatch) { const chartData = JSON.parse(chartMatch[1]); blocks.push({ type: 'chart', content: chartData }); }
-        } catch (e) { currentText += line + '\n'; }
-        continue;
-      }
-      if (line.startsWith('|') && line.endsWith('|')) {
-        if (line.match(/^\|[\s\-:]+\|$/)) continue;
-        if (!inTable) {
-          if (currentText.trim()) { blocks.push({ type: 'text', content: currentText.trim() }); currentText = ''; }
-          inTable = true; tableRows = []; tableHeader = null;
-        }
-        const cells = line.split('|').filter(c => c.trim() !== '').map(c => c.trim());
-        if (!tableHeader && i + 2 < lines.length && lines[i + 1]?.trim().match(/^\|[\s\-:]+\|$/)) { tableHeader = cells; }
-        else { tableRows.push(cells); }
-        continue;
-      } else if (inTable) {
-        blocks.push({ type: 'table', content: { headers: tableHeader || [], rows: tableRows } });
-        inTable = false; tableRows = []; tableHeader = null;
-      }
-      currentText += line + '\n';
-    }
-    if (inTable) { blocks.push({ type: 'table', content: { headers: tableHeader || [], rows: tableRows } }); }
-    if (currentText.trim()) { blocks.push({ type: 'text', content: currentText.trim() }); }
-    return blocks;
-  }, []);
-
   return {
     generating, generatingVisual, humanising, applyingSubFeedback,
     humaniseLimit, feedbackLimit,
@@ -226,8 +179,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     handleGenerateReferences,
     handleHumanise,
     handleApplyFeedback,
-    preRenderDiagrams,
-    parseContentBlocks
+    preRenderDiagrams
   };
 };
 

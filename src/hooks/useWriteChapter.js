@@ -55,10 +55,11 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
         const subsectionToRestore = (ch.deletedSubsections || []).find(s => s.id === subsectionId);
         if (subsectionToRestore) {
           const updatedDeleted = (ch.deletedSubsections || []).filter(s => s.id !== subsectionId);
+          const restored = { ...subsectionToRestore, deleted: false };
           const referencesIndex = ch.subsections.findIndex(s => s.title === 'References');
           let updatedSubsections = [...ch.subsections];
-          if (referencesIndex !== -1) updatedSubsections.splice(referencesIndex, 0, subsectionToRestore);
-          else updatedSubsections.push(subsectionToRestore);
+          if (referencesIndex !== -1) updatedSubsections.splice(referencesIndex, 0, restored);
+          else updatedSubsections.push(restored);
           return { ...ch, subsections: renumberSubsections(updatedSubsections, ch.id), deletedSubsections: updatedDeleted };
         }
       }

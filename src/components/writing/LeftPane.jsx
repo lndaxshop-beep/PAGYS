@@ -105,7 +105,7 @@ const LeftPane = ({
                   <DeletedSubsections
                     chapterId={chapter.id}
                     deletedSubsections={chapter.deletedSubsections || []}
-                    onRestore={onRestoreSubsection}
+                    onRestore={(id) => onRestoreSubsection(id, chapter.id)}
                   />
                 </div>
               )}

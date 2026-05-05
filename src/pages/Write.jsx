@@ -255,13 +255,16 @@ const Write = () => {
   };
 
   const wrappedGenerateReferences = async () => {
-    const result = await handleGenerateReferences(currentChapter, setGeneratedSubsections);
+    if (currentSubsection && currentSubsection.title !== 'References') {
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: currentContent } }));
+    }
+    const result = await handleGenerateReferences(currentChapter, currentContent);
     if (!result) return;
     const { content } = result;
     setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.title === 'References' ? { ...s, generated: true } : s) } : ch));
     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
-    alert('✅ References generated from in-text citations!');
+    toastSuccess('References generated from in-text citations!');
   };
 
   const wrappedHandleSubsectionClick = (subsectionTitle) => {

@@ -102,7 +102,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     finally { setGenerating(false); }
   }, [project, chapters, activeChapter, currentSubsectionIndex, currentSubsection, uploadedFindings, literatureReviewType]);
 
-  const handleGenerateReferences = useCallback(async (currentChapter, setGeneratedSubsections) => {
+  const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
     const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.title !== 'References' && !s.deleted);
     if (allGeneratedSubsections.length === 0) { alert('Please generate some content first.'); return; }
     let allCitations = [];
@@ -111,15 +111,25 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       const citations = extractCitations(content);
       allCitations = [...allCitations, ...citations];
     });
+    if (currentContent) {
+      const currentCitations = extractCitations(currentContent);
+      allCitations = [...allCitations, ...currentCitations];
+    }
     const uniqueCitations = [...new Set(allCitations)];
     if (uniqueCitations.length === 0) {
       alert('No in-text citations found. Try regenerating the content.');
       return;
     }
     const style = project?.referenceStyle || 'apa';
-    const referenceEntries = uniqueCitations.map(citation => formatCitationEntry(citation, style)).filter(Boolean).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    const referencesContent = `References\n\n${referenceEntries.join('\n')}`;
-    return { content: referencesContent, subsectionsUpdated: allGeneratedSubsections };
+    try {
+      const { generateReferences } = await import('../services/geminiService');
+      const referencesContent = await generateReferences(uniqueCitations, style);
+      return { content: referencesContent, subsectionsUpdated: allGeneratedSubsections };
+    } catch (error) {
+      console.error('Error generating references via AI:', error);
+      const referenceEntries = uniqueCitations.map(citation => formatCitationEntry(citation, style)).filter(Boolean).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections };
+    }
   }, [project, activeChapter, generatedSubsections]);
 
   const handleHumanise = useCallback(async (content) => {

@@ -185,3 +185,36 @@ Return ONLY the rewritten text. No explanations.`;
     return cleanOutput(result.response.text());
   } catch (error) { console.error('Error humanising:', error); throw error; }
 };
+
+export const generateReferences = async (citations, style) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL });
+    const styleGuide = style === 'apa'
+      ? 'APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.'
+      : style === 'mla'
+      ? 'MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.'
+      : 'Chicago: Author Last, First. Year. Title of Work. Publisher.';
+    const prompt = `You are an expert academic reference librarian. Generate a properly formatted reference list for these in-text citations.
+
+CITATIONS TO FORMAT:
+${citations.map(c => `- ${c}`).join('\n')}
+
+REFERENCE STYLE: ${style.toUpperCase()}
+STYLE GUIDE: ${styleGuide}
+
+RULES:
+- Generate a complete, properly formatted reference for EACH citation above
+- Use the EXACT author names and years from the citations
+- Fill in realistic academic titles, journals, publishers based on the citation context
+- Format precisely according to the style guide above
+- Return ONLY the reference entries, one per line, sorted alphabetically by first author
+- NO headings, NO explanations, NO numbering
+- DO NOT invent additional citations not listed above
+
+Example APA:
+Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`;
+
+    const result = await model.generateContent(prompt);
+    return cleanOutput(result.response.text());
+  } catch (error) { console.error('Error generating references:', error); throw error; }
+};

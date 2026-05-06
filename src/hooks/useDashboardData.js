@@ -29,7 +29,7 @@ const setCachedProgress = (projectId, progress) => {
   } catch { /* silent */ }
 };
 
-export const useDashboardData = () => {
+export const useDashboardData = ({ confirmAction, notify } = {}) => {
   const [projects, setProjects] = useState([]);
   const [deletedProjects, setDeletedProjects] = useState([]);
   const [projectsWithProgress, setProjectsWithProgress] = useState([]);
@@ -97,14 +97,19 @@ export const useDashboardData = () => {
   };
 
   const handleDeleteProject = async (id) => {
-    if (!window.confirm('Are you sure? You can restore it from Recycle Bin.')) return;
+    const confirmed = await confirmAction({
+      title: 'Move to Recycle Bin',
+      message: 'Are you sure? You can restore it from the Recycle Bin later.',
+      confirmText: 'Move to Recycle Bin',
+    });
+    if (!confirmed) return;
     const project = projects.find(p => p.id === id);
     await deleteProject(id);
     await saveDeletedProject({ ...project, deletedAt: new Date().toISOString() });
     invalidateProgressCache(id);
     loadProjects();
     loadDeletedProjects();
-    alert('Project moved to Recycle Bin');
+    notify('Project moved to Recycle Bin', 'success');
   };
 
   const handleRestoreProject = async (id) => {
@@ -114,25 +119,37 @@ export const useDashboardData = () => {
     invalidateProgressCache(id);
     loadProjects();
     loadDeletedProjects();
-    alert('Project restored successfully!');
+    notify('Project restored successfully!', 'success');
   };
 
   const handlePermanentDelete = async (id) => {
-    if (!window.confirm('Permanently delete? This cannot be undone.')) return;
+    const confirmed = await confirmAction({
+      title: 'Delete Permanently',
+      message: 'This action cannot be undone. The project will be permanently removed.',
+      confirmText: 'Delete Permanently',
+      danger: true,
+    });
+    if (!confirmed) return;
     await permanentlyDeleteProject(id);
     invalidateProgressCache(id);
     loadDeletedProjects();
-    alert('Project permanently deleted');
+    notify('Project permanently deleted', 'error');
   };
 
   const handleEmptyRecycleBin = async () => {
-    if (!window.confirm('Permanently delete all? This cannot be undone.')) return;
+    const confirmed = await confirmAction({
+      title: 'Empty Recycle Bin',
+      message: `Permanently delete all ${deletedProjects.length} item${deletedProjects.length === 1 ? '' : 's'}? This cannot be undone.`,
+      confirmText: 'Empty Recycle Bin',
+      danger: true,
+    });
+    if (!confirmed) return;
     for (const project of deletedProjects) {
       await permanentlyDeleteProject(project.id);
       invalidateProgressCache(project.id);
     }
     loadDeletedProjects();
-    alert('Recycle bin emptied');
+    notify('Recycle bin emptied', 'error');
   };
 
   const continueProject = (id) => navigate(`/write/${id}`);

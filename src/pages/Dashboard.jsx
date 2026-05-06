@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { saveProject } from '../services/firestoreService';
 import ResearchQuestionModal from '../components/ResearchQuestionModal';
+import ConfirmModal from '../components/ConfirmModal';
+import Toast from '../components/Toast';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import RecycleBin from '../components/dashboard/RecycleBin';
 import NewProjectForm from '../components/dashboard/NewProjectForm';
@@ -17,13 +19,25 @@ const Dashboard = () => {
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
   const [hoveredProject, setHoveredProject] = useState(null);
+  const [confirmConfig, setConfirmConfig] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const confirmAction = useCallback((config) => {
+    return new Promise((resolve) => {
+      setConfirmConfig({ ...config, resolve });
+    });
+  }, []);
+
+  const notify = useCallback((message, type) => {
+    setToast({ message, type });
+  }, []);
 
   const {
     projects, deletedProjects, projectsWithProgress, loading, progressLoading,
     loadProjects, loadDeletedProjects,
     handleDeleteProject, handleRestoreProject, handlePermanentDelete, handleEmptyRecycleBin,
     continueProject
-  } = useDashboardData();
+  } = useDashboardData({ confirmAction, notify });
 
   const {
     form, handleChange, useOrganization, setUseOrganization,
@@ -32,7 +46,7 @@ const Dashboard = () => {
     generateResearchQuestions, handleSubmit
   } = useDashboardForm(async (project) => {
     await saveProject(project);
-    alert(`✅ Project created successfully!${useOrganization && organizationName ? `\n\n🏢 Organization "${organizationName}" will be used as case study.` : ''}`);
+    notify(`Project created successfully!${useOrganization && organizationName ? ` Organization "${organizationName}" will be used as case study.` : ''}`, 'success');
     setShowNewProjectForm(false);
     loadProjects();
   });
@@ -44,6 +58,20 @@ const Dashboard = () => {
   }, [navigate]);
 
   useEffect(() => { if (user) { loadProjects(); loadDeletedProjects(); } }, [user]);
+
+  const handleConfirm = () => {
+    if (confirmConfig) {
+      confirmConfig.resolve(true);
+      setConfirmConfig(null);
+    }
+  };
+
+  const handleCancel = () => {
+    if (confirmConfig) {
+      confirmConfig.resolve(false);
+      setConfirmConfig(null);
+    }
+  };
 
   if (!user) return <div style={{ textAlign: 'center', padding: '50px', color: colors.text }}>Loading...</div>;
 
@@ -102,6 +130,27 @@ const Dashboard = () => {
           onCancel={() => setQuestionModal(null)}
         />
       )}
+
+      {confirmConfig && (
+        <ConfirmModal
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          confirmText={confirmConfig.confirmText}
+          cancelText={confirmConfig.cancelText}
+          danger={confirmConfig.danger}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {loadingQuestions && (
         <div style={{
           position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',

@@ -433,7 +433,7 @@ const Write = () => {
         </div>
       </div>
 
-      {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => {}} onDownload={handleInstrumentsDownload} />}
+      {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => {}} onDownload={handleInstrumentsDownload} onNotify={toastError} />}
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
       {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} />}
       {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterAfterWordCount(null); }} />}

@@ -7,16 +7,16 @@ import InstrumentPreview from './InstrumentPreview';
 import GenerationState from './GenerationState';
 import ErrorState from './ErrorState';
 
-const DataCollectionModal = ({ project, onClose, onDownload }) => {
+const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
   const { colors, isDarkMode } = useTheme();
 
   const {
     selectedInstruments, generatedContent, downloadedInstruments, generating,
     activeTab, autoSelect, generationProgress, error, canClose, hasGeneratedContent,
-    setAutoSelect, setActiveTab, setError, setGenerating,
+    setSelectedInstruments, setAutoSelect, setActiveTab, setError, setGenerating,
     toggleInstrument, selectAllRecommended, handleGenerate, handleDownloadInstrument,
     handleDownloadAll, handleStartOver, onClose: handleClose
-  } = useInstrumentGeneration(project, onClose, onDownload);
+  } = useInstrumentGeneration(project, onClose, onDownload, onNotify);
 
   if (error) {
     return (
@@ -37,9 +37,6 @@ const DataCollectionModal = ({ project, onClose, onDownload }) => {
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '4px' }}>Data Collection Instruments</h2>
             <p style={{ color: colors.textSecondary, fontSize: '14px' }}>Select and generate research instruments for your study</p>
           </div>
-          {canClose && (
-            <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: colors.textSecondary, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>×</button>
-          )}
         </div>
 
         <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f5f3ff', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', border: `1px solid ${colors.primary}` }}>

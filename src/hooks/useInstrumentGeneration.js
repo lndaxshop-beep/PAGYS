@@ -12,7 +12,7 @@ const generators = {
   documentAnalysis: generateDocumentAnalysisTemplate, caseStudy: generateCaseStudyProtocol,
 };
 
-const useInstrumentGeneration = (project, onClose, onDownload) => {
+const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
   const [selectedInstruments, setSelectedInstruments] = useState([]);
   const [generatedContent, setGeneratedContent] = useState({});
   const [downloadedInstruments, setDownloadedInstruments] = useState([]);
@@ -43,7 +43,7 @@ const useInstrumentGeneration = (project, onClose, onDownload) => {
   };
 
   const handleGenerate = async () => {
-    if (selectedInstruments.length === 0) { alert('Please select at least one data collection instrument.'); return; }
+    if (selectedInstruments.length === 0) { if (onNotify) onNotify('Please select at least one data collection instrument.', 'error'); return; }
     setGenerating(true);
     setError(null);
     setGenerationProgress(0);
@@ -102,7 +102,7 @@ const useInstrumentGeneration = (project, onClose, onDownload) => {
     activeTab, autoSelect, generationProgress, error, canClose, hasGeneratedContent,
     setSelectedInstruments, setAutoSelect, setActiveTab, setError, setGenerating,
     toggleInstrument, selectAllRecommended, handleGenerate, handleDownloadInstrument,
-    handleDownloadAll, handleStartOver, onClose
+    handleDownloadAll, handleStartOver, onClose, onNotify
   };
 };
 

@@ -78,7 +78,8 @@ const ContentButtons = ({
           backgroundColor: chapterComplete ? '#059669' : colors.border,
           color: chapterComplete ? 'white' : colors.textSecondary,
           padding: '10px 24px', border: 'none', borderRadius: '8px',
-          fontWeight: '600', cursor: chapterComplete ? 'pointer' : 'not-allowed'
+          fontWeight: '600', cursor: chapterComplete ? 'pointer' : 'not-allowed',
+          opacity: chapterComplete ? 1 : 0.5
         }}>{getButtonText()}</button>
       </div>
     </>

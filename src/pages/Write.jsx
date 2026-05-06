@@ -37,8 +37,12 @@ const Write = () => {
   const [generatedSubsections, setGeneratedSubsections] = useState({});
   const [chapterCitations, setChapterCitations] = useState({});
   const [uploadedFindings, setUploadedFindings] = useState(null);
-  const [instrumentsCompleted, setInstrumentsCompleted] = useState(false);
-  const [chapter4Unlocked, setChapter4Unlocked] = useState(false);
+  const [instrumentsCompleted, setInstrumentsCompleted] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`instruments_${projectId}`);
+      return saved ? JSON.parse(saved).length > 0 : false;
+    } catch { return false; }
+  });
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
   const [showReferenceInTextarea, setShowReferenceInTextarea] = useState(false);
@@ -341,7 +345,6 @@ const Write = () => {
   const handleInstrumentsDownload = (downloadedTypes) => {
     setInstrumentsCompleted(true); modals.setShowDataCollectionModal(false);
     setChapters(prev => prev.map(ch => ch.id === 'chapter4' ? { ...ch, unlocked: true } : ch));
-    setChapter4Unlocked(true);
     try { localStorage.setItem(`instruments_${projectId}`, JSON.stringify(downloadedTypes || [])); } catch {}
   };
 

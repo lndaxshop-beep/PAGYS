@@ -11,8 +11,17 @@ const HomePage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    setIsLoggedIn(!!savedUser);
+    const checkLogin = () => {
+      const savedUser = localStorage.getItem('currentUser');
+      setIsLoggedIn(!!savedUser);
+    };
+    checkLogin();
+    window.addEventListener('focus', checkLogin);
+    window.addEventListener('storage', checkLogin);
+    return () => {
+      window.removeEventListener('focus', checkLogin);
+      window.removeEventListener('storage', checkLogin);
+    };
   }, []);
 
   const handleGetStarted = () => {

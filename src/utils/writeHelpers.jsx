@@ -162,6 +162,18 @@ export const formatCitationEntry = (citation, style) => {
   return `${author}. ${year}. [Retrieved from source].`;
 };
 
+const academicDomains = ['doi.org', 'scholar.google', 'pubmed', 'jstor', 'springer', 'elsevier', 'sciencedirect', 'wiley', 'tandfonline', 'sage', 'nature', 'ieee', 'scopus', 'arxiv', 'researchgate', 'academia.edu', 'ncbi.nlm.nih', 'link.springer', 'onlinelibrary.wiley', 'journals.sagepub'];
+const generalWebDomains = ['wikipedia', 'quora', 'reddit', 'medium', 'blog', 'wordpress'];
+
+const detectSourceType = (domain, uri) => {
+  const lower = (domain + ' ' + uri).toLowerCase();
+  if (academicDomains.some(d => lower.includes(d))) return 'academic';
+  if (generalWebDomains.some(d => lower.includes(d))) return 'web';
+  if (/\.edu\/|\.ac\.\//.test(uri)) return 'academic';
+  if (/\/article\/|\/paper\/|\/journal\/|\/publication\//.test(uri)) return 'academic';
+  return 'web';
+};
+
 export const formatGroundedReference = (source, style) => {
   if (!source || !source.uri) return null;
   const url = source.uri;
@@ -173,10 +185,43 @@ export const formatGroundedReference = (source, style) => {
     domain = url.slice(0, 40);
   }
   const title = source.title || domain.charAt(0).toUpperCase() + domain.slice(1);
-  if (style === 'apa') return `${domain}. (n.d.). ${title}. Retrieved from ${url}`;
-  if (style === 'mla') return `"${title}." ${domain}, ${url}.`;
-  if (style === 'harvard') return `${domain} (n.d.). ${title}. Available at: ${url}.`;
-  return `${domain}. ${title}. ${url}`;
+  const sourceType = detectSourceType(domain, url);
+  const hasUrl = sourceType === 'web';
+
+  const cleanDomain = domain.charAt(0).toUpperCase() + domain.slice(1);
+
+  if (style === 'apa') {
+    if (hasUrl) {
+      return `${cleanDomain}. (n.d.). ${title}. ${url}`;
+    }
+    return `${cleanDomain}. (n.d.). ${title}.`;
+  }
+  if (style === 'mla') {
+    if (hasUrl) {
+      return `"${title}." ${cleanDomain}, ${url}.`;
+    }
+    return `"${title}." ${cleanDomain}.`;
+  }
+  if (style === 'harvard') {
+    if (hasUrl) {
+      return `${cleanDomain} (n.d.). ${title}. Available at: ${url}.`;
+    }
+    return `${cleanDomain} (n.d.). ${title}.`;
+  }
+  if (style === 'chicago') {
+    if (hasUrl) {
+      return `"${title}." ${cleanDomain}. ${url}.`;
+    }
+    return `"${title}." ${cleanDomain}.`;
+  }
+  if (style === 'ieee') {
+    if (hasUrl) {
+      return `"${title}," ${cleanDomain}. [Online]. Available: ${url}`;
+    }
+    return `"${title}," ${cleanDomain}.`;
+  }
+  if (hasUrl) return `${cleanDomain}. ${title}. ${url}`;
+  return `${cleanDomain}. ${title}.`;
 };
 
 export const formatSimpleReference = (author, year, style) => {

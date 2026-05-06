@@ -18,6 +18,7 @@ import HomePage from './components/home/HomePage';
 import usePayment from './hooks/usePayment';
 import './App.css';
 import Settings from './pages/Settings';
+import CitationVerify from './pages/CitationVerify';
 
 function AppContent() {
   const { colors } = useTheme();
@@ -44,6 +45,7 @@ function AppContent() {
             <Route path="/write/:projectId" element={<ProtectedRoute><Write /></ProtectedRoute>} />
             <Route path="/myfiles" element={<ProtectedRoute><MyFiles /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/citations/:projectId" element={<ProtectedRoute><CitationVerify /></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/refund" element={<RefundPolicy />} />

@@ -169,7 +169,7 @@ const detectSourceType = (domain, uri) => {
   const lower = (domain + ' ' + uri).toLowerCase();
   if (academicDomains.some(d => lower.includes(d))) return 'academic';
   if (generalWebDomains.some(d => lower.includes(d))) return 'web';
-  if (/\.edu\/|\.ac\.\//.test(uri)) return 'academic';
+  if (/\.edu($|\/)|\.ac\./.test(uri)) return 'academic';
   if (/\/article\/|\/paper\/|\/journal\/|\/publication\//.test(uri)) return 'academic';
   return 'web';
 };

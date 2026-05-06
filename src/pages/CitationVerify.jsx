@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { extractCitations, formatGroundedReference } from '../utils/writeHelpers.jsx';
+import { getGeneratedContent, getChapters } from '../services/firestoreService';
 
 const chapterOrder = ['proposal', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
 const chapterLabels = {
@@ -21,6 +22,8 @@ const CitationVerify = () => {
   const { colors } = useTheme();
 
   const [project, setProject] = useState(null);
+  const [chapters, setChapters] = useState([]);
+  const [generatedContent, setGeneratedContent] = useState({});
   const [loading, setLoading] = useState(true);
   const [expandedChapters, setExpandedChapters] = useState({});
   const [verifiedCitations, setVerifiedCitations] = useState({});
@@ -39,6 +42,14 @@ const CitationVerify = () => {
           const found = localProjects.find(p => p.id === projectId);
           if (found) setProject(found);
         }
+
+        const [savedContent, savedChapters] = await Promise.all([
+          getGeneratedContent(projectId),
+          getChapters(projectId)
+        ]);
+
+        if (savedContent && Object.keys(savedContent).length) setGeneratedContent(savedContent);
+        if (savedChapters && Array.isArray(savedChapters)) setChapters(savedChapters);
       } catch {
         navigate('/dashboard');
       } finally {
@@ -81,22 +92,28 @@ const CitationVerify = () => {
     );
   }
 
-  const generatedContent = JSON.parse(localStorage.getItem(`generatedContent_${projectId}`) || '{}');
   const style = project?.referenceStyle || 'apa';
+
+  const chapterMap = {};
+  chapters.forEach(ch => { chapterMap[ch.id] = ch; });
 
   const chapterData = chapterOrder.map(chapterId => {
     const contentMap = generatedContent[chapterId] || {};
-    const groundingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
+    const chapter = chapterMap[chapterId];
+    const subsectionTitles = new Set((chapter?.subsections || []).filter(s => !s.deleted && s.title !== 'References').map(s => s.title));
 
     const subsections = [];
     Object.entries(contentMap).forEach(([title, content]) => {
       if (title === 'References' || !content) return;
+      if (subsectionTitles.size > 0 && !subsectionTitles.has(title)) return;
       const citations = extractCitations(content);
       const uniqueCitations = [...new Set(citations)];
       if (uniqueCitations.length > 0) {
         subsections.push({ title, citations: uniqueCitations });
       }
     });
+
+    const groundingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
 
     const totalCitations = subsections.reduce((sum, s) => sum + s.citations.length, 0);
 

@@ -7,6 +7,7 @@ import UploadFindings from '../components/UploadFindings';
 import WordCountModal from '../components/WordCountModal';
 import LiteratureReviewTypeModal from '../components/LiteratureReviewTypeModal';
 import { useToast, ToastContainer } from '../hooks/useToast.jsx';
+import ConfirmModal from '../components/ConfirmModal';
 import { useUndoRedo } from '../hooks/useAutoSave';
 import useWriteChapter from '../hooks/useWriteChapter';
 import useWriteContent from '../hooks/useWriteContent';
@@ -48,6 +49,7 @@ const Write = () => {
   const [tableData, setTableData] = useState({});
   const [isViewingReferences, setIsViewingReferences] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const modals = useWriteModals();
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
@@ -63,7 +65,7 @@ const Write = () => {
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent);
 
-  const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart);
+  const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -177,7 +179,8 @@ const Write = () => {
 
   const wrappedHandleChapterStructureSubmit = async (referenceData) => {
     const setUploadedFiles = modals.setUploadedStructureFile;
-    await handleChapterStructureSubmit(referenceData, modals.pendingChapterForStructure, instrumentsCompleted, modals.setShowUploadFindings, modals.setShowWordCountModal, modals.setPendingChapterAfterWordCount, modals.setPendingChapterForStructure, modals.setShowChapterStructureModal, setUploadedFiles, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent);
+    const result = await handleChapterStructureSubmit(referenceData, modals.pendingChapterForStructure, instrumentsCompleted, modals.setShowUploadFindings, modals.setShowWordCountModal, modals.setPendingChapterAfterWordCount, modals.setPendingChapterForStructure, modals.setShowChapterStructureModal, setUploadedFiles, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent);
+    if (result?.action === 'error') toastError(result.message);
   };
 
   const wrappedHandleWordCountSubmit = (range, useCustom) => {
@@ -212,15 +215,23 @@ const Write = () => {
     }
   };
 
-  const wrappedHandleCompleteChapter = () => {
-    const result = handleCompleteChapter();
+  const wrappedHandleCompleteChapter = async () => {
+    const result = await handleCompleteChapter();
+    if (result.action === 'error') { toastError(result.message); return; }
     if (result.action === 'showDataCollection') { modals.setShowDataCollectionModal(true); return; }
     if (result.action === 'navigateFiles') { navigate('/myfiles'); return; }
     if (result.action === 'nextChapter') {
-      if (window.confirm(`${result.chapterTitle} completed! Continue?`)) {
-        setActiveChapter(result.nextChapterId); setIsViewingReferences(false); setIsPreviewMode(true);
-        setCurrentSubsectionIndex(0); setCurrentContent(''); setShowReferenceInTextarea(false);
-      }
+      setConfirmModal({
+        title: 'Chapter Completed',
+        message: `${result.chapterTitle} completed! Continue to the next chapter?`,
+        confirmText: 'Continue',
+        onConfirm: () => {
+          setActiveChapter(result.nextChapterId); setIsViewingReferences(false); setIsPreviewMode(true);
+          setCurrentSubsectionIndex(0); setCurrentContent(''); setShowReferenceInTextarea(false);
+          setConfirmModal(null);
+        },
+        onCancel: () => setConfirmModal(null),
+      });
     }
   };
 
@@ -234,7 +245,8 @@ const Write = () => {
   const wrappedGenerateCurrent = async () => {
     try {
       const result = await handleGenerateCurrent(activeSubsections);
-      if (!result) return;
+      if (!result || result.error) { toastError(result?.message || 'Generation failed.'); return; }
+      if (result.skipped) return;
       const { content, citations, subsectionId, subsectionTitle } = result;
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionTitle]: content } }));
@@ -258,7 +270,7 @@ const Write = () => {
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: currentContent } }));
     }
     const result = await handleGenerateReferences(currentChapter, currentContent);
-    if (!result) return;
+    if (!result || result.error) { toastError(result?.message || 'References generation failed.'); return; }
     const { content } = result;
     setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.title === 'References' ? { ...s, generated: true } : s) } : ch));
@@ -270,7 +282,7 @@ const Write = () => {
     const activeSubs = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
     if (subsectionTitle === 'References') {
       const allOthersGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
-      if (!allOthersGenerated) { alert('⚠️ Please generate all other subsections first.'); return; }
+      if (!allOthersGenerated) { toastError('Please generate all other subsections first.'); return; }
       wrappedGenerateReferences(); return;
     }
     const index = activeSubs.findIndex(s => s.title === subsectionTitle);
@@ -282,9 +294,9 @@ const Write = () => {
   };
 
   const wrappedHumanise = async () => {
-    if (!currentContent) { alert('No content to humanise.'); return; }
+    if (!currentContent) { toastError('No content to humanise.'); return; }
     const result = await handleHumanise(currentContent);
-    if (!result) return;
+    if (!result || result.error) { toastError(result?.message || 'Humanise failed.'); return; }
     const { humanisedText, humaniseKey } = result;
     setCurrentContent(humanisedText);
     if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: humanisedText } }));
@@ -292,15 +304,15 @@ const Write = () => {
   };
 
   const wrappedApplyFeedback = async () => {
-    if (!modals.feedbackText && modals.feedbackFiles.length === 0) { alert('Please enter feedback or upload files'); return; }
+    if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
     const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.title] || '';
     const result = await handleApplyFeedback(currentContentText, modals.feedbackText, modals.feedbackFiles, modals.currentFeedbackSubsection);
-    if (!result) return;
+    if (!result || result.error) { toastError(result?.message || 'Feedback application failed.'); return; }
     const { modifiedContent, feedbackKey } = result;
     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.title]: modifiedContent } }));
     if (currentSubsection?.title === modals.currentFeedbackSubsection.title) setCurrentContent(modifiedContent);
     setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
-    alert('✅ Feedback applied successfully!');
+    toastSuccess('Feedback applied successfully!');
     modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
   };
 
@@ -432,6 +444,7 @@ const Write = () => {
         uploadedFiles={modals.uploadedStructureFile}
         setUploadedFiles={modals.setUploadedStructureFile}
         pendingChapter={modals.pendingChapterForStructure}
+        onError={(msg) => toastError(msg)}
       />
 
       <FeedbackModal
@@ -446,6 +459,16 @@ const Write = () => {
         onApply={wrappedApplyFeedback}
         applying={modals.applyingSubFeedback}
       />
+
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+        />
+      )}
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>

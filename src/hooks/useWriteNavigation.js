@@ -31,7 +31,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
       finalReferenceData = { ...referenceData, content: '[Uploaded ' + referenceData.files.length + ' screenshot(s) for structure reference]' };
     }
     if (chapterId === 'chapter4') {
-      if (!instrumentsCompleted) { alert('Please complete and download the questionnaire first.'); setPendingChapterForStructure(null); return; }
+      if (!instrumentsCompleted) { setPendingChapterForStructure(null); return { action: 'error', message: 'Please complete and download the questionnaire first.' }; }
       setShowUploadFindings(true);
       setPendingChapterAfterWordCount(chapterId);
       setPendingChapterForStructure(null);
@@ -102,7 +102,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
   }, [chapters, activeChapter, generatedSubsections]);
 
   const handleCompleteChapter = useCallback(() => {
-    if (!isChapterComplete()) { alert('Please generate all subsections and references first.'); return { action: 'none' }; }
+    if (!isChapterComplete()) return { action: 'error', message: 'Please generate all subsections and references first.' };
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, completed: true } : ch));
     if (activeChapter === 'chapter3') return { action: 'showDataCollection' };
     if (activeChapter === 'chapter5') return { action: 'navigateFiles' };

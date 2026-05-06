@@ -65,10 +65,10 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 
   const handleGenerateCurrent = useCallback(async (activeSubsections) => {
     const currentChapter = chapters.find(c => c.id === activeChapter);
-    if (currentSubsectionIndex >= activeSubsections.length) { alert('All subsections generated!'); return; }
+    if (currentSubsectionIndex >= activeSubsections.length) return { error: true, message: 'All subsections generated!' };
     const currentSub = activeSubsections[currentSubsectionIndex];
-    if (currentSub.title === 'References') return;
-    if (currentSub.generated) { alert('This subsection has already been generated.'); return; }
+    if (currentSub.title === 'References') return { skipped: true, reason: 'references' };
+    if (currentSub.generated) return { error: true, message: 'This subsection has already been generated.' };
     setGenerating(true);
     try {
       let chapterTitle = activeChapter === 'proposal' ? 'Proposal' : activeChapter === 'chapter1' ? 'Chapter 1: Introduction' : activeChapter === 'chapter2' ? 'Chapter 2: Literature Review' : activeChapter === 'chapter3' ? 'Chapter 3: Methodology' : activeChapter === 'chapter4' ? 'Chapter 4: Results/Analysis' : 'Chapter 5: Discussion & Conclusion';
@@ -104,7 +104,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
     const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.title !== 'References' && !s.deleted);
-    if (allGeneratedSubsections.length === 0) { alert('Please generate some content first.'); return; }
+    if (allGeneratedSubsections.length === 0) return { error: true, message: 'Please generate some content first.' };
     let allCitations = [];
     allGeneratedSubsections.forEach(sub => {
       const content = generatedSubsections[activeChapter]?.[sub.title] || '';
@@ -116,10 +116,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       allCitations = [...allCitations, ...currentCitations];
     }
     const uniqueCitations = [...new Set(allCitations)];
-    if (uniqueCitations.length === 0) {
-      alert('No in-text citations found. Try regenerating the content.');
-      return;
-    }
+    if (uniqueCitations.length === 0) return { error: true, message: 'No in-text citations found. Try regenerating the content.' };
     const style = project?.referenceStyle || 'apa';
     try {
       const { generateReferences } = await import('../services/geminiService');
@@ -133,9 +130,9 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   }, [project, activeChapter, generatedSubsections]);
 
   const handleHumanise = useCallback(async (content) => {
-    if (!content) { alert('No content to humanise.'); return; }
+    if (!content) return { error: true, message: 'No content to humanise.' };
     const humaniseKey = `${activeChapter}_${currentSubsection?.id}`;
-    if (humaniseUsed[humaniseKey]) { alert('Humanise has already been used for this subsection.'); return; }
+    if (humaniseUsed[humaniseKey]) return { error: true, message: 'Humanise has already been used for this subsection.' };
     setHumanising(true);
     try {
       const { humaniseContent } = await import('../services/geminiService');
@@ -146,7 +143,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   }, [project, activeChapter, currentSubsection, humaniseUsed]);
 
   const handleApplyFeedback = useCallback(async (currentContentText, feedbackText, feedbackFiles, currentFeedbackSubsection) => {
-    if (!feedbackText && feedbackFiles.length === 0) { alert('Please enter feedback or upload files'); return; }
+    if (!feedbackText && feedbackFiles.length === 0) return { error: true, message: 'Please enter feedback or upload files' };
     setApplyingSubFeedback(true);
     try {
       const { applyFeedbackToContent } = await import('../services/geminiService');

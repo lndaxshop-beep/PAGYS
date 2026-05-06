@@ -3,7 +3,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUploadedFiles, pendingChapter }) => {
+const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUploadedFiles, pendingChapter, onError }) => {
   const { colors, isDarkMode } = useTheme();
   const [textValue, setTextValue] = useState('');
 
@@ -18,7 +18,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUp
     if (!files.length) return;
     const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-        alert(`"${file.name}" exceeds 5MB limit.`);
+        onError?.(`"${file.name}" exceeds 5MB limit.`);
         return false;
       }
       return true;
@@ -49,7 +49,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUp
     } else if (uploadedFiles) {
       onSubmit(files.length === 1 ? files[0] : { type: 'files', files });
     } else {
-      alert('Please upload screenshots or paste text first, or click Skip.');
+      onError?.('Please upload screenshots or paste text first, or click Skip.');
     }
   };
 

@@ -49,7 +49,7 @@ const Dashboard = () => {
     notify(`Project created successfully!${useOrganization && organizationName ? ` Organization "${organizationName}" will be used as case study.` : ''}`, 'success');
     setShowNewProjectForm(false);
     loadProjects();
-  });
+  }, { onNotify: notify });
 
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');

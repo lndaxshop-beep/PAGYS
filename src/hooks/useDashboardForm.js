@@ -4,7 +4,7 @@ const defaultForm = {
   title: '', level: 'undergraduate', field: '', topic: '', methodology: '', referenceStyle: 'apa',
 };
 
-export const useDashboardForm = (onSuccess) => {
+export const useDashboardForm = (onSuccess, { onNotify } = {}) => {
   const [form, setForm] = useState(defaultForm);
   const [useOrganization, setUseOrganization] = useState(false);
   const [organizationName, setOrganizationName] = useState('');
@@ -14,8 +14,18 @@ export const useDashboardForm = (onSuccess) => {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const extractKeyword = () => {
+    const t = form.title.trim();
+    const stopWords = ['a', 'an', 'the', 'of', 'in', 'on', 'for', 'to', 'and', 'or', 'is', 'are', 'with', 'from', 'by', 'at', 'impact', 'study', 'analysis', 'research', 'effects', 'role'];
+    const words = t.replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3 && !stopWords.includes(w.toLowerCase()));
+    return words.slice(0, 3).join(' ') || t.slice(0, 40);
+  };
+
   const generateResearchQuestions = async () => {
-    if (!form.title) { alert('Please enter a thesis title first'); return; }
+    if (!form.title.trim()) {
+      onNotify?.('Please enter a thesis title first', 'error');
+      return;
+    }
     let questions = [];
     setLoadingQuestions(true);
     try {
@@ -45,13 +55,14 @@ Examples:
     }
     setLoadingQuestions(false);
     if (!questions.length) {
+      const kw = extractKeyword();
       questions = [
-        `How does ${form.title} affect key outcomes in ${form.field || 'general'}?`,
-        `What factors influence the effectiveness of ${form.title}?`,
-        `How does ${form.title} vary across different contexts?`,
-        `What are the main barriers to implementing ${form.title}?`,
-        `How do stakeholders perceive the impact of ${form.title}?`,
-        `What strategies improve the outcomes of ${form.title}?`,
+        `How does ${kw} affect outcomes in ${form.field || 'this field'}?`,
+        `What factors influence the effectiveness of ${kw}?`,
+        `How does ${kw} perform across different contexts?`,
+        `What are the main barriers to ${kw}?`,
+        `How do stakeholders perceive the impact of ${kw}?`,
+        `What strategies improve ${kw} outcomes?`,
       ];
     }
     setQuestionModal({

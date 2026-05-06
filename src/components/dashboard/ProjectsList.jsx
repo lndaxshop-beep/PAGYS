@@ -24,12 +24,22 @@ const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHo
   if (loading) return <p style={{ textAlign: 'center', padding: '32px', color: colors.textSecondary }}>Loading...</p>;
   if (!projects.length) {
     return (
-      <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '48px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
-        <p style={{ color: colors.textSecondary, marginBottom: '16px' }}>You haven't started any projects yet</p>
+      <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '48px 48px 56px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
+        <div style={{
+          width: '64px', height: '64px', margin: '0 auto 20px', borderRadius: '50%',
+          backgroundColor: isDarkMode ? '#2d2d2d' : '#f3f4f6',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '28px'
+        }}>📝</div>
+        <p style={{ color: colors.textSecondary, marginBottom: '4px', fontWeight: '500', fontSize: '16px' }}>No projects yet</p>
+        <p style={{ color: colors.textSecondary, marginBottom: '24px', fontSize: '14px' }}>Start your first thesis and turn ideas into a polished document.</p>
         <button onClick={onCreateFirst} style={{
-          backgroundColor: colors.primary, color: 'white', padding: '12px 24px',
-          border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer'
-        }}>Create Your First Project</button>
+          backgroundColor: colors.primary, color: 'white', padding: '14px 32px',
+          border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer',
+          fontSize: '15px', transition: 'transform 0.2s', display: 'inline-flex', alignItems: 'center', gap: '8px'
+        }}>
+          <span style={{ fontSize: '20px' }}>+</span> Create Your First Project
+        </button>
       </div>
     );
   }

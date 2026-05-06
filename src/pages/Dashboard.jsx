@@ -19,7 +19,7 @@ const Dashboard = () => {
   const [hoveredProject, setHoveredProject] = useState(null);
 
   const {
-    projects, deletedProjects, projectsWithProgress, loading,
+    projects, deletedProjects, projectsWithProgress, loading, progressLoading,
     loadProjects, loadDeletedProjects,
     handleDeleteProject, handleRestoreProject, handlePermanentDelete, handleEmptyRecycleBin,
     continueProject
@@ -84,6 +84,7 @@ const Dashboard = () => {
           <ProjectsList
             projects={projectsWithProgress}
             loading={loading}
+            progressLoading={progressLoading}
             hoveredProject={hoveredProject}
             onHover={setHoveredProject}
             onContinue={continueProject}

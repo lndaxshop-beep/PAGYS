@@ -122,9 +122,17 @@ ${visualGuidance}
 ## LANGUAGE AND PHRASING BANS
 You must NEVER use: em dashes (—), "In today's rapidly evolving society", "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion".
 
+## REAL CITATIONS ONLY — NO FABRICATION
+- EVERY in-text citation MUST correspond to a REAL source you found via Google Search grounding.
+- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
+- If Google Search Grounding did not return a verifiable source for a claim, DO NOT add a citation for it — write the claim without a citation instead.
+- Only use author names and publication years from sources you have actually found via search.
+- DO NOT make up citations that sound plausible. Every "(Author, Year)" must match a real, searchable publication.
+
 ## IN-TEXT CITATIONS (MANDATORY — EVERY PARAGRAPH)
 - EVERY paragraph MUST contain at least one in-text citation.
-- If real citations are provided above, use ONLY those. Do not invent new ones.
+- Use only real, grounded citations from Google Search results.
+- Format: (Author, Year) or (Author and Author, Year) or (Author et al., Year)
 
 ## FORMATTING
 - Plain text only. NO markdown headings (###), NO HTML.
@@ -149,7 +157,10 @@ Write the complete content now. Aim for approximately ${targetWords} words.`;
 
 export const applyFeedbackToContent = async (currentContent, feedback, subsectionTitle, project) => {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL,
+      tools: [{ googleSearch: {} }]
+    });
     let filesInstruction = feedback.files?.length ? `\nUploaded ${feedback.files.length} file(s): ${feedback.files.join(', ')}.` : '';
     const prompt = `You are an expert academic editor. Apply this supervisor feedback to the academic text.\n\nSUBSECTION: ${subsectionTitle}\nTOPIC: "${project?.title}"\nFIELD: ${project?.field}\n\nFEEDBACK: "${feedback.text}"${filesInstruction}\n\nCURRENT TEXT:\n${currentContent}\n\nApply the changes precisely. Keep all citations, tables, charts, diagrams, and formatting intact. Return ONLY the modified text.`;
     const result = await model.generateContent(prompt);
@@ -159,7 +170,10 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
 
 export const humaniseContent = async (text) => {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL,
+      tools: [{ googleSearch: {} }]
+    });
     const prompt = `You are an expert editor who transforms AI-generated academic text into writing that is COMPLETELY INDISTINGUISHABLE from human academic writing — while maintaining a PROFESSIONAL, FORMAL, SCHOLARLY tone.
 
 TEXT TO HUMANISE:
@@ -188,7 +202,10 @@ Return ONLY the rewritten text. No explanations.`;
 
 export const generateReferences = async (citations, style) => {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL,
+      tools: [{ googleSearch: {} }]
+    });
     const styleGuide = style === 'apa'
       ? 'APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.'
       : style === 'mla'
@@ -203,13 +220,16 @@ REFERENCE STYLE: ${style.toUpperCase()}
 STYLE GUIDE: ${styleGuide}
 
 RULES:
-- Generate a complete, properly formatted reference for EACH citation above
+- Search Google to find REAL, VERIFIABLE sources for each citation above
+- Use ONLY real publications, journals, and papers that actually exist
+- If you cannot find a real source for a citation, format it with "Title of the work" and "Source" as placeholders
+- Generate a complete, properly formatted reference for EACH citation
 - Use the EXACT author names and years from the citations
-- Fill in realistic academic titles, journals, publishers based on the citation context
 - Format precisely according to the style guide above
 - Return ONLY the reference entries, one per line, sorted alphabetically by first author
 - NO headings, NO explanations, NO numbering
 - DO NOT invent additional citations not listed above
+- DO NOT fabricate DOIs, journal names, or publication details
 
 Example APA:
 Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`;

@@ -53,7 +53,7 @@ const Write = () => {
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
   const { state: editorContent, set: setEditorContent, undo, redo, canUndo, canRedo } = useUndoRedo('');
 
-  const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter, setChapterWordCount } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
+  const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
 
   const currentChapter = chapters.find(c => c.id === activeChapter);
   const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
@@ -127,7 +127,6 @@ const Write = () => {
     loadProject();
   }, [projectId, navigate]);
 
-  useEffect(() => { if (projectId && chapters.length) saveChapters(projectId, chapters); }, [chapters, projectId]);
   useEffect(() => { if (projectId && Object.keys(generatedSubsections).length) saveGeneratedContent(projectId, generatedSubsections); }, [generatedSubsections, projectId]);
   useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations); }, [chapterCitations, projectId]);
   useEffect(() => { if (projectId && Object.keys(diagramData).length) saveVisualData(projectId, 'diagrams', diagramData); }, [diagramData, projectId]);
@@ -182,7 +181,7 @@ const Write = () => {
   };
 
   const wrappedHandleWordCountSubmit = (range, useCustom) => {
-    handleWordCountSubmit(range, useCustom, modals.pendingChapterAfterWordCount, {}, modals.setShowWordCountModal);
+    handleWordCountSubmit(range, useCustom, modals.pendingChapterAfterWordCount, modals.setShowWordCountModal);
     modals.setShowWordCountModal(false);
     if (modals.pendingChapterAfterWordCount) {
       const chapter = chapters.find(c => c.id === modals.pendingChapterAfterWordCount);

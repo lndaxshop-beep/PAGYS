@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUploadedFiles, pendingChapter }) => {
   const { colors, isDarkMode } = useTheme();
+  const [textValue, setTextValue] = useState('');
+
+  useEffect(() => {
+    if (isOpen) setTextValue('');
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    const promises = files.map(file => new Promise(resolve => {
+    const validFiles = files.filter(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`"${file.name}" exceeds 5MB limit.`);
+        return false;
+      }
+      return true;
+    });
+    if (!validFiles.length) return;
+    const promises = validFiles.map(file => new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = (ev) => resolve({ type: 'file', content: ev.target.result, name: file.name });
       reader.readAsDataURL(file);
@@ -27,10 +43,9 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUp
   };
 
   const handleSubmit = () => {
-    const text = document.getElementById('structure-textarea')?.value;
     const files = uploadedFiles ? (Array.isArray(uploadedFiles) ? uploadedFiles : [uploadedFiles]) : [];
-    if (text && text.trim()) {
-      onSubmit({ type: 'combined', text: text.trim(), files });
+    if (textValue.trim()) {
+      onSubmit({ type: 'combined', text: textValue.trim(), files });
     } else if (uploadedFiles) {
       onSubmit(files.length === 1 ? files[0] : { type: 'files', files });
     } else {
@@ -66,7 +81,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUp
 
         <div style={{ textAlign: 'center', marginBottom: '20px' }}><span style={{ color: colors.textSecondary, fontWeight: '500' }}>— OR —</span></div>
 
-        <textarea id="structure-textarea" placeholder="Paste your chapter structure here...&#10;&#10;Example:&#10;2.0 Introduction&#10;2.1 Theoretical Framework [with diagram]&#10;2.2 Conceptual Framework..." rows="15" style={{ width: '100%', padding: '14px', marginBottom: '16px', border: `1px solid ${colors.border}`, borderRadius: '8px', backgroundColor: colors.input, color: colors.text, fontSize: '14px', resize: 'vertical', fontFamily: 'monospace', lineHeight: '1.6', minHeight: '250px' }} />
+        <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Paste your chapter structure here...&#10;&#10;Example:&#10;2.0 Introduction&#10;2.1 Theoretical Framework [with diagram]&#10;2.2 Conceptual Framework..." rows="15" style={{ width: '100%', padding: '14px', marginBottom: '16px', border: `1px solid ${colors.border}`, borderRadius: '8px', backgroundColor: colors.input, color: colors.text, fontSize: '14px', resize: 'vertical', fontFamily: 'monospace', lineHeight: '1.6', minHeight: '250px' }} />
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={handleSubmit} style={{ flex: 1, backgroundColor: '#059669', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>✅ Use This Structure</button>

@@ -13,7 +13,7 @@ const LeftPane = ({
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
   draggedItem, dragOverItem
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const [expandedChapter, setExpandedChapter] = useState(null);
 
   const handleChapterClick = (id) => {
@@ -22,10 +22,7 @@ const LeftPane = ({
   };
 
   const handleSubsectionClick = (subsection, allSubsections) => {
-    if (!validateReferencesClick(subsection, allSubsections)) {
-      alert('⚠️ Please generate all other subsections first before generating references.');
-      return;
-    }
+    if (!validateReferencesClick(subsection, allSubsections)) return;
     onSubsectionClick?.(subsection.title);
   };
 
@@ -61,7 +58,7 @@ const LeftPane = ({
               {isExpanded && (
                 <div style={{
                   marginLeft: '20px', padding: '12px',
-                  backgroundColor: colors.isDarkMode ? '#2d2d2d' : '#f9fafb',
+                  backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb',
                   borderRadius: '8px', border: `1px solid ${colors.border}`,
                   marginTop: '4px'
                 }}>
@@ -101,7 +98,7 @@ const LeftPane = ({
                     </div>
                   )}
 
-                  <AddSubsection onAdd={(title) => onAddSubsection(title)} />
+                  <AddSubsection onAdd={onAddSubsection} />
                   <DeletedSubsections
                     chapterId={chapter.id}
                     deletedSubsections={chapter.deletedSubsections || []}

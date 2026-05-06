@@ -85,26 +85,27 @@ export default ContentRenderer;
 
 export const getWordCountPresets = (level) => {
   const presets = {
-    undergraduate: { chapter1: 1500, chapter2: 2500, chapter3: 1500, chapter4: 2000, chapter5: 1500 },
-    masters: { chapter1: 2500, chapter2: 4000, chapter3: 2500, chapter4: 3500, chapter5: 2500 },
-    phd: { chapter1: 4000, chapter2: 6000, chapter3: 4000, chapter4: 5000, chapter5: 4000 },
+    undergraduate: { proposal: { min: 1000, max: 1500 }, chapter1: { min: 1000, max: 1800 }, chapter2: { min: 2500, max: 4000 }, chapter3: { min: 1500, max: 2500 }, chapter4: { min: 1500, max: 3000 }, chapter5: { min: 1000, max: 2000 } },
+    masters: { proposal: { min: 1500, max: 2000 }, chapter1: { min: 1500, max: 2500 }, chapter2: { min: 4000, max: 7000 }, chapter3: { min: 2500, max: 4000 }, chapter4: { min: 3000, max: 5000 }, chapter5: { min: 2500, max: 4000 } },
+    phd: { proposal: { min: 2000, max: 3000 }, chapter1: { min: 4000, max: 6000 }, chapter2: { min: 15000, max: 25000 }, chapter3: { min: 8000, max: 12000 }, chapter4: { min: 10000, max: 20000 }, chapter5: { min: 10000, max: 15000 } },
   };
   return presets[level] || presets.undergraduate;
 };
 
 export const getFallbackSubtopics = (chapterId) => {
   const subtopics = {
+    proposal: ['Introduction', 'Background of the Study', 'Problem Statement', 'Research Objectives', 'Research Questions', 'Significance of the Study', 'Methodology Overview', 'Definition of Terms', 'Limitations', 'Structure of the Proposal'],
     chapter1: ['Introduction', 'Background of the Study', 'Problem Statement', 'Research Objectives', 'Research Questions', 'Significance of the Study', 'Scope and Limitations', 'Definition of Terms'],
-    chapter2: ['Theoretical Framework', 'Conceptual Framework', 'Empirical Review', 'Research Gaps', 'Summary'],
-    chapter3: ['Research Design', 'Population and Sampling', 'Data Collection Methods', 'Data Analysis Procedures', 'Ethical Considerations'],
-    chapter4: ['Data Presentation', 'Data Analysis', 'Findings', 'Discussion of Findings'],
-    chapter5: ['Summary of Findings', 'Conclusions', 'Recommendations', 'References'],
+    chapter2: ['Introduction', 'Theoretical Framework', 'Conceptual Framework', 'Empirical Review', 'Research Gaps', 'Summary'],
+    chapter3: ['Introduction', 'Research Design', 'Population and Sampling', 'Data Collection Methods', 'Data Analysis Procedures', 'Reliability and Validity', 'Ethical Considerations'],
+    chapter4: ['Introduction', 'Descriptive Statistics', 'Data Analysis', 'Findings', 'Summary'],
+    chapter5: ['Introduction', 'Summary of Findings', 'Discussion of Findings', 'Implications', 'Recommendations', 'Conclusions', 'Suggestions for Future Research'],
   };
   return (subtopics[chapterId] || []).map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
 };
 
 export const renumberSubsections = (subsections, chapterId) => {
-  const chapterNum = chapterId.replace('chapter', '');
+  const chapterNum = chapterId === 'proposal' ? 'P' : chapterId.replace('chapter', '');
   return subsections.map((sub, i) => ({
     ...sub,
     id: `${chapterId}_sub_${i + 1}`,
@@ -113,14 +114,39 @@ export const renumberSubsections = (subsections, chapterId) => {
 };
 
 export const distributeWordCount = (min, max, subsections, currentTitle) => {
-  const total = Math.round((min + max) / 2);
-  const count = subsections.length || 1;
-  return Math.round(total / count);
+  const count = subsections.length;
+  if (count === 0) return { min: 0, max: 0 };
+
+  const analyticalKeywords = ['framework', 'review', 'analysis', 'findings', 'discussion', 'design', 'methodology', 'conceptual', 'theoretical', 'empirical', 'data', 'results'];
+  const structuralKeywords = ['objectives', 'scope', 'significance', 'definitions', 'limitations', 'ethics', 'background', 'introduction', 'summary', 'conclusion', 'recommendations', 'problem statement'];
+
+  const weights = subsections.map((sub, index) => {
+    if (count === 1) return 1.0;
+    const title = sub.title.toLowerCase();
+    if (index === 0 || index === count - 1) {
+      const isAnalytical = analyticalKeywords.some(kw => title.includes(kw));
+      return isAnalytical ? 1.0 : 0.6;
+    }
+    const isAnalytical = analyticalKeywords.some(kw => title.includes(kw));
+    if (isAnalytical) return 1.3;
+    const isStructural = structuralKeywords.some(kw => title.includes(kw));
+    if (isStructural) return 0.7;
+    return 1.0;
+  });
+
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  const currentIndex = subsections.findIndex(s => s.title === currentTitle);
+  const weight = weights[currentIndex >= 0 ? currentIndex : 0] || 1.0;
+
+  return {
+    min: Math.floor((min / totalWeight) * weight),
+    max: Math.floor((max / totalWeight) * weight)
+  };
 };
 
 export const extractCitations = (content) => {
   if (!content) return [];
-  const regex = /\(([A-Z][a-zA-Z\s&,\.\-\']+,\s*\d{4})\)/g;
+  const regex = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et al[.,]*)?)*,\s*\d{4})\)/g;
   const matches = content.match(regex) || [];
   return matches.map(m => m.slice(1, -1).trim());
 };

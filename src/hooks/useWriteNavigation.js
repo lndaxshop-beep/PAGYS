@@ -50,8 +50,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setPendingChapterForStructure(null);
   }, [chapters, chapterWordCountSet, generateSubtopicsForChapter]);
 
-  const handleWordCountSubmit = useCallback((range, useCustom, pendingChapterAfterWordCount, setWordCountRange, setShowWordCountModal) => {
-    if (useCustom) setWordCountRange(range);
+  const handleWordCountSubmit = useCallback((range, useCustom, pendingChapterAfterWordCount, setShowWordCountModal) => {
     setChapterWordCounts(prev => ({ ...prev, [pendingChapterAfterWordCount]: range }));
     setChapterWordCountSet(prev => ({ ...prev, [pendingChapterAfterWordCount]: true }));
     setChapters(prev => prev.map(ch => ch.id === pendingChapterAfterWordCount ? { ...ch, wordCount: range, wordCountSet: true } : ch));
@@ -126,13 +125,8 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     });
     const percentage = totalActive > 0 ? Math.round((totalGenerated / totalActive) * 100) : 0;
     const currentStep = Math.min(totalGenerated + 1, totalActive || 1);
-    if (projectId) {
-      import('../services/firestoreService').then(({ updateProject }) => {
-        updateProject(projectId, { progress: percentage }).catch(() => {});
-      });
-    }
     return { percentage, currentStep, totalSteps: totalActive || 1 };
-  }, [chapters, projectId]);
+  }, [chapters]);
 
   return {
     handleChapterClick,

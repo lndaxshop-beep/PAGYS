@@ -83,7 +83,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
 
   const handleSubtopicsFallback = useCallback((chapterId) => {
     const fallbackSubtopics = getFallbackSubtopics(chapterId).filter(sub => !sub.title.toLowerCase().includes('reference'));
-    const chapterNum = chapterId === 'proposal' ? '1' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
+    const chapterNum = chapterId === 'proposal' ? 'P' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
     const numberedFallback = fallbackSubtopics.map((sub, index) => {
       let cleanTitle = sub.title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
       return { id: `${chapterId}_${index}`, title: `${chapterNum}.${index + 1} ${cleanTitle}`, type: 'subsection', hasPlaceholder: cleanTitle.toLowerCase().includes('organisation'), placeholder: 'Organization', customValue: project?.organizationName || '', generated: false, deleted: false };
@@ -100,7 +100,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
       const subtopics = await generateSubtopics({ chapterId, chapterTitle: chapter.title, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
       if (!subtopics || !Array.isArray(subtopics)) { handleSubtopicsFallback(chapterId); return; }
       const filteredSubtopics = subtopics.filter(title => !title.toLowerCase().includes('reference'));
-      const chapterNum = chapterId === 'proposal' ? '1' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
+      const chapterNum = chapterId === 'proposal' ? 'P' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
       const numberedSubtopics = filteredSubtopics.map((title, index) => {
         let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
         return { id: `${chapterId}_${index}`, title: `${chapterNum}.${index + 1} ${cleanTitle}`, type: 'subsection', hasPlaceholder: cleanTitle.toLowerCase().includes('organisation') || cleanTitle.toLowerCase().includes('organization') || cleanTitle.toLowerCase().includes('company') || cleanTitle.toLowerCase().includes('institution'), placeholder: 'Organization', customValue: project?.organizationName || '', generated: false, deleted: false };

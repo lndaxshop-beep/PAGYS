@@ -271,11 +271,11 @@ const Write = () => {
     }
     const result = await handleGenerateReferences(currentChapter, currentContent);
     if (!result || result.error) { toastError(result?.message || 'References generation failed.'); return; }
-    const { content } = result;
+    const { content, usedGrounding } = result;
     setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.title === 'References' ? { ...s, generated: true } : s) } : ch));
     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
-    toastSuccess('References generated from in-text citations!');
+    toastSuccess(usedGrounding ? 'References generated from real sources!' : 'References generated from citations. Verify entries before submitting.');
   };
 
   const wrappedHandleSubsectionClick = (subsectionTitle) => {
@@ -400,6 +400,7 @@ const Write = () => {
                 onSaveEdit={handleSaveEdit}
                 onChange={setCurrentContent}
                 currentSubsection={currentSubsection}
+                showReferenceInTextarea={showReferenceInTextarea}
               />
 
               <ContentButtons

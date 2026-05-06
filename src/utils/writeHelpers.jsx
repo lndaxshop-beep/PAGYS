@@ -161,3 +161,30 @@ export const formatCitationEntry = (citation, style) => {
   if (style === 'mla') return `${author}. "${year}." [Retrieved from source].`;
   return `${author}. ${year}. [Retrieved from source].`;
 };
+
+export const formatGroundedReference = (source, style) => {
+  if (!source || !source.uri) return null;
+  const url = source.uri;
+  let domain = '';
+  try {
+    const hostname = new URL(url).hostname;
+    domain = hostname.replace('www.', '').replace(/^([a-z]{2}\.)*/, '');
+  } catch {
+    domain = url.slice(0, 40);
+  }
+  const title = source.title || domain.charAt(0).toUpperCase() + domain.slice(1);
+  if (style === 'apa') return `${domain}. (n.d.). ${title}. Retrieved from ${url}`;
+  if (style === 'mla') return `"${title}." ${domain}, ${url}.`;
+  if (style === 'harvard') return `${domain} (n.d.). ${title}. Available at: ${url}.`;
+  return `${domain}. ${title}. ${url}`;
+};
+
+export const formatSimpleReference = (author, year, style) => {
+  const y = year || 'n.d.';
+  if (style === 'apa') return `${author}. (${y}). Title of the work. Source.`;
+  if (style === 'mla') return `${author}. "Title of the Work." Source, ${y}.`;
+  if (style === 'chicago') return `${author}. ${y}. "Title of the Work." Source.`;
+  if (style === 'harvard') return `${author} (${y}). Title of the work. Source.`;
+  if (style === 'ieee') return `${author}, "Title of the work." Source, ${y}.`;
+  return `${author}. (${y}). Title of the work. Source.`;
+};

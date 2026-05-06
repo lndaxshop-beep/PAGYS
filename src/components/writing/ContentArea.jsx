@@ -3,9 +3,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea
 }) => {
   const { colors } = useTheme();
+  const isReferences = currentSubsection?.title === 'References' || currentSubsection?.type === 'references' || showReferenceInTextarea;
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
@@ -24,7 +25,13 @@ const ContentArea = ({
 
       <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '24px', marginBottom: '24px', border: `1px solid ${colors.border}`, minHeight: '400px' }}>
         {isPreviewMode ? (
-          <ContentRenderer content={content} />
+          isReferences ? (
+            <div style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '2.0', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
+              {content || <p style={{ color: colors.textSecondary, textAlign: 'center', fontStyle: 'italic' }}>References will appear here after generation...</p>}
+            </div>
+          ) : (
+            <ContentRenderer content={content} />
+          )
         ) : (
           <div>
             <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Edit Content</h3>
@@ -35,9 +42,10 @@ const ContentArea = ({
               style={{
                 width: '100%', height: '400px', padding: '16px',
                 border: `1px solid ${colors.inputBorder}`, borderRadius: '8px',
-                fontFamily: "'Times New Roman', serif", resize: 'vertical',
-                lineHeight: '1.6', fontSize: '12pt', backgroundColor: colors.input,
-                color: colors.text, textAlign: 'justify'
+                fontFamily: isReferences ? "'Times New Roman', serif" : 'monospace',
+                resize: 'vertical', lineHeight: '1.6', fontSize: '12pt',
+                backgroundColor: colors.input, color: colors.text,
+                textAlign: 'justify'
               }}
             />
           </div>

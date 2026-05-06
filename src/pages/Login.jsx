@@ -29,15 +29,12 @@ const Login = () => {
     setError('');
 
     try {
-      // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // Get user data from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.data();
 
-      // Save to localStorage for quick access
       localStorage.setItem('currentUser', JSON.stringify({
         uid: user.uid,
         fullName: userData?.fullName || '',
@@ -60,26 +57,39 @@ const Login = () => {
     setLoading(false);
   };
 
+  const inputStyle = { width: '100%', padding: '14px 14px 14px 42px', border: `2px solid ${error ? '#dc2626' : colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text, outline: 'none', transition: 'all 0.2s' };
+  const iconStyle = { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: colors.textSecondary, fontSize: '18px', zIndex: 1, pointerEvents: 'none' };
+  const fieldContainerStyle = { position: 'relative' };
+  const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' };
+
+  const handleFocus = (e) => { e.target.style.borderColor = colors.primary; };
+  const handleBlur = (e) => { e.target.style.borderColor = error ? '#dc2626' : colors.inputBorder; };
+
   return (
-    <div style={{ 
+    <div style={{
       minHeight: 'calc(100vh - 80px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: isDarkMode 
-        ? 'radial-gradient(circle at 10% 20%, #2d2d2d 0%, #1a1a1a 90%)' 
+      background: isDarkMode
+        ? 'radial-gradient(circle at 10% 20%, #2d2d2d 0%, #1a1a1a 90%)'
         : 'radial-gradient(circle at 10% 20%, #f5f3ff 0%, #ffffff 90%)',
       padding: '20px'
     }}>
       <div style={{
         maxWidth: '450px', width: '100%', backgroundColor: colors.surface, borderRadius: '24px', padding: '40px',
-        boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.4)' : '0 20px 40px rgba(0,0,0,0.1)'
+        boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)' : '0 20px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.02)',
+        transition: 'all 0.3s'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ width: '80px', height: '80px', backgroundColor: colors.primary, borderRadius: '50%', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: '80px', height: '80px', backgroundColor: colors.primary, borderRadius: '50%',
+            margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 10px 20px ${colors.primary}40`
+          }}>
             <span style={{ fontSize: '36px', color: 'white' }}>🔐</span>
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Welcome Back</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px', letterSpacing: '-0.5px' }}>Welcome Back</h1>
           <p style={{ color: colors.textSecondary, fontSize: '15px' }}>Log in to continue your thesis journey</p>
         </div>
 
@@ -88,29 +98,48 @@ const Login = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Email *</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required
-              style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="you@university.edu" />
+          <div style={fieldContainerStyle}>
+            <label style={labelStyle}>Email *</label>
+            <span style={iconStyle}>👤</span>
+            <input type="email" name="email" value={formData.email} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="you@university.edu" />
           </div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Password *</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} required
-              style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="••••••••" />
+
+          <div style={{ ...fieldContainerStyle, marginBottom: '16px' }}>
+            <label style={labelStyle}>Password *</label>
+            <span style={iconStyle}>🔒</span>
+            <input type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
           </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: colors.textSecondary, fontSize: '14px' }}>
-              <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: colors.primary }} />
               Remember me
             </label>
+            <a href="#" style={{ color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'opacity 0.2s' }}
+              onMouseEnter={(e) => { e.target.style.opacity = '0.8'; }}
+              onMouseLeave={(e) => { e.target.style.opacity = '1'; }}>
+              Forgot password?
+            </a>
           </div>
+
           <button type="submit" disabled={loading}
-            style={{ width: '100%', backgroundColor: colors.primary, color: 'white', padding: '16px', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            style={{ width: '100%', backgroundColor: colors.primary, color: 'white', padding: '16px', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, boxShadow: loading ? 'none' : `0 8px 16px ${colors.primary}40`, marginBottom: '20px', transition: 'all 0.2s' }}
+            onMouseEnter={(e) => { if (!loading) { e.target.style.backgroundColor = colors.primaryDark; e.target.style.transform = 'translateY(-2px)'; } }}
+            onMouseLeave={(e) => { if (!loading) { e.target.style.backgroundColor = colors.primary; e.target.style.transform = 'translateY(0)'; } }}>
             {loading ? 'Logging in...' : 'Log In'}
           </button>
+
           <p style={{ textAlign: 'center', color: colors.textSecondary, fontSize: '15px', marginTop: '20px' }}>
-            Don't have an account? <Link to="/signup" style={{ color: colors.primary, textDecoration: 'none', fontWeight: '600' }}>Sign Up</Link>
+            Don't have an account? <Link to="/signup" style={{ color: colors.primary, textDecoration: 'none', fontWeight: '600', transition: 'opacity 0.2s' }}
+              onMouseEnter={(e) => { e.target.style.opacity = '0.8'; }}
+              onMouseLeave={(e) => { e.target.style.opacity = '1'; }}>Sign Up</Link>
           </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '32px' }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
+            <span style={{ color: colors.textSecondary, fontSize: '13px' }}>Secure Login</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
+          </div>
         </form>
       </div>
     </div>

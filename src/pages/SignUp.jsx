@@ -46,11 +46,9 @@ const SignUp = () => {
     }
 
     try {
-      // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // Save additional user data to Firestore
       await setDoc(doc(db, 'users', user.uid), {
         fullName: formData.fullName,
         username: formData.username,
@@ -60,7 +58,6 @@ const SignUp = () => {
         createdAt: new Date().toISOString(),
       });
 
-      // Save basic info to localStorage for quick access
       localStorage.setItem('currentUser', JSON.stringify({
         uid: user.uid,
         fullName: formData.fullName,
@@ -83,14 +80,23 @@ const SignUp = () => {
     setLoading(false);
   };
 
+  const inputStyle = { width: '100%', padding: '14px 14px 14px 42px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text, transition: 'border-color 0.2s' };
+  const iconStyle = { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: colors.textSecondary, fontSize: '18px', zIndex: 1, pointerEvents: 'none' };
+  const fieldContainerStyle = { position: 'relative' };
+  const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' };
+  const helperStyle = { fontSize: '12px', color: colors.textSecondary, marginTop: '4px', marginLeft: '4px' };
+
+  const handleFocus = (e) => { e.target.style.borderColor = colors.primary; };
+  const handleBlur = (e) => { e.target.style.borderColor = colors.inputBorder; };
+
   return (
-    <div style={{ 
+    <div style={{
       minHeight: 'calc(100vh - 80px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: isDarkMode 
-        ? 'radial-gradient(circle at 10% 20%, #2d2d2d 0%, #1a1a1a 90%)' 
+      background: isDarkMode
+        ? 'radial-gradient(circle at 10% 20%, #2d2d2d 0%, #1a1a1a 90%)'
         : 'radial-gradient(circle at 10% 20%, #f5f3ff 0%, #ffffff 90%)',
       padding: '20px'
     }}>
@@ -100,8 +106,8 @@ const SignUp = () => {
         backgroundColor: colors.surface,
         borderRadius: '24px',
         padding: '40px',
-        boxShadow: isDarkMode 
-          ? '0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)' 
+        boxShadow: isDarkMode
+          ? '0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)'
           : '0 20px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.02)',
         transition: 'all 0.3s',
         maxHeight: '90vh',
@@ -115,7 +121,7 @@ const SignUp = () => {
           }}>
             <span style={{ fontSize: '36px', color: 'white' }}>📚</span>
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Create Your Account</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px', letterSpacing: '-0.5px' }}>Create Your Account</h1>
           <p style={{ color: colors.textSecondary, fontSize: '15px' }}>Join thousands of students writing better theses</p>
         </div>
 
@@ -125,61 +131,88 @@ const SignUp = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Full Name *</label>
-              <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="John Doe" />
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>Full Name *</label>
+              <span style={iconStyle}>👤</span>
+              <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="John Doe" />
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Email Address *</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="you@university.edu" />
+
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>Email Address *</label>
+              <span style={iconStyle}>✉️</span>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="you@university.edu" />
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Username *</label>
-              <input type="text" name="username" value={formData.username} onChange={handleChange} required
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="johndoe123" />
+
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>Username *</label>
+              <span style={iconStyle}>@</span>
+              <input type="text" name="username" value={formData.username} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="johndoe123" />
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Password *</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="••••••••" />
-              <p style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '4px' }}>Minimum 8 characters</p>
+
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>Password *</label>
+              <span style={iconStyle}>🔒</span>
+              <input type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <p style={helperStyle}>Minimum 8 characters</p>
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Confirm Password *</label>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="••••••••" />
+
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>Confirm Password *</label>
+              <span style={iconStyle}>✓</span>
+              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>Country *</label>
-              <select name="country" value={formData.country} onChange={handleChange} required
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }}>
+
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>Country *</label>
+              <span style={iconStyle}>🌍</span>
+              <select name="country" value={formData.country} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur}
+                style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
                 <option value="">Select your country</option>
-                <option value="Ghana">Ghana</option>
-                <option value="Nigeria">Nigeria</option>
-                <option value="Canada">Canada</option>
                 <option value="United States">United States</option>
                 <option value="United Kingdom">United Kingdom</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option>
+                <option value="Germany">Germany</option>
+                <option value="France">France</option>
+                <option value="China">China</option>
+                <option value="India">India</option>
+                <option value="Brazil">Brazil</option>
+                <option value="Nigeria">Nigeria</option>
+                <option value="South Africa">South Africa</option>
+                <option value="Kenya">Kenya</option>
+                <option value="Ghana">Ghana</option>
                 <option value="Other">Other</option>
               </select>
+              <p style={helperStyle}>We use this to tailor thesis to your academic standards</p>
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' }}>University/Institution</label>
-              <input type="text" name="university" value={formData.university} onChange={handleChange}
-                style={{ width: '100%', padding: '14px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text }} placeholder="Your University" />
+
+            <div style={fieldContainerStyle}>
+              <label style={labelStyle}>University/Institution</label>
+              <span style={iconStyle}>🏛️</span>
+              <input type="text" name="university" value={formData.university} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="Your University" />
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <input type="checkbox" name="agreeToTerms" checked={formData.agreeToTerms} onChange={handleChange} required style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-              <label style={{ fontSize: '14px', color: colors.textSecondary }}>I agree to the Terms of Service and Privacy Policy *</label>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>
+              <input type="checkbox" name="agreeToTerms" checked={formData.agreeToTerms} onChange={handleChange} required style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: colors.primary }} />
+              <label style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: '1.5' }}>I agree to the Terms of Service and Privacy Policy *</label>
             </div>
+
             <button type="submit" disabled={loading}
-              style={{ width: '100%', backgroundColor: colors.primary, color: 'white', padding: '16px', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+              style={{ width: '100%', backgroundColor: colors.primary, color: 'white', padding: '16px', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, boxShadow: loading ? 'none' : `0 8px 16px ${colors.primary}40`, marginTop: '16px', transition: 'all 0.2s' }}
+              onMouseEnter={(e) => { if (!loading) { e.target.style.backgroundColor = colors.primaryDark; e.target.style.transform = 'translateY(-2px)'; } }}
+              onMouseLeave={(e) => { if (!loading) { e.target.style.backgroundColor = colors.primary; e.target.style.transform = 'translateY(0)'; } }}>
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
-            <p style={{ textAlign: 'center', color: colors.textSecondary, fontSize: '15px' }}>
-              Already have an account? <Link to="/login" style={{ color: colors.primary, textDecoration: 'none', fontWeight: '600' }}>Log In</Link>
+
+            <p style={{ textAlign: 'center', color: colors.textSecondary, fontSize: '15px', marginTop: '16px' }}>
+              Already have an account? <Link to="/login" style={{ color: colors.primary, textDecoration: 'none', fontWeight: '600' }} onMouseEnter={(e) => { e.target.style.opacity = '0.8'; }} onMouseLeave={(e) => { e.target.style.opacity = '1'; }}>Log In</Link>
             </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '16px' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
+              <span style={{ color: colors.textSecondary, fontSize: '13px' }}>Secure Sign Up</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: colors.border }}></div>
+            </div>
           </div>
         </form>
       </div>

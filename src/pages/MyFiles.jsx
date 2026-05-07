@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { saveAs } from 'file-saver';
 import { INSTRUMENT_TYPES } from '../utils/instrumentHelpers';
 import { getProjects, getGeneratedContent, getChapters } from '../services/firestoreService';
+import Toast from '../components/Toast';
 
 const MyFiles = () => {
   const { colors, isDarkMode } = useTheme();
@@ -23,6 +24,9 @@ const MyFiles = () => {
   const [preparingDownload, setPreparingDownload] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState('');
   const [generatedInstruments, setGeneratedInstruments] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  const notify = (message, type) => setToast({ message, type });
 
   useEffect(() => { const savedUser = localStorage.getItem('currentUser'); if (savedUser) setUser(JSON.parse(savedUser)); }, []);
   useEffect(() => { loadProjects(); }, []);
@@ -43,7 +47,7 @@ const MyFiles = () => {
   };
 
   const hasGeneratedContent = (ch) => { if (!ch) return false; const keys = Object.keys(ch); return keys.length > 0 && keys.some(k => !['references', 'complete', 'fullChapter'].includes(k)); };
-  const estimateWordCount = (ch) => { if (!ch) return 0; return (ch.complete || '').split(/\s+/).length; };
+  const estimateWordCount = (ch) => { if (!ch || typeof ch !== 'object') return 0; let total = 0; Object.entries(ch).forEach(([k, v]) => { if (!['references', 'complete', 'fullChapter'].includes(k) && typeof v === 'string') total += v.split(/\s+/).filter(Boolean).length; }); return total; };
 
     const loadChaptersForProject = async (projectId) => {
     const content = await getGeneratedContent(projectId) || {};
@@ -67,7 +71,9 @@ const MyFiles = () => {
 
   const generateCleanFilename = (chapter) => {
     const cleanTitle = (projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
-    return `${chapter.id === 'proposal' ? 'Proposal' : 'Chapter-' + chapter.id.replace('chapter', '')}-${cleanTitle}.doc`;
+    const date = new Date().toISOString().split('T')[0];
+    const prefix = chapter.id === 'proposal' ? 'Proposal' : 'Chapter-' + chapter.id.replace('chapter', '');
+    return `${prefix}-${cleanTitle}_${date}.doc`;
   };
 
   const captureChartAsImage = (chartData) => {
@@ -217,7 +223,7 @@ const MyFiles = () => {
   const downloadChapter = async (chapter) => {
     setPreparingDownload(true); setDownloadProgress('Preparing document...');
     try { const c = await generateWordDocument(chapter); saveAs(new Blob([c], { type: 'application/msword' }), generateCleanFilename(chapter)); }
-    catch (e) { alert('Error preparing download.'); }
+    catch (e) { notify('Error preparing download.', 'error'); }
     finally { setPreparingDownload(false); setDownloadProgress(''); }
   };
 
@@ -240,8 +246,8 @@ const MyFiles = () => {
         }
       }
       html += '</body></html>';
-      saveAs(new Blob([html], { type: 'application/msword' }), `${cp?.title.replace(/[^a-z0-9]/gi, '_')}_Complete_Thesis.doc`);
-    } catch (e) { alert('Error merging.'); }
+      saveAs(new Blob([html], { type: 'application/msword' }), `${cp?.title.replace(/[^a-z0-9]/gi, '_')}_Complete_Thesis_${new Date().toISOString().split('T')[0]}.doc`);
+    } catch (e) { notify('Error merging chapters.', 'error'); }
     finally { setMerging(false); setDownloadProgress(''); }
   };
 
@@ -253,8 +259,10 @@ const MyFiles = () => {
     setLoadingAbbr(true);
     try {
       const sa = localStorage.getItem(`abbreviations_${pid}`); if (sa) { setAbbreviations(JSON.parse(sa)); setLoadingAbbr(false); return; }
-      const sc = localStorage.getItem(`generatedContent_${pid}`); if (!sc) { setAbbreviations([]); setLoadingAbbr(false); return; }
-      let at = ''; Object.values(JSON.parse(sc)).forEach(ch => { if (ch) Object.values(ch).forEach(t => { if (typeof t === 'string') at += t + ' '; }); });
+      const content = await getGeneratedContent(pid);
+      if (!content || Object.keys(content).length === 0) { setAbbreviations([]); setLoadingAbbr(false); return; }
+      let at = '';
+      Object.values(content).forEach(ch => { if (ch) Object.values(ch).forEach(t => { if (typeof t === 'string') at += t + ' '; }); });
       if (at.length > 0) { const { extractAbbreviations } = await import('../services/geminiService'); const ex = await extractAbbreviations(at, projectData?.title); setAbbreviations(ex || []); localStorage.setItem(`abbreviations_${pid}`, JSON.stringify(ex || [])); }
       else setAbbreviations([]);
     } catch (e) { setAbbreviations([]); } finally { setLoadingAbbr(false); }
@@ -264,7 +272,8 @@ const MyFiles = () => {
     setLoadingDefence(true);
     try {
       const sd = localStorage.getItem(`defence_${pid}`); if (sd) { setDefenceQuestions(JSON.parse(sd)); setLoadingDefence(false); return; }
-      const sc = localStorage.getItem(`generatedContent_${pid}`); const c = sc ? JSON.parse(sc) : {}; const cc = {};
+      const content = await getGeneratedContent(pid);
+      const c = content || {}; const cc = {};
       Object.entries(c).forEach(([id, ch]) => { if (ch && Object.keys(ch).length > 0) cc[id] = true; });
       if (Object.keys(cc).length === 0) { setDefenceQuestions(null); setLoadingDefence(false); return; }
       const { generateDefenceQuestions } = await import('../services/geminiService');
@@ -274,8 +283,8 @@ const MyFiles = () => {
   };
 
   const handleProjectChange = (pid) => { const p = projects.find(pr => pr.id === pid); setSelectedProject(pid); setProjectData(p); loadChaptersForProject(pid); setActiveTab('chapters'); setAbbreviations([]); setDefenceQuestions(null); setGeneratedInstruments([]); };
-  const downloadAbbreviations = () => saveAs(new Blob([generateAbbreviationsDocument()], { type: 'application/msword' }), `abbreviations-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}.doc`);
-  const downloadDefence = () => { if (!defenceQuestions) return; saveAs(new Blob([generateDefenceDocument()], { type: 'application/msword' }), `defence-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}.doc`); };
+  const downloadAbbreviations = () => saveAs(new Blob([generateAbbreviationsDocument()], { type: 'application/msword' }), `abbreviations-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`);
+  const downloadDefence = () => { if (!defenceQuestions) return; saveAs(new Blob([generateDefenceDocument()], { type: 'application/msword' }), `defence-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`); };
   const getGeneratedChaptersCount = () => chapters.filter(ch => ch.generated).length;
 
   const loadGeneratedInstruments = (pid) => {
@@ -293,7 +302,7 @@ const MyFiles = () => {
 
   const downloadInstrument = (instrumentId) => {
     const stored = localStorage.getItem(`instrument_content_${selectedProject}_${instrumentId}`);
-    if (!stored) { alert('Content not found. Please regenerate the instrument.'); return; }
+    if (!stored) { notify('Instrument content not found. Please regenerate it in your project.', 'error'); return; }
     const content = JSON.parse(stored);
     const type = INSTRUMENT_TYPES[instrumentId];
     if (!type) return;
@@ -378,6 +387,26 @@ const MyFiles = () => {
             </select>
           </div>
         )}
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '200px', backgroundColor: colors.cardBg || colors.surface, borderRadius: '10px', padding: '16px 20px', border: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: '500', marginBottom: '4px' }}>Total Words</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: colors.text }}>{chapters.reduce((sum, ch) => sum + ch.wordCount, 0).toLocaleString()}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: '200px', backgroundColor: colors.cardBg || colors.surface, borderRadius: '10px', padding: '16px 20px', border: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: '500', marginBottom: '4px' }}>Completion</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: colors.text }}>{chapters.length > 0 ? Math.round((chapters.filter(ch => ch.generated).length / chapters.length) * 100) : 0}%</div>
+            <div style={{ width: '100%', height: '6px', backgroundColor: isDarkMode ? '#3d3d3d' : '#e5e7eb', borderRadius: '999px', marginTop: '6px', overflow: 'hidden' }}>
+              <div style={{ width: `${chapters.length > 0 ? (chapters.filter(ch => ch.generated).length / chapters.length) * 100 : 0}%`, height: '100%', backgroundColor: '#4F46E5', borderRadius: '999px', transition: 'width 0.3s' }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: '200px', backgroundColor: colors.cardBg || colors.surface, borderRadius: '10px', padding: '16px 20px', border: `1px solid ${colors.border}`, cursor: selectedProject ? 'pointer' : 'default' }} onClick={() => { if (selectedProject) navigate(`/citations/${selectedProject}`); }}>
+            <div style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: '500', marginBottom: '4px' }}>Citations</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: colors.text }}>
+              {(() => { try { const vc = JSON.parse(localStorage.getItem(`verifiedCitations_${selectedProject}`) || '{}'); return `${Object.keys(vc).length} verified`; } catch { return '0 verified'; }})()}
+            </div>
+            <div style={{ fontSize: '11px', color: '#4F46E5', marginTop: '4px' }}>Click to verify →</div>
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
           {['chapters','lists','defence','instruments'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '12px 24px', backgroundColor: activeTab === tab ? colors.primary : 'transparent', color: activeTab === tab ? 'white' : colors.text, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: '500' }}>
@@ -395,14 +424,17 @@ const MyFiles = () => {
             <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '20px', color: colors.text }}>Thesis Chapters</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {chapters.map(ch => (
-                <div key={ch.id} style={{ border: `1px solid ${colors.border}`, borderRadius: '8px', opacity: ch.generated ? 1 : 0.6 }}>
+                  <div key={ch.id} style={{ border: `1px solid ${colors.border}`, borderRadius: '8px', opacity: ch.generated ? 1 : 0.6 }}>
                   <div onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: isDarkMode ? '#3d3d3d' : '#f9fafb', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                       <span>{expandedChapter === ch.id ? '▼' : '▶'}</span>
                       <div>
                         <h3 style={{ fontWeight: '600', color: colors.text }}>{ch.title}</h3>
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: colors.textSecondary }}>
-                          <span>📝 {ch.wordCount} words</span>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                          {ch.id === 'proposal' && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#5b21b6' : '#ede9fe', color: isDarkMode ? '#ddd6fe' : '#6d28d9' }}>Proposal</span>}
+                          {!ch.generated && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#92400e' : '#fef3c7', color: isDarkMode ? '#fde68a' : '#b45309' }}>Not generated</span>}
+                          {ch.generated && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#064e3b' : '#d1fae5', color: isDarkMode ? '#a7f3d0' : '#047857' }}>✓ Ready to download</span>}
+                          <span style={{ fontSize: '11px', color: colors.textSecondary }}>📝 {ch.wordCount} words</span>
                           {ch.subsections.length > 0 && <span>📄 {ch.subsections.length} subsections</span>}
                           {ch.hasReferences && <span style={{ color: '#059669' }}>📚 References</span>}
                         </div>
@@ -421,19 +453,53 @@ const MyFiles = () => {
           </div>
         )}
         {activeTab === 'lists' && (
-          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text }}>List of Abbreviations</h2>
-            {loadingAbbr ? <p>Loading...</p> : abbreviations.length > 0 ? (
-              <button onClick={downloadAbbreviations} style={{ backgroundColor: '#7c3aed', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', marginTop: '12px', cursor: 'pointer' }}>📋 Download</button>
-            ) : <p style={{ color: colors.textSecondary }}>None found.</p>}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>List of Abbreviations</h2>
+            {loadingAbbr ? <p style={{ color: colors.textSecondary }}>Loading abbreviations...</p> : abbreviations.length > 0 ? (
+              <div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: isDarkMode ? '#3d3d3d' : '#f3f4f6' }}>
+                      <th style={{ border: `1px solid ${colors.border}`, padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: colors.text, fontSize: '13px' }}>Abbreviation</th>
+                      <th style={{ border: `1px solid ${colors.border}`, padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: colors.text, fontSize: '13px' }}>Meaning</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {abbreviations.map((a, i) => (
+                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? 'transparent' : (isDarkMode ? '#2d2d2d' : '#f9fafb') }}>
+                        <td style={{ border: `1px solid ${colors.border}`, padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: colors.text }}>{a.abbr}</td>
+                        <td style={{ border: `1px solid ${colors.border}`, padding: '8px 12px', fontSize: '13px', color: colors.text }}>{a.meaning}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <button onClick={downloadAbbreviations} style={{ backgroundColor: '#7c3aed', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>📋 Download Abbreviations</button>
+              </div>
+            ) : <p style={{ color: colors.textSecondary }}>No abbreviations found. Generate thesis content first.</p>}
           </div>
         )}
         {activeTab === 'defence' && (
-          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text }}>Defence Preparation</h2>
-            {loadingDefence ? <p>Loading...</p> : defenceQuestions ? (
-              <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', marginTop: '12px', cursor: 'pointer' }}>🎯 Download</button>
-            ) : <p style={{ color: colors.textSecondary }}>None available.</p>}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Defence Preparation</h2>
+            {loadingDefence ? <p style={{ color: colors.textSecondary }}>Generating defence questions...</p> : defenceQuestions ? (
+              <div>
+                {Object.entries(defenceQuestions).map(([section, questions]) => {
+                  if (!questions || questions.length === 0) return null;
+                  return (
+                    <div key={section} style={{ marginBottom: '24px' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: '600', color: colors.primary, marginBottom: '12px', paddingBottom: '4px', borderBottom: `2px solid ${colors.primary}30` }}>{formatSectionName(section)}</h3>
+                      {questions.map((q, i) => (
+                        <div key={i} style={{ marginBottom: '16px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', borderLeft: `3px solid ${colors.primary}` }}>
+                          <p style={{ fontWeight: '600', color: colors.text, marginBottom: '4px', fontSize: '14px' }}>Q{i + 1}: {q.question}</p>
+                          <p style={{ color: colors.textSecondary, fontSize: '13px', lineHeight: '1.5' }}>{q.answer}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+                <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>🎯 Download Defence Questions</button>
+              </div>
+            ) : <p style={{ color: colors.textSecondary }}>Complete thesis chapters to generate defence preparation questions.</p>}
           </div>
         )}
         {activeTab === 'instruments' && (
@@ -465,6 +531,7 @@ const MyFiles = () => {
         )}
       </div>
       <style>{`@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}`}</style>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

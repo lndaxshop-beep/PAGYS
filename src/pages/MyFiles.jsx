@@ -361,7 +361,7 @@ const MyFiles = () => {
     <style>body{font-family:'Times New Roman',Times,serif;margin:2.5cm;line-height:1.6}h1{font-size:24pt;font-weight:bold;text-align:center}h2{font-size:16pt;font-weight:bold;border-bottom:1px solid #ccc;padding-bottom:6px}.info{text-align:center;margin-bottom:20px}.section{margin-bottom:24px}.question{margin-bottom:16px;padding-left:12px}.question-text{font-weight:bold}.option{margin:4px 0}.script{font-style:italic;color:#555;padding:8px 12px;background:#f9f9f9;border-left:3px solid #059669}.note{font-style:italic;color:#f59e0b;padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b}.probe{font-style:italic;color:#6b7280;margin-left:20px}.open-ended-space{margin:10px 0}.line{border-bottom:1px solid #999;width:100%;height:25px;margin:8px 0}table.obs-table{width:100%;border-collapse:collapse}table.obs-table th,table.obs-table td{border:1px solid #ddd;padding:8px}table.obs-table th{background:#f3f4f6}.footer{text-align:center;margin-top:30px;color:#666;font-size:10pt}</style></head><body>${bodyContent}</body></html>`;
 
     const blob = new Blob([wordHtml], { type: 'application/msword' });
-    saveAs(blob, `${type.label.replace(/[^a-zA-Z]/g, '-')}-${(projectData?.title || 'thesis').replace(/\s+/g, '_')}.doc`);
+    saveAs(blob, `${type.label.replace(/[^a-zA-Z]/g, '-')}-${(projectData?.title || 'thesis').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.doc`);
   };
 
   return (

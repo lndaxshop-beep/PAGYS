@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 const usePayment = (onNotify) => {
   const [showPremiumConfirm, setShowPremiumConfirm] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
 
   const handlePremiumClick = async () => {
@@ -19,7 +20,7 @@ const usePayment = (onNotify) => {
       return;
     }
     if (projects.some(p => p.isPremium)) {
-      if (onNotify) onNotify('You already have Premium access! Humanise and Feedback: up to 4 times per subsection.', 'info');
+      setShowPremiumModal(true);
       return;
     }
     setShowPremiumConfirm(true);
@@ -50,11 +51,16 @@ const usePayment = (onNotify) => {
     setShowPremiumConfirm(false);
   };
 
+  const handleClosePremiumModal = () => {
+    setShowPremiumModal(false);
+  };
+
   return {
-    showPremiumConfirm, isPremium,
+    showPremiumConfirm, showPremiumModal, isPremium,
     handlePremiumClick,
     handleConfirmPremium,
     handleCancelPremium,
+    handleClosePremiumModal,
   };
 };
 

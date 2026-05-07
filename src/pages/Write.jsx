@@ -31,7 +31,12 @@ const Write = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
-  const [humaniseUsed, setHumaniseUsed] = useState({});
+  const [humaniseUsed, setHumaniseUsed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`humaniseUsed_${projectId}`) || '{}'); } catch { return {}; }
+  });
+  const [feedbackUsed, setFeedbackUsed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
+  });
   const [currentContent, setCurrentContent] = useState('');
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
@@ -47,7 +52,6 @@ const Write = () => {
   const [dragOverItem, setDragOverItem] = useState(null);
   const [showReferenceInTextarea, setShowReferenceInTextarea] = useState(false);
   const [deletedSubsections, setDeletedSubsections] = useState({});
-  const [feedbackUsed, setFeedbackUsed] = useState({});
   const [diagramData, setDiagramData] = useState({});
   const [chartData, setChartData] = useState({});
   const [tableData, setTableData] = useState({});
@@ -138,6 +142,9 @@ const Write = () => {
   useEffect(() => { if (projectId && Object.keys(diagramData).length) saveVisualData(projectId, 'diagrams', diagramData).catch(e => console.error('Auto-save diagrams failed:', e)); }, [diagramData, projectId]);
   useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData).catch(e => console.error('Auto-save charts failed:', e)); }, [chartData, projectId]);
   useEffect(() => { if (projectId && Object.keys(tableData).length) saveVisualData(projectId, 'tables', tableData).catch(e => console.error('Auto-save tables failed:', e)); }, [tableData, projectId]);
+
+  useEffect(() => { try { localStorage.setItem(`humaniseUsed_${projectId}`, JSON.stringify(humaniseUsed)); } catch {} }, [humaniseUsed, projectId]);
+  useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
 
   useEffect(() => {
     const onPremiumActivated = () => setProject(prev => prev ? { ...prev, isPremium: true } : prev);
@@ -392,6 +399,20 @@ const Write = () => {
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '32px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
+          {humaniseLimit > 1 && (() => {
+            const chHumanise = Object.entries(humaniseUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
+            const chFeedback = Object.entries(feedbackUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
+            const genCount = activeSubsections.filter(s => s.generated).length;
+            const hMax = humaniseLimit * genCount || humaniseLimit;
+            const fMax = feedbackLimit * genCount || feedbackLimit;
+            return (
+              <div style={{ fontSize: '12px', color: '#f59e0b', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <span>💎 Premium</span>
+                <span>Humanise: {chHumanise}/{hMax} used</span>
+                <span>Feedback: {chFeedback}/{fMax} used</span>
+              </div>
+            );
+          })()}
 
           {generatingSubtopics ? (
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '32px', textAlign: 'center', border: `1px solid ${colors.border}` }}>

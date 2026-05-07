@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/layout/Header';
 import Toast from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
+import PremiumModal from './components/PremiumModal';
 import HomePage from './components/home/HomePage';
 import usePayment from './hooks/usePayment';
 import './App.css';
@@ -40,10 +41,11 @@ function AppContent() {
   const [toast, setToast] = useState(null);
   const notify = (message, type) => setToast({ message, type });
   const {
-    showPremiumConfirm, isPremium,
+    showPremiumConfirm, showPremiumModal, isPremium,
     handlePremiumClick,
     handleConfirmPremium,
-    handleCancelPremium
+    handleCancelPremium,
+    handleClosePremiumModal,
   } = usePayment(notify);
 
   return (
@@ -60,7 +62,7 @@ function AppContent() {
             <Route path="/" element={<Page><HomePage /></Page>} />
             <Route path="/signup" element={<Page><SignUp /></Page>} />
             <Route path="/login" element={<Page><Login /></Page>} />
-            <Route path="/dashboard" element={<Page><ProtectedRoute><Dashboard /></ProtectedRoute></Page>} />
+            <Route path="/dashboard" element={<Page><ProtectedRoute><Dashboard onPremiumClick={handlePremiumClick} isPremium={isPremium} /></ProtectedRoute></Page>} />
             <Route path="/write/:projectId" element={<Page><ProtectedRoute><Write /></ProtectedRoute></Page>} />
             <Route path="/myfiles" element={<Page><ProtectedRoute><MyFiles /></ProtectedRoute></Page>} />
             <Route path="/settings" element={<Page><ProtectedRoute><Settings /></ProtectedRoute></Page>} />
@@ -71,6 +73,7 @@ function AppContent() {
             <Route path="/help" element={<Page><HelpSupport /></Page>} />
           </Routes>
         </div>
+        {showPremiumModal && <PremiumModal onClose={handleClosePremiumModal} />}
         {showPremiumConfirm && (
           <ConfirmModal
             title="💎 Upgrade to Premium"

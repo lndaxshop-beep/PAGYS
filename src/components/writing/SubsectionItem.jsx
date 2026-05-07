@@ -130,4 +130,4 @@ const SubsectionItem = ({
   );
 };
 
-export default SubsectionItem;
+export default React.memo(SubsectionItem);

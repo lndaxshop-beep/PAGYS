@@ -51,7 +51,6 @@ const Write = () => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
   const [showReferenceInTextarea, setShowReferenceInTextarea] = useState(false);
-  const [deletedSubsections, setDeletedSubsections] = useState({});
   const [diagramData, setDiagramData] = useState({});
   const [chartData, setChartData] = useState({});
   const [tableData, setTableData] = useState({});

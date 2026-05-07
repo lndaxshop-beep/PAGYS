@@ -168,7 +168,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   const handleHumanise = useCallback(async (content) => {
     if (!content) return { error: true, message: 'No content to humanise.' };
     const humaniseKey = `${activeChapter}_${currentSubsection?.id}`;
-    if (humaniseUsed[humaniseKey]) return { error: true, message: 'Humanise has already been used for this subsection.' };
+    if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) return { error: true, message: `Humanise limit reached (${humaniseLimit}/${humaniseLimit}) for this subsection.` };
     setHumanising(true);
     try {
       const { humaniseContent } = await import('../services/geminiService');
@@ -180,6 +180,8 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 
   const handleApplyFeedback = useCallback(async (currentContentText, feedbackText, feedbackFiles, currentFeedbackSubsection) => {
     if (!feedbackText && feedbackFiles.length === 0) return { error: true, message: 'Please enter feedback or upload files' };
+    const feedbackKey = `${activeChapter}_${currentFeedbackSubsection.id}`;
+    if ((feedbackUsed[feedbackKey] || 0) >= feedbackLimit) return { error: true, message: `Feedback limit reached (${feedbackLimit}/${feedbackLimit}) for this subsection.` };
     setApplyingSubFeedback(true);
     try {
       const { applyFeedbackToContent } = await import('../services/geminiService');

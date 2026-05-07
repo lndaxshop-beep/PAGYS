@@ -17,14 +17,16 @@ export const isHumaniseAvailable = (activeSubsections, currentSubsectionIndex, h
   if (isViewingReferences) return false;
   const sub = activeSubsections[currentSubsectionIndex];
   if (!sub || !sub.generated) return false;
-  return (humaniseUsed[`${activeSubsections[currentSubsectionIndex] ? `chapter_${activeSubsections[currentSubsectionIndex].id}` : ''}_${sub.id}`] || 0) < humaniseLimit;
+  const key = `${activeSubsections[currentSubsectionIndex]?.id || ''}_${sub.id}`;
+  return (humaniseUsed[key] || 0) < humaniseLimit;
 };
 
 export const isFeedbackAvailable = (activeSubsections, currentSubsectionIndex, feedbackUsed, feedbackLimit, isViewingReferences) => {
   if (isViewingReferences) return false;
   const sub = activeSubsections[currentSubsectionIndex];
   if (!sub || !sub.generated) return false;
-  return (feedbackUsed[`chapter_${activeSubsections[currentSubsectionIndex]?.id}_${sub.id}`] || 0) < feedbackLimit;
+  const key = `${activeSubsections[currentSubsectionIndex]?.id || ''}_${sub.id}`;
+  return (feedbackUsed[key] || 0) < feedbackLimit;
 };
 
 const ContentRenderer = ({ content }) => {

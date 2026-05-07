@@ -1,9 +1,8 @@
 import { useState } from 'react';
 
 const usePayment = (onNotify) => {
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPremiumConfirm, setShowPremiumConfirm] = useState(false);
   const [activeProjectForPayment, setActiveProjectForPayment] = useState(null);
-  const [isPremium, setIsPremium] = useState(false);
 
   const handlePremiumClick = async () => {
     let projects;
@@ -15,45 +14,44 @@ const usePayment = (onNotify) => {
       if (onNotify) onNotify('Failed to check premium status. Please try again.', 'error');
       return;
     }
-    if (projects.length === 0) { if (onNotify) onNotify('Start a project first before upgrading to Premium.', 'error'); return; }
-    if (isPremium) { if (onNotify) onNotify('You already have Premium access! Humanise and Feedback: up to 4 times per subsection.', 'info'); return; }
-    let eligibleProject = null;
-    for (const project of projects) {
-      const savedContent = localStorage.getItem(`generatedContent_${project.id}`);
-      if (savedContent) {
-        const content = JSON.parse(savedContent);
-        if (Object.keys(content).length > 0) { eligibleProject = project; break; }
-      }
-    }
-    if (!eligibleProject) { if (onNotify) onNotify('Start writing first! Generate at least one subsection before upgrading to Premium.', 'error'); return; }
-    setActiveProjectForPayment(eligibleProject);
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentSuccess = async (response) => {
-    if (!activeProjectForPayment) return;
-    try {
-      const { updateProject } = await import('../services/firestoreService');
-      await updateProject(activeProjectForPayment.id, { isPremium: true, paymentReference: response.reference, paidAt: new Date().toISOString() });
-    } catch (e) {
-      console.error('Error updating premium status:', e);
-      if (onNotify) onNotify('Payment recorded but failed to update premium status. Contact support.', 'error');
+    if (!projects || projects.length === 0) {
+      if (onNotify) onNotify('Create a project first before upgrading to Premium.', 'error');
       return;
     }
-    setIsPremium(true);
-    setShowPaymentModal(false);
-    setActiveProjectForPayment(null);
-    if (onNotify) onNotify('Premium activated successfully! Humanise and Feedback: up to 4 times per subsection.', 'success');
+    if (projects.some(p => p.isPremium)) {
+      if (onNotify) onNotify('You already have Premium access! Humanise and Feedback: up to 4 times per subsection.', 'info');
+      return;
+    }
+    setActiveProjectForPayment(projects[0]);
+    setShowPremiumConfirm(true);
   };
 
-  const handleClosePayment = () => {
-    setShowPaymentModal(false);
+  const handleConfirmPremium = async () => {
+    if (!activeProjectForPayment) return false;
+    try {
+      const { updateProject } = await import('../services/firestoreService');
+      await updateProject(activeProjectForPayment.id, { isPremium: true });
+      setShowPremiumConfirm(false);
+      setActiveProjectForPayment(null);
+      if (onNotify) onNotify('Premium activated successfully! Humanise and Feedback: up to 4 times per subsection.', 'success');
+      return true;
+    } catch (e) {
+      console.error('Error updating premium status:', e);
+      if (onNotify) onNotify('Failed to activate premium. Please try again.', 'error');
+      return false;
+    }
+  };
+
+  const handleCancelPremium = () => {
+    setShowPremiumConfirm(false);
     setActiveProjectForPayment(null);
   };
 
   return {
-    showPaymentModal, activeProjectForPayment, isPremium, setIsPremium,
-    handlePremiumClick, handlePaymentSuccess, handleClosePayment
+    showPremiumConfirm,
+    handlePremiumClick,
+    handleConfirmPremium,
+    handleCancelPremium,
   };
 };
 

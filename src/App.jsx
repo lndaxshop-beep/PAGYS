@@ -2,10 +2,10 @@ import React, { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import PaymentModal from './components/PaymentModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/layout/Header';
 import Toast from './components/Toast';
+import ConfirmModal from './components/ConfirmModal';
 import HomePage from './components/home/HomePage';
 import usePayment from './hooks/usePayment';
 import './App.css';
@@ -40,8 +40,10 @@ function AppContent() {
   const [toast, setToast] = useState(null);
   const notify = (message, type) => setToast({ message, type });
   const {
-    showPaymentModal, activeProjectForPayment, isPremium, setIsPremium,
-    handlePremiumClick, handlePaymentSuccess, handleClosePayment
+    showPremiumConfirm,
+    handlePremiumClick,
+    handleConfirmPremium,
+    handleCancelPremium
   } = usePayment(notify);
 
   return (
@@ -69,12 +71,13 @@ function AppContent() {
             <Route path="/help" element={<Page><HelpSupport /></Page>} />
           </Routes>
         </div>
-        {showPaymentModal && activeProjectForPayment && (
-          <PaymentModal
-            project={activeProjectForPayment}
-            onSuccess={handlePaymentSuccess}
-            onClose={handleClosePayment}
-            onNotify={notify}
+        {showPremiumConfirm && (
+          <ConfirmModal
+            title="Upgrade to Premium"
+            message="Upgrade to Premium for just ₵5? This gives you up to 4 humanise and feedback uses per subsection."
+            confirmText="Yes, ₵5"
+            onConfirm={handleConfirmPremium}
+            onCancel={handleCancelPremium}
           />
         )}
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

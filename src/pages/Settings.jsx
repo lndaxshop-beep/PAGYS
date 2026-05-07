@@ -6,6 +6,7 @@ import { deleteUser } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
+import useAppAuth from '../hooks/useAppAuth';
 
 const Settings = () => {
   const { colors, isDarkMode } = useTheme();
@@ -20,6 +21,7 @@ const Settings = () => {
   const [toast, setToast] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
+  const { isPremium } = useAppAuth();
   const notify = (message, type) => setToast({ message, type });
 
   useEffect(() => {
@@ -147,29 +149,23 @@ const Settings = () => {
 
         <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', border: `1px solid ${colors.border}`, marginBottom: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Premium Status</h2>
-          {(() => {
-            let projects = [];
-            try { projects = JSON.parse(localStorage.getItem('thesisProjects') || '[]'); } catch (e) { console.warn('Failed to parse thesisProjects:', e); }
-            const userProjects = projects.filter(p => p.userId === user?.uid);
-            const isPremium = userProjects.some(p => p.isPremium);
-            return isPremium ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '24px' }}>💎</span>
-                <div>
-                  <p style={{ fontWeight: '600', color: '#f59e0b' }}>Premium Active</p>
-                  <p style={{ fontSize: '13px', color: colors.textSecondary }}>Humanise & Feedback: up to 4 times per subsection</p>
-                </div>
-              </div>
-            ) : (
+          {isPremium ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '24px' }}>💎</span>
               <div>
-                <p style={{ color: colors.textSecondary, marginBottom: '12px' }}>Upgrade to Premium for extended features.</p>
-                <button onClick={() => notify('Go to your project and click the 💎 Upgrade button in the header.', 'info')}
-                  style={{ backgroundColor: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
-                  💎 Upgrade to Premium
-                </button>
+                <p style={{ fontWeight: '600', color: '#f59e0b' }}>Premium Active</p>
+                <p style={{ fontSize: '13px', color: colors.textSecondary }}>Humanise & Feedback: up to 4 times per subsection</p>
               </div>
-            );
-          })()}
+            </div>
+          ) : (
+            <div>
+              <p style={{ color: colors.textSecondary, marginBottom: '12px' }}>Upgrade to Premium for extended features.</p>
+              <button onClick={() => notify('Go to your project and click the 💎 Upgrade button in the header.', 'info')}
+                style={{ backgroundColor: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
+                💎 Upgrade to Premium
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', border: `1px solid #ef4444` }}>

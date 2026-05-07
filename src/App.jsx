@@ -40,7 +40,7 @@ function AppContent() {
   const [toast, setToast] = useState(null);
   const notify = (message, type) => setToast({ message, type });
   const {
-    showPremiumConfirm,
+    showPremiumConfirm, isPremium,
     handlePremiumClick,
     handleConfirmPremium,
     handleCancelPremium
@@ -54,7 +54,7 @@ function AppContent() {
         display: 'flex',
         flexDirection: 'column'
       }}>
-        <Header onPremiumClick={handlePremiumClick} />
+        <Header onPremiumClick={handlePremiumClick} isPremium={isPremium} />
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Page><HomePage /></Page>} />
@@ -74,8 +74,8 @@ function AppContent() {
         {showPremiumConfirm && (
           <ConfirmModal
             title="Upgrade to Premium"
-            message="Upgrade to Premium for just ₵5? This gives you up to 4 humanise and feedback uses per subsection."
-            confirmText="Yes, ₵5"
+            message="Activate Premium features? This gives you up to 4 humanise and feedback uses per subsection."
+            confirmText="Activate"
             onConfirm={handleConfirmPremium}
             onCancel={handleCancelPremium}
           />

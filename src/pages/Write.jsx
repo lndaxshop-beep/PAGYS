@@ -139,6 +139,11 @@ const Write = () => {
   useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData).catch(e => console.error('Auto-save charts failed:', e)); }, [chartData, projectId]);
   useEffect(() => { if (projectId && Object.keys(tableData).length) saveVisualData(projectId, 'tables', tableData).catch(e => console.error('Auto-save tables failed:', e)); }, [tableData, projectId]);
 
+  useEffect(() => {
+    const onPremiumActivated = () => setProject(prev => prev ? { ...prev, isPremium: true } : prev);
+    window.addEventListener('premiumActivated', onPremiumActivated);
+    return () => window.removeEventListener('premiumActivated', onPremiumActivated);
+  }, []);
 
   const handleDragStart = (e, index) => {
     const subsection = chapters.find(c => c.id === activeChapter)?.subsections[index];

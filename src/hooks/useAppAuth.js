@@ -11,6 +11,20 @@ const useAppAuth = () => {
   const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
+    const onPremiumActivated = async () => {
+      try {
+        const { getProjects } = await import('../services/firestoreService');
+        const projects = await getProjects();
+        setIsPremium(projects.some(p => p.isPremium));
+      } catch (e) {
+        console.error('Error refreshing premium status:', e);
+      }
+    };
+    window.addEventListener('premiumActivated', onPremiumActivated);
+    return () => window.removeEventListener('premiumActivated', onPremiumActivated);
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {

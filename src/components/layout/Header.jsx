@@ -5,9 +5,10 @@ import ThemeToggle from '../ThemeToggle';
 import ProfileMenu from '../ProfileMenu';
 import useAppAuth from '../../hooks/useAppAuth';
 
-const Header = ({ onPremiumClick }) => {
+const Header = ({ onPremiumClick, isPremium: propIsPremium }) => {
   const { colors } = useTheme();
-  const { isLoggedIn, user, showProfileMenu, isPremium, setShowProfileMenu, handleLogout } = useAppAuth();
+  const { isLoggedIn, user, showProfileMenu, isPremium: authIsPremium, setShowProfileMenu, handleLogout } = useAppAuth();
+  const isPremium = propIsPremium || authIsPremium;
 
   return (
     <header style={{

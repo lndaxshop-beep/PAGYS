@@ -3,6 +3,7 @@ import { useState } from 'react';
 const usePayment = (onNotify) => {
   const [showPremiumConfirm, setShowPremiumConfirm] = useState(false);
   const [activeProjectForPayment, setActiveProjectForPayment] = useState(null);
+  const [isPremium, setIsPremium] = useState(false);
 
   const handlePremiumClick = async () => {
     let projects;
@@ -31,8 +32,10 @@ const usePayment = (onNotify) => {
     try {
       const { updateProject } = await import('../services/firestoreService');
       await updateProject(activeProjectForPayment.id, { isPremium: true });
+      setIsPremium(true);
       setShowPremiumConfirm(false);
       setActiveProjectForPayment(null);
+      window.dispatchEvent(new CustomEvent('premiumActivated'));
       if (onNotify) onNotify('Premium activated successfully! Humanise and Feedback: up to 4 times per subsection.', 'success');
       return true;
     } catch (e) {
@@ -48,7 +51,7 @@ const usePayment = (onNotify) => {
   };
 
   return {
-    showPremiumConfirm,
+    showPremiumConfirm, isPremium,
     handlePremiumClick,
     handleConfirmPremium,
     handleCancelPremium,

@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { saveAs } from 'file-saver';
 import { useTheme } from '../contexts/ThemeContext';
 import useFindingsData from '../hooks/useFindingsData';
 import FileUploader from './findings/FileUploader';
 import ManualEntry from './findings/ManualEntry';
 import DataPreview from './findings/DataPreview';
+import Toast from './Toast';
 import { exportToCSV } from '../utils/findingsHelpers';
 
 const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
   const { colors, isDarkMode } = useTheme();
+  const [toast, setToast] = useState(null);
+  const notify = (message, type) => setToast({ message, type });
 
   const {
     uploadedFiles,
@@ -27,7 +30,7 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
     processManualData,
     handleGenerateChapter4,
     isOptionSelected
-  } = useFindingsData(project, onUpload, onGenerateWithAI);
+  } = useFindingsData(project, onUpload, onGenerateWithAI, notify);
 
   const handleExportCSV = () => {
     if (!extractedData) return;
@@ -335,6 +338,7 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
           }
         `}
       </style>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

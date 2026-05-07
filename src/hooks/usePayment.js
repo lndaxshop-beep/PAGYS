@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const usePayment = () => {
+const usePayment = (onNotify) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [activeProjectForPayment, setActiveProjectForPayment] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
@@ -8,8 +8,8 @@ const usePayment = () => {
   const handlePremiumClick = async () => {
     const { getProjects } = await import('../services/firestoreService');
     const projects = await getProjects();
-    if (projects.length === 0) { alert('Start a project first before upgrading to Premium.'); return; }
-    if (isPremium) { alert('You already have Premium access!\n\nHumanise: up to 4 times per subsection\nFeedback: up to 4 times per subsection'); return; }
+    if (projects.length === 0) { if (onNotify) onNotify('Start a project first before upgrading to Premium.', 'error'); return; }
+    if (isPremium) { if (onNotify) onNotify('You already have Premium access! Humanise and Feedback: up to 4 times per subsection.', 'info'); return; }
     let eligibleProject = null;
     for (const project of projects) {
       const savedContent = localStorage.getItem(`generatedContent_${project.id}`);
@@ -18,7 +18,7 @@ const usePayment = () => {
         if (Object.keys(content).length > 0) { eligibleProject = project; break; }
       }
     }
-    if (!eligibleProject) { alert('Start writing first! Generate at least one subsection before upgrading to Premium.'); return; }
+    if (!eligibleProject) { if (onNotify) onNotify('Start writing first! Generate at least one subsection before upgrading to Premium.', 'error'); return; }
     setActiveProjectForPayment(eligibleProject);
     setShowPaymentModal(true);
   };
@@ -30,7 +30,7 @@ const usePayment = () => {
     setIsPremium(true);
     setShowPaymentModal(false);
     setActiveProjectForPayment(null);
-    alert('Premium activated successfully!\n\nYou can now use:\nHumanise: 4 times per subsection\nFeedback: 4 times per subsection');
+    if (onNotify) onNotify('Premium activated successfully! Humanise and Feedback: up to 4 times per subsection.', 'success');
   };
 
   const handleClosePayment = () => {

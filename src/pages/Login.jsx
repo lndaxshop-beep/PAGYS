@@ -5,6 +5,7 @@ import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import Toast from '../components/Toast';
 
 const Login = () => {
   const { colors, isDarkMode } = useTheme();
@@ -16,6 +17,7 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -115,7 +117,7 @@ const Login = () => {
               <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: colors.primary }} />
               Remember me
             </label>
-            <a href="#" style={{ color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'opacity 0.2s' }}
+            <a href="#" onClick={(e) => { e.preventDefault(); setToast({ message: 'Password reset feature coming soon. Please contact support.', type: 'info' }); }} style={{ color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'opacity 0.2s' }}
               onMouseEnter={(e) => { e.target.style.opacity = '0.8'; }}
               onMouseLeave={(e) => { e.target.style.opacity = '1'; }}>
               Forgot password?
@@ -142,6 +144,7 @@ const Login = () => {
           </div>
         </form>
       </div>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

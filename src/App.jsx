@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import SignUp from './pages/SignUp';
@@ -14,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PaymentModal from './components/PaymentModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/layout/Header';
+import Toast from './components/Toast';
 import HomePage from './components/home/HomePage';
 import usePayment from './hooks/usePayment';
 import './App.css';
@@ -22,10 +23,12 @@ import CitationVerify from './pages/CitationVerify';
 
 function AppContent() {
   const { colors } = useTheme();
+  const [toast, setToast] = useState(null);
+  const notify = (message, type) => setToast({ message, type });
   const {
     showPaymentModal, activeProjectForPayment, isPremium, setIsPremium,
     handlePremiumClick, handlePaymentSuccess, handleClosePayment
-  } = usePayment();
+  } = usePayment(notify);
 
   return (
     <ErrorBoundary>
@@ -57,8 +60,10 @@ function AppContent() {
             project={activeProjectForPayment}
             onSuccess={handlePaymentSuccess}
             onClose={handleClosePayment}
+            onNotify={notify}
           />
         )}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </ErrorBoundary>
   );

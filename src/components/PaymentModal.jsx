@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PaystackButton } from '@makozi/paystack-react-pay';
 
 
-const PaymentModal = ({ project, onSuccess, onClose }) => {
+const PaymentModal = ({ project, onSuccess, onClose, onNotify }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
 
@@ -39,7 +39,7 @@ const PaymentModal = ({ project, onSuccess, onClose }) => {
       });
     },
     onClose: () => {
-      alert('Payment cancelled. You need to complete payment to start this project.');
+      if (onNotify) onNotify('Payment cancelled. You need to complete payment to start this project.', 'info');
     }
   };
 

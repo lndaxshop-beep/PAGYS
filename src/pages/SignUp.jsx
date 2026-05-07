@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth } from '../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -45,11 +45,12 @@ const SignUp = () => {
       return;
     }
 
+    let fbUser = null;
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
+      fbUser = userCredential.user;
 
-      await setDoc(doc(db, 'users', user.uid), {
+      await setDoc(doc(db, 'users', fbUser.uid), {
         fullName: formData.fullName,
         username: formData.username,
         email: formData.email,
@@ -59,15 +60,19 @@ const SignUp = () => {
       });
 
       localStorage.setItem('currentUser', JSON.stringify({
-        uid: user.uid,
+        uid: fbUser.uid,
         fullName: formData.fullName,
         username: formData.username,
         email: formData.email,
         country: formData.country,
+        university: formData.university,
       }));
 
       navigate('/dashboard');
     } catch (err) {
+      if (fbUser?.uid) {
+        try { await deleteUser(fbUser); } catch (e) { console.error('Error cleaning up auth user:', e); }
+      }
       if (err.code === 'auth/email-already-in-use') {
         setError('Email already registered. Please login instead.');
       } else if (err.code === 'auth/weak-password') {
@@ -132,40 +137,40 @@ const SignUp = () => {
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gap: '20px' }}>
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Full Name *</label>
+              <label htmlFor="fullName" style={labelStyle}>Full Name *</label>
               <span style={iconStyle}>👤</span>
-              <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="John Doe" />
+              <input id="fullName" type="text" name="fullName" value={formData.fullName} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="John Doe" />
             </div>
 
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Email Address *</label>
+              <label htmlFor="email" style={labelStyle}>Email Address *</label>
               <span style={iconStyle}>✉️</span>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="you@university.edu" />
+              <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="you@university.edu" />
             </div>
 
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Username *</label>
+              <label htmlFor="username" style={labelStyle}>Username *</label>
               <span style={iconStyle}>@</span>
-              <input type="text" name="username" value={formData.username} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="johndoe123" />
+              <input id="username" type="text" name="username" value={formData.username} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="johndoe123" />
             </div>
 
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Password *</label>
+              <label htmlFor="password" style={labelStyle}>Password *</label>
               <span style={iconStyle}>🔒</span>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <input id="password" type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
               <p style={helperStyle}>Minimum 8 characters</p>
             </div>
 
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Confirm Password *</label>
+              <label htmlFor="confirmPassword" style={labelStyle}>Confirm Password *</label>
               <span style={iconStyle}>✓</span>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <input id="confirmPassword" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
             </div>
 
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Country *</label>
+              <label htmlFor="country" style={labelStyle}>Country *</label>
               <span style={iconStyle}>🌍</span>
-              <select name="country" value={formData.country} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur}
+              <select id="country" name="country" value={formData.country} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur}
                 style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
                 <option value="">Select your country</option>
                 <option value="United States">United States</option>
@@ -187,9 +192,9 @@ const SignUp = () => {
             </div>
 
             <div style={fieldContainerStyle}>
-              <label style={labelStyle}>University/Institution</label>
+              <label htmlFor="university" style={labelStyle}>University/Institution</label>
               <span style={iconStyle}>🏛️</span>
-              <input type="text" name="university" value={formData.university} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="Your University" />
+              <input id="university" type="text" name="university" value={formData.university} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="Your University" />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>

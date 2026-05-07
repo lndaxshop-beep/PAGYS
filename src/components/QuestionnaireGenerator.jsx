@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import useQuestionnaire from '../hooks/useQuestionnaire';
 import QuestionPreview from './questionnaire/QuestionPreview';
 import CustomQuestions from './questionnaire/CustomQuestions';
 import GeneratingState from './questionnaire/GeneratingState';
+import Toast from './Toast';
 
-const QuestionnaireGenerator = ({ project, onClose, onDownload }) => {
+const QuestionnaireGenerator = ({ project, onClose, onDownload, onNotify }) => {
   const { colors, isDarkMode } = useTheme();
+  const [toast, setToast] = useState(null);
+  const notify = (message, type) => setToast({ message, type });
 
   const {
     generating,
@@ -19,7 +22,7 @@ const QuestionnaireGenerator = ({ project, onClose, onDownload }) => {
     handleRemoveCustomQuestion,
     handleDownload,
     exportAsPDF
-  } = useQuestionnaire(project, onClose, onDownload);
+  } = useQuestionnaire(project, onClose, onDownload, notify);
 
   return (
     <div style={{
@@ -208,6 +211,7 @@ const QuestionnaireGenerator = ({ project, onClose, onDownload }) => {
           }
         `}
       </style>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { generateAIData, generateUploadData, parseManualData } from '../utils/findingsHelpers';
 
-const useFindingsData = (project, onUpload, onGenerateWithAI) => {
+const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
@@ -39,7 +39,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI) => {
 
   const handleExtractData = async () => {
     if (uploadedFiles.length === 0) {
-      alert('Please upload at least one file');
+      if (onNotify) onNotify('Please upload at least one file', 'error');
       return;
     }
     setAnalyzing(true);
@@ -49,7 +49,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI) => {
       setExtractedData(generateUploadData());
     } catch (error) {
       console.error('Error extracting data:', error);
-      alert('Error processing files. Please try again.');
+      if (onNotify) onNotify('Error processing files. Please try again.', 'error');
     } finally {
       setAnalyzing(false);
     }
@@ -63,7 +63,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI) => {
 
   const processManualData = async () => {
     if (!manualData.trim()) {
-      alert('Please enter your findings data');
+      if (onNotify) onNotify('Please enter your findings data', 'error');
       return;
     }
     setAnalyzing(true);
@@ -73,7 +73,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI) => {
       setExtractedData(parseManualData(manualData));
     } catch (error) {
       console.error('Error processing manual data:', error);
-      alert('Error processing data. Please try again.');
+      if (onNotify) onNotify('Error processing data. Please try again.', 'error');
     } finally {
       setAnalyzing(false);
     }
@@ -81,7 +81,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI) => {
 
   const handleGenerateChapter4 = () => {
     if (!extractedData && !useAIGenerated) {
-      alert('Please provide findings data first');
+      if (onNotify) onNotify('Please provide findings data first', 'error');
       return;
     }
     if (useAIGenerated) {

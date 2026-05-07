@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { generateQuestions, generateWordContent } from '../utils/questionnaireHelpers';
 
-const useQuestionnaire = (project, onClose, onDownload) => {
+const useQuestionnaire = (project, onClose, onDownload, onNotify) => {
   const [generating, setGenerating] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
@@ -20,7 +20,7 @@ const useQuestionnaire = (project, onClose, onDownload) => {
       setQuestions(generateQuestions(project));
     } catch (error) {
       console.error('Error generating questionnaire:', error);
-      alert('Error generating questions. Please try again.');
+      if (onNotify) onNotify('Error generating questions. Please try again.', 'error');
     } finally {
       setGenerating(false);
     }

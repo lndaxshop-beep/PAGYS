@@ -4,11 +4,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 import Footer from '../layout/Footer';
 import FeatureCard from './FeatureCard';
 import TestimonialCard from './TestimonialCard';
+import Toast from '../Toast';
 
 const HomePage = () => {
   const { colors, isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const checkLogin = () => {
@@ -25,7 +27,7 @@ const HomePage = () => {
   }, []);
 
   const handleGetStarted = () => {
-    if (isLoggedIn) { alert('You are already logged in! Please logout first to create a new account.'); }
+    if (isLoggedIn) { setToast({ message: 'You are already logged in! Please logout first to create a new account.', type: 'info' }); }
     else { navigate('/signup'); }
   };
 
@@ -137,6 +139,7 @@ const HomePage = () => {
       </div>
 
       <Footer />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

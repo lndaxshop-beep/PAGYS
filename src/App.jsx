@@ -73,9 +73,9 @@ function AppContent() {
         </div>
         {showPremiumConfirm && (
           <ConfirmModal
-            title="Upgrade to Premium"
-            message="Activate Premium features? This gives you up to 4 humanise and feedback uses per subsection."
-            confirmText="Activate"
+            title="💎 Upgrade to Premium"
+            message="Premium Benefits:\n\n✨ Humanise up to 4 times per subsection\n✏️ Feedback up to 4 times per subsection\n\nThis is a one-time upgrade for your current project."
+            confirmText="Upgrade Now"
             onConfirm={handleConfirmPremium}
             onCancel={handleCancelPremium}
           />

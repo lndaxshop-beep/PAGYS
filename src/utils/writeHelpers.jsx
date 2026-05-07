@@ -13,19 +13,19 @@ export const calculateOverallProgress = (chapters, generatedSubsections) => {
   return { percentage: total > 0 ? Math.round((generated / total) * 100) : 0, generated, total };
 };
 
-export const isHumaniseAvailable = (activeSubsections, currentSubsectionIndex, humaniseUsed, humaniseLimit, isViewingReferences) => {
+export const isHumaniseAvailable = (activeChapter, activeSubsections, currentSubsectionIndex, humaniseUsed, humaniseLimit, isViewingReferences) => {
   if (isViewingReferences) return false;
   const sub = activeSubsections[currentSubsectionIndex];
   if (!sub || !sub.generated) return false;
-  const key = `${activeSubsections[currentSubsectionIndex]?.id || ''}_${sub.id}`;
+  const key = `${activeChapter}_${sub.id}`;
   return (humaniseUsed[key] || 0) < humaniseLimit;
 };
 
-export const isFeedbackAvailable = (activeSubsections, currentSubsectionIndex, feedbackUsed, feedbackLimit, isViewingReferences) => {
+export const isFeedbackAvailable = (activeChapter, activeSubsections, currentSubsectionIndex, feedbackUsed, feedbackLimit, isViewingReferences) => {
   if (isViewingReferences) return false;
   const sub = activeSubsections[currentSubsectionIndex];
   if (!sub || !sub.generated) return false;
-  const key = `${activeSubsections[currentSubsectionIndex]?.id || ''}_${sub.id}`;
+  const key = `${activeChapter}_${sub.id}`;
   return (feedbackUsed[key] || 0) < feedbackLimit;
 };
 

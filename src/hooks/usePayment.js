@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 const usePayment = (onNotify) => {
   const [showPremiumConfirm, setShowPremiumConfirm] = useState(false);
-  const [activeProjectForPayment, setActiveProjectForPayment] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
 
   const handlePremiumClick = async () => {
@@ -23,18 +22,20 @@ const usePayment = (onNotify) => {
       if (onNotify) onNotify('You already have Premium access! Humanise and Feedback: up to 4 times per subsection.', 'info');
       return;
     }
-    setActiveProjectForPayment(projects[0]);
     setShowPremiumConfirm(true);
   };
 
   const handleConfirmPremium = async () => {
-    if (!activeProjectForPayment) return false;
     try {
-      const { updateProject } = await import('../services/firestoreService');
-      await updateProject(activeProjectForPayment.id, { isPremium: true });
+      const { getProjects, updateProject } = await import('../services/firestoreService');
+      const projects = await getProjects();
+      await Promise.all(projects.map(p => updateProject(p.id, { isPremium: true })));
+      try {
+        const stored = JSON.parse(localStorage.getItem('thesisProjects') || '[]');
+        localStorage.setItem('thesisProjects', JSON.stringify(stored.map(p => ({ ...p, isPremium: true }))));
+      } catch (e) { console.warn('Failed to sync localStorage:', e); }
       setIsPremium(true);
       setShowPremiumConfirm(false);
-      setActiveProjectForPayment(null);
       window.dispatchEvent(new CustomEvent('premiumActivated'));
       if (onNotify) onNotify('Premium activated successfully! Humanise and Feedback: up to 4 times per subsection.', 'success');
       return true;
@@ -47,7 +48,6 @@ const usePayment = (onNotify) => {
 
   const handleCancelPremium = () => {
     setShowPremiumConfirm(false);
-    setActiveProjectForPayment(null);
   };
 
   return {

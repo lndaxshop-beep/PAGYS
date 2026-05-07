@@ -7,7 +7,12 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   const [humanising, setHumanising] = useState(false);
   const [applyingSubFeedback, setApplyingSubFeedback] = useState(false);
 
-  const isPremium = project?.isPremium || false;
+  const isPremium = project?.isPremium || (() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('thesisProjects') || '[]');
+      return stored.some(p => p.id.toString() === project?.id?.toString() && p.isPremium);
+    } catch { return false; }
+  })();
   const humaniseLimit = isPremium ? 4 : 1;
   const feedbackLimit = isPremium ? 4 : 1;
 

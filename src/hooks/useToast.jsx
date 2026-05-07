@@ -4,14 +4,15 @@ export const useToast = () => {
   const [toasts, setToasts] = useState([]);
   const counterRef = useRef(0);
 
-  const addToast = useCallback((message, type = 'info', duration = 3000) => {
+  const addToast = useCallback((message, type = 'info', duration = 3000, action = null) => {
     const id = ++counterRef.current;
-    setToasts(prev => [...prev, { id, message, type }]);
+    const effectiveDuration = action ? Math.max(duration, 5000) : duration;
+    setToasts(prev => [...prev, { id, message, type, action }]);
 
-    if (duration > 0) {
+    if (effectiveDuration > 0) {
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
-      }, duration);
+      }, effectiveDuration);
     }
 
     return id;
@@ -46,7 +47,7 @@ export const ToastContainer = ({ toasts, removeToast }) => {
         return (
           <div
             key={toast.id}
-            onClick={() => removeToast(toast.id)}
+            onClick={() => !toast.action && removeToast(toast.id)}
             style={{
               backgroundColor: style.bg,
               color: 'white',
@@ -56,15 +57,35 @@ export const ToastContainer = ({ toasts, removeToast }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              cursor: 'pointer',
+              cursor: toast.action ? 'default' : 'pointer',
               fontSize: '14px',
               fontWeight: '500',
-              minWidth: '250px',
+              minWidth: '280px',
               animation: 'slideIn 0.3s ease-out'
             }}
           >
             <span style={{ fontWeight: 'bold' }}>{style.icon}</span>
-            <span>{toast.message}</span>
+            <span style={{ flex: 1 }}>{toast.message}</span>
+            {toast.action && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toast.action.onClick(); removeToast(toast.id); }}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.4)',
+                  borderRadius: '4px',
+                  padding: '4px 10px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.35)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+              >
+                {toast.action.label}
+              </button>
+            )}
           </div>
         );
       })}

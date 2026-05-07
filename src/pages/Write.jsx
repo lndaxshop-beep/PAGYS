@@ -31,6 +31,7 @@ const Write = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
+  const [generatingAll, setGeneratingAll] = useState(null);
   const [humaniseUsed, setHumaniseUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`humaniseUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
@@ -68,9 +69,9 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { title: 'References', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences);
+  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
@@ -150,6 +151,18 @@ const Write = () => {
     window.addEventListener('premiumActivated', onPremiumActivated);
     return () => window.removeEventListener('premiumActivated', onPremiumActivated);
   }, []);
+
+  const handleDeleteWithUndo = (subsectionId, chapterId) => {
+    const chapter = chapters.find(c => c.id === (chapterId || activeChapter));
+    const sub = chapter?.subsections.find(s => s.id === subsectionId);
+    handleDeleteSubsection(subsectionId, chapterId);
+    if (sub) {
+      addToast(`"${sub.title}" deleted`, 'info', 5000, {
+        label: 'Undo',
+        onClick: () => handleRestoreSubsection(subsectionId, chapterId)
+      });
+    }
+  };
 
   const handleDragStart = (e, index) => {
     const subsection = chapters.find(c => c.id === activeChapter)?.subsections[index];
@@ -353,6 +366,31 @@ const Write = () => {
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
 
+  const handleGenerateAll = async (chapterId) => {
+    const chapter = chapters.find(c => c.id === chapterId);
+    if (!chapter) return;
+    const subs = chapter.subsections.filter(s => !s.generated && s.title !== 'References' && !s.deleted);
+    if (subs.length === 0) { toastError('All subsections already generated.'); return; }
+    setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId });
+    const activeSubsList = chapter.subsections.filter(s => !s.deleted);
+    let errorCount = 0;
+    for (let i = 0; i < subs.length; i++) {
+      const sub = subs[i];
+      const subIndex = activeSubsList.findIndex(s => s.id === sub.id);
+      if (subIndex === -1) continue;
+      const result = await generateSubsectionContent(chapterId, sub.title, sub.id, subIndex, activeSubsList);
+      if (result?.error) { errorCount++; setGeneratingAll(prev => prev ? { ...prev, errors: prev.errors + 1, completed: prev.completed + 1 } : null); continue; }
+      if (result?.skipped) { setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null); continue; }
+      setChapterCitations(prev => ({ ...prev, [chapterId]: [...new Set([...(prev[chapterId] || []), ...result.citations])] }));
+      setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], [result.subsectionTitle]: result.content } }));
+      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: ch.subsections.map(s => s.id === result.subsectionId ? { ...s, generated: true } : s) } : ch));
+      setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null);
+    }
+    setGeneratingAll(null);
+    if (errorCount > 0) toastError(`${errorCount} subsection(s) failed to generate.`);
+    else toastSuccess(`All ${subs.length} subsection(s) generated successfully!`);
+  };
+
   const handleInstrumentsDownload = (downloadedTypes) => {
     setInstrumentsCompleted(true); modals.setShowDataCollectionModal(false);
     setChapters(prev => prev.map(ch => ch.id === 'chapter4' ? { ...ch, unlocked: true } : ch));
@@ -386,10 +424,11 @@ const Write = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.background }}>
       <div style={{ width: '400px', height: '100vh', overflowY: 'auto', backgroundColor: colors.surface }}>
         <LeftPane chapters={chapters} activeChapter={activeChapter} onChapterClick={wrappedHandleChapterClick} progress={overallProgress}
-          onDeleteSubsection={handleDeleteSubsection} onRestoreSubsection={handleRestoreSubsection} onCustomizeSubsection={handleCustomizeSubsection}
+          onDeleteSubsection={handleDeleteWithUndo} onRestoreSubsection={handleRestoreSubsection} onCustomizeSubsection={handleCustomizeSubsection} onRenameSubsection={handleRenameSubsection}
           onAddSubsection={handleAddSubsection} onSubsectionClick={wrappedHandleSubsectionClick} generatingSubtopics={generatingSubtopics}
           generatedSubsections={generatedSubsections} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleWrappedDrop}
-          onDragEnd={handleDragEnd} draggedItem={draggedItem} dragOverItem={dragOverItem} />
+          onDragEnd={handleDragEnd} draggedItem={draggedItem} dragOverItem={dragOverItem} chapterWordCounts={chapterWordCounts}
+          generatingAll={generatingAll} onGenerateAll={handleGenerateAll} />
       </div>
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>

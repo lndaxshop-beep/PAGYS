@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const SubsectionItem = ({
@@ -10,21 +10,46 @@ const SubsectionItem = ({
   isClickable,
   isDragged,
   isDragOver,
+  wordCount,
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd,
   onClick,
-  onDelete
+  onDelete,
+  onRename
 }) => {
   const { colors, isDarkMode } = useTheme();
   const isReferences = subsection.title === 'References' || subsection.type === 'references';
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(subsection.title);
+  const inputRef = useRef(null);
+
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const handleStartEdit = (e) => {
+    e.stopPropagation();
+    setEditValue(subsection.title);
+    setEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    setEditing(false);
+    if (editValue.trim() && editValue.trim() !== subsection.title) {
+      onRename?.(subsection.id, editValue.trim());
+    }
+  };
+
+  const handleEditKeyDown = (e) => {
+    if (e.key === 'Enter') handleSaveEdit();
+    if (e.key === 'Escape') { setEditValue(subsection.title); setEditing(false); }
+  };
 
   return (
     <div
-      draggable={isDraggable}
+      draggable={isDraggable && !editing}
       onDragStart={(e) => {
-        if (isDraggable) {
+        if (isDraggable && !editing) {
           onDragStart(e, index);
           e.dataTransfer.setData('text/plain', index);
         } else {
@@ -34,7 +59,7 @@ const SubsectionItem = ({
       onDragOver={(e) => onDragOver(e, index)}
       onDrop={(e) => onDrop(e, index)}
       onDragEnd={onDragEnd}
-      onClick={() => isClickable && onClick(subsection)}
+      onClick={() => !editing && isClickable && onClick(subsection)}
       style={{
         opacity: isDragged ? 0.5 : (isReferences && !isClickable ? 0.5 : 1),
         border: isDragOver && !isDragged ? `2px dashed ${colors.primary}` : 'none',
@@ -62,7 +87,39 @@ const SubsectionItem = ({
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: '500', color: colors.text, fontSize: '14px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {subsection.title}
+            {editing ? (
+              <input
+                ref={inputRef}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={handleSaveEdit}
+                onKeyDown={handleEditKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: '100%', padding: '2px 6px', fontSize: '14px',
+                  border: `1px solid ${colors.primary}`, borderRadius: '4px',
+                  backgroundColor: colors.input, color: colors.text,
+                  outline: 'none'
+                }}
+              />
+            ) : (
+              <span style={{ flex: 1 }}>{subsection.title}</span>
+            )}
+            {!isReferences && !editing && onRename && (
+              <button
+                onClick={handleStartEdit}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', color: colors.textSecondary, padding: '2px',
+                  borderRadius: '4px', opacity: 0.5, lineHeight: 1
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = colors.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.color = colors.textSecondary; }}
+                title="Rename"
+              >
+                ✏️
+              </button>
+            )}
             {isReferences && !isClickable && (
               <span style={{
                 fontSize: '10px',
@@ -83,6 +140,11 @@ const SubsectionItem = ({
           {subsection.generated && (
             <div style={{ fontSize: '10px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span>✓ Generated</span>
+            </div>
+          )}
+          {wordCount && !subsection.generated && (
+            <div style={{ fontSize: '10px', color: colors.textSecondary, marginTop: '2px' }}>
+              {wordCount.min}–{wordCount.max} words
             </div>
           )}
         </div>

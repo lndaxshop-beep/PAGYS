@@ -68,6 +68,38 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (error) { setGeneratingVisual(false); throw error; }
   }, [project]);
 
+  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList) => {
+    const ch = chapters.find(c => c.id === chapterId);
+    if (!ch) return { error: true, message: 'Chapter not found.' };
+    const sub = ch.subsections.find(s => s.id === subId);
+    if (!sub) return { error: true, message: 'Subsection not found.' };
+    if (sub.generated) return { skipped: true, reason: 'already generated' };
+    if (sub.title === 'References') return { skipped: true, reason: 'references' };
+
+    let chapterTitle = chapterId === 'proposal' ? 'Proposal' : chapterId === 'chapter1' ? 'Chapter 1: Introduction' : chapterId === 'chapter2' ? 'Chapter 2: Literature Review' : chapterId === 'chapter3' ? 'Chapter 3: Methodology' : chapterId === 'chapter4' ? 'Chapter 4: Results/Analysis' : 'Chapter 5: Discussion & Conclusion';
+    let chapterNumber = chapterId === 'chapter1' ? 'ONE' : chapterId === 'chapter2' ? 'TWO' : chapterId === 'chapter3' ? 'THREE' : chapterId === 'chapter4' ? 'FOUR' : chapterId === 'chapter5' ? 'FIVE' : '';
+    const totalWordCount = ch.wordCount || { min: 1000, max: 2000 };
+    const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsList, subTitle);
+    const { generateAcademicContent } = await import('../services/geminiService');
+    const result = await generateAcademicContent({
+      chapter: chapterTitle, chapterId, chapterNumber, subsection: subTitle,
+      topic: project.title, field: project.field, level: project.level, methodology: project.methodology,
+      organization: sub.customValue || project?.organizationName || null,
+      hideOrganization: project?.hideOrganization || false, findings: chapterId === 'chapter4' ? uploadedFindings : null,
+      wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
+    });
+    let generatedContent = typeof result === 'object' ? result.text : result;
+    const sources = typeof result === 'object' ? (result.sources || []) : [];
+    if (sources.length > 0) {
+      const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
+      const combined = [...existingSources, ...sources];
+      const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
+      localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
+    }
+    const citations = extractCitations(generatedContent);
+    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle };
+  }, [project, chapters, uploadedFindings, literatureReviewType]);
+
   const handleGenerateCurrent = useCallback(async (activeSubsections) => {
     const currentChapter = chapters.find(c => c.id === activeChapter);
     if (currentSubsectionIndex >= activeSubsections.length) return { error: true, message: 'All subsections generated!' };
@@ -76,36 +108,11 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     if (currentSub.generated) return { error: true, message: 'This subsection has already been generated.' };
     setGenerating(true);
     try {
-      let chapterTitle = activeChapter === 'proposal' ? 'Proposal' : activeChapter === 'chapter1' ? 'Chapter 1: Introduction' : activeChapter === 'chapter2' ? 'Chapter 2: Literature Review' : activeChapter === 'chapter3' ? 'Chapter 3: Methodology' : activeChapter === 'chapter4' ? 'Chapter 4: Results/Analysis' : 'Chapter 5: Discussion & Conclusion';
-      let chapterNumber = activeChapter === 'chapter1' ? 'ONE' : activeChapter === 'chapter2' ? 'TWO' : activeChapter === 'chapter3' ? 'THREE' : activeChapter === 'chapter4' ? 'FOUR' : activeChapter === 'chapter5' ? 'FIVE' : '';
-      const totalWordCount = currentChapter.wordCount || { min: 1000, max: 2000 };
-      const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsections, currentSub.title);
-      const { generateAcademicContent } = await import('../services/geminiService');
-      const result = await generateAcademicContent({
-        chapter: chapterTitle, chapterId: activeChapter, chapterNumber, subsection: currentSub.title,
-        topic: project.title, field: project.field, level: project.level, methodology: project.methodology,
-        organization: currentSub.customValue || project?.organizationName || null,
-        hideOrganization: project?.hideOrganization || false, findings: activeChapter === 'chapter4' ? uploadedFindings : null,
-        wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: currentSubsectionIndex === 0,
-      });
-      let generatedContent = typeof result === 'object' ? result.text : result;
-      const sources = typeof result === 'object' ? (result.sources || []) : [];
-      if (sources.length > 0) {
-        const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${activeChapter}`) || '[]');
-        const combined = [...existingSources, ...sources];
-        const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
-        localStorage.setItem(`groundingSources_${activeChapter}`, JSON.stringify(unique));
-      }
-      const citations = extractCitations(generatedContent);
-      return {
-        content: generatedContent,
-        citations,
-        subsectionId: currentSub.id,
-        subsectionTitle: currentSub.title
-      };
+      const result = await generateSubsectionContent(activeChapter, currentSub.title, currentSub.id, currentSubsectionIndex, activeSubsections);
+      return result;
     } catch (error) { throw error; }
     finally { setGenerating(false); }
-  }, [project, chapters, activeChapter, currentSubsectionIndex, currentSubsection, uploadedFindings, literatureReviewType]);
+  }, [activeChapter, currentSubsectionIndex, generateSubsectionContent]);
 
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
     const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.title !== 'References' && !s.deleted);
@@ -226,6 +233,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     handleGenerateTable,
     handleGenerateChart,
     handleGenerateCurrent,
+    generateSubsectionContent,
     handleGenerateReferences,
     handleHumanise,
     handleApplyFeedback,

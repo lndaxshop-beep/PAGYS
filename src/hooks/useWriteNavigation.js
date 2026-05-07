@@ -67,6 +67,14 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, customValue: value } : s) } : ch));
   }, [activeChapter, setChapters]);
 
+  const handleRenameSubsection = useCallback((subsectionId, newTitle) => {
+    if (!newTitle.trim()) return;
+    setChapters(prev => prev.map(ch => ch.id === activeChapter ? {
+      ...ch,
+      subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, title: newTitle.trim() } : s)
+    } : ch));
+  }, [activeChapter, setChapters]);
+
   const handleAddSubsection = useCallback((title) => {
     setChapters(prev => prev.map(ch => {
       if (ch.id === activeChapter) {
@@ -133,6 +141,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     handleChapterStructureSubmit,
     handleWordCountSubmit,
     handleCustomizeSubsection,
+    handleRenameSubsection,
     handleAddSubsection,
     handlePrevSubsection,
     handleNextSubsection,

@@ -1,25 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import AddSubsection from './AddSubsection';
 import ChapterHeader from './ChapterHeader';
 import SubsectionItem from './SubsectionItem';
 import DeletedSubsections from './DeletedSubsections';
 import { getActiveSubsections, isReferencesClickable, validateReferencesClick } from '../../utils/leftPaneHelpers';
+import { distributeWordCount } from '../../utils/writeHelpers.jsx';
 
 const LeftPane = ({
   chapters, activeChapter, onChapterClick, progress,
   onCustomizeSubsection, onAddSubsection, onSubsectionClick,
-  onDeleteSubsection, onRestoreSubsection, generatingSubtopics,
+  onDeleteSubsection, onRestoreSubsection, onRenameSubsection, generatingSubtopics,
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
-  draggedItem, dragOverItem
+  draggedItem, dragOverItem, chapterWordCounts,
+  generatingAll, onGenerateAll
 }) => {
   const { colors, isDarkMode } = useTheme();
-  const [expandedChapter, setExpandedChapter] = useState(null);
+  const [expandedChapters, setExpandedChapters] = useState([]);
 
   const handleChapterClick = (id) => {
-    setExpandedChapter(expandedChapter === id ? null : id);
+    setExpandedChapters(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
     onChapterClick(id);
   };
+
+  const allExpanded = chapters.filter(c => c.unlocked).length > 0 && expandedChapters.length === chapters.filter(c => c.unlocked).length;
+  const handleToggleAll = useCallback(() => {
+    if (allExpanded) setExpandedChapters([]);
+    else setExpandedChapters(chapters.filter(c => c.unlocked).map(c => c.id));
+  }, [allExpanded, chapters]);
 
   const handleSubsectionClick = (subsection, allSubsections) => {
     if (!validateReferencesClick(subsection, allSubsections)) return;
@@ -32,26 +40,41 @@ const LeftPane = ({
       borderRight: `1px solid ${colors.border}`, padding: '20px',
       overflowY: 'auto'
     }}>
-      <h2 style={{
-        fontSize: '1.25rem', fontWeight: 'bold', color: colors.text,
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: '20px', paddingBottom: '12px',
         borderBottom: `2px solid ${colors.border}`
       }}>
-        {chapters[0]?.projectTitle || 'Thesis Project'}
-      </h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: colors.text, margin: 0 }}>
+          {chapters[0]?.projectTitle || 'Thesis Project'}
+        </h2>
+        <button
+          onClick={handleToggleAll}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: '12px', color: colors.primary, fontWeight: '500',
+            padding: '4px 8px', borderRadius: '4px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.hover}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          title={allExpanded ? 'Collapse all' : 'Expand all'}
+        >
+          {allExpanded ? '📁 Collapse all' : '📂 Expand all'}
+        </button>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {chapters?.length > 0 ? chapters.map((chapter) => {
           const activeSubsections = getActiveSubsections(chapter.subsections || []);
           const refsClickable = isReferencesClickable(activeSubsections);
-          const isExpanded = expandedChapter === chapter.id && chapter.unlocked;
+          const isExpanded = expandedChapters.includes(chapter.id) && chapter.unlocked;
 
           return (
             <div key={chapter.id} style={{ marginBottom: '4px' }}>
               <ChapterHeader
                 chapter={chapter}
                 isActive={activeChapter === chapter.id}
-                isExpanded={expandedChapter === chapter.id}
+                isExpanded={expandedChapters.includes(chapter.id)}
                 onClick={handleChapterClick}
               />
 
@@ -74,6 +97,8 @@ const LeftPane = ({
                         const isRefs = sub.title === 'References' || sub.type === 'references';
                         const draggable = !isRefs;
                         const clickable = !isRefs || refsClickable;
+                        const totalWC = chapterWordCounts?.[chapter.id] || { min: 1000, max: 2000 };
+                        const subWC = distributeWordCount(totalWC.min, totalWC.max, activeSubsections, sub.title);
 
                         return (
                           <SubsectionItem
@@ -86,12 +111,14 @@ const LeftPane = ({
                             isClickable={clickable}
                             isDragged={draggedItem === idx}
                             isDragOver={dragOverItem === idx && draggedItem !== idx}
+                            wordCount={isRefs ? null : subWC}
                             onDragStart={onDragStart}
                             onDragOver={onDragOver}
                             onDrop={onDrop}
                             onDragEnd={onDragEnd}
                             onClick={() => handleSubsectionClick(sub, activeSubsections)}
-                            onDelete={onDeleteSubsection}
+                            onDelete={(id) => onDeleteSubsection(id, chapter.id)}
+                            onRename={(id, newTitle) => onRenameSubsection?.(id, newTitle)}
                           />
                         );
                       })}
@@ -99,6 +126,28 @@ const LeftPane = ({
                   )}
 
                   <AddSubsection onAdd={onAddSubsection} />
+                  {onGenerateAll && activeSubsections.some(s => !s.generated && s.title !== 'References') && (
+                    generatingAll && generatingAll.chapterId === chapter.id ? (
+                      <div style={{ marginTop: '12px', padding: '8px', fontSize: '12px', color: colors.primary, textAlign: 'center', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
+                        Generating {generatingAll.completed}/{generatingAll.total}...
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => onGenerateAll(chapter.id)}
+                        style={{
+                          marginTop: '12px', width: '100%', padding: '8px', fontSize: '12px',
+                          backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff',
+                          color: colors.primary, border: `1px solid ${colors.border}`,
+                          borderRadius: '6px', cursor: 'pointer', fontWeight: '500',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; }}
+                      >
+                        ⚡ Generate All Remaining ({activeSubsections.filter(s => !s.generated && s.title !== 'References').length})
+                      </button>
+                    )
+                  )}
                   <DeletedSubsections
                     chapterId={chapter.id}
                     deletedSubsections={chapter.deletedSubsections || []}

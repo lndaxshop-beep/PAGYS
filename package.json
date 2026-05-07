@@ -12,7 +12,6 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@makozi/paystack-react-pay": "^1.0.5",
-    "axios": "^1.13.5",
     "country-flag-icons": "^1.6.15",
     "file-saver": "^2.0.5",
     "firebase": "^12.12.1",
@@ -20,7 +19,6 @@
     "mermaid": "^11.14.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-mermaid2": "^0.1.4",
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {

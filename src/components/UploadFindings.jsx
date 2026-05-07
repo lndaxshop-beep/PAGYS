@@ -177,10 +177,10 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>
+          <label htmlFor="findingsResponseType" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>
             Upload Your Own Data:
           </label>
-          <select
+          <select id="findingsResponseType"
             value={responseType}
             onChange={(e) => setResponseType(e.target.value)}
             style={{

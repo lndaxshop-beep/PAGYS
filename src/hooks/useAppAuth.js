@@ -13,22 +13,26 @@ const useAppAuth = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const { doc, getDoc } = await import('firebase/firestore');
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = userDoc.data();
-        const currentUser = {
-          uid: firebaseUser.uid,
-          fullName: userData?.fullName || '',
-          username: userData?.username || '',
-          email: firebaseUser.email,
-          country: userData?.country || '',
-        };
-        setUser(currentUser);
-        setIsLoggedIn(true);
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        const { getProjects } = await import('../services/firestoreService');
-        const projects = await getProjects();
-        setIsPremium(projects.some(p => p.isPremium));
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userData = userDoc.data();
+          const currentUser = {
+            uid: firebaseUser.uid,
+            fullName: userData?.fullName || '',
+            username: userData?.username || '',
+            email: firebaseUser.email,
+            country: userData?.country || '',
+          };
+          setUser(currentUser);
+          setIsLoggedIn(true);
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          const { getProjects } = await import('../services/firestoreService');
+          const projects = await getProjects();
+          setIsPremium(projects.some(p => p.isPremium));
+        } catch (e) {
+          console.error('Error loading user data:', e);
+        }
       } else {
         setIsLoggedIn(false);
         setUser(null);

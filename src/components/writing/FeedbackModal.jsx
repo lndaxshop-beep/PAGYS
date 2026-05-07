@@ -21,12 +21,12 @@ const FeedbackModal = ({ isOpen, onClose, subsection, feedbackText, setFeedbackT
         ) : (
           <>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Correction notes:</label>
-              <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} rows="5" style={{ width: '100%', padding: '12px', border: `1px solid ${colors.border}`, borderRadius: '8px' }} />
+              <label htmlFor="feedbackNotes" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Correction notes:</label>
+              <textarea id="feedbackNotes" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} rows="5" style={{ width: '100%', padding: '12px', border: `1px solid ${colors.border}`, borderRadius: '8px' }} />
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Upload screenshots (optional):</label>
-              <input type="file" multiple accept=".jpg,.jpeg,.png,.pdf" onChange={onFileUpload} style={{ width: '100%' }} />
+              <label htmlFor="feedbackFiles" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Upload screenshots (optional):</label>
+              <input id="feedbackFiles" type="file" multiple accept=".jpg,.jpeg,.png,.pdf" onChange={onFileUpload} style={{ width: '100%' }} />
               {feedbackFiles.length > 0 && (
                 <div style={{ marginTop: '8px' }}>
                   {feedbackFiles.map((file, i) => (

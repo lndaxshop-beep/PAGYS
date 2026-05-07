@@ -30,4 +30,4 @@ const Toast = ({ message, type, onClose, duration }) => {
   );
 };
 
-export default Toast;
+export default React.memo(Toast);

@@ -78,7 +78,7 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
       localStorage.setItem(`instrument_content_${project.id}_${instrumentId}`, JSON.stringify(content));
       const existing = JSON.parse(localStorage.getItem(`instruments_${project.id}`) || '[]');
       if (!existing.includes(instrumentId)) { localStorage.setItem(`instruments_${project.id}`, JSON.stringify([...existing, instrumentId])); }
-    } catch {}
+    } catch (e) { console.warn('Failed to persist instrument:', e); }
     if (onDownload) { onDownload(updated); }
   };
 

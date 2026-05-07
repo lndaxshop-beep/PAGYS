@@ -1,27 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
-import mermaid from 'mermaid';
 import { useTheme } from '../contexts/ThemeContext';
 
-// Initialize mermaid with default config
-mermaid.initialize({
-  startOnLoad: true,
-  theme: 'base',
-  securityLevel: 'loose',
-  fontFamily: 'Inter, system-ui, sans-serif',
-  flowchart: {
-    useMaxWidth: true,
-    htmlLabels: true,
-    curve: 'basis'
-  },
-  themeVariables: {
-    primaryColor: '#7c3aed',
-    primaryTextColor: '#1f2937',
-    primaryBorderColor: '#7c3aed',
-    lineColor: '#6b7280',
-    secondaryColor: '#f3f4f6',
-    tertiaryColor: '#f9fafb'
+let mermaid = null;
+
+const getMermaid = async () => {
+  if (!mermaid) {
+    const mod = await import('mermaid');
+    mermaid = mod.default || mod;
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      themeVariables: {
+        primaryColor: '#7c3aed',
+        primaryTextColor: '#1f2937',
+        primaryBorderColor: '#7c3aed',
+        lineColor: '#6b7280',
+        secondaryColor: '#f3f4f6',
+        tertiaryColor: '#f9fafb'
+      }
+    });
   }
-});
+  return mermaid;
+};
 
 const DiagramRenderer = ({ code, title, caption, onEdit }) => {
   const { colors, isDarkMode } = useTheme();
@@ -41,9 +44,9 @@ const DiagramRenderer = ({ code, title, caption, onEdit }) => {
   const renderDiagram = async (diagramCode) => {
     try {
       setError(null);
+      const mm = await getMermaid();
       
-      // Update mermaid theme based on dark mode
-      mermaid.initialize({
+      mm.initialize({
         theme: isDarkMode ? 'dark' : 'base',
         themeVariables: isDarkMode ? {
           primaryColor: '#7c3aed',
@@ -65,7 +68,7 @@ const DiagramRenderer = ({ code, title, caption, onEdit }) => {
         }
       });
       
-      const { svg } = await mermaid.render('mermaid-diagram', diagramCode);
+      const { svg } = await mm.render('mermaid-diagram', diagramCode);
       setSvg(svg);
     } catch (err) {
       console.error('Mermaid render error:', err);
@@ -400,4 +403,4 @@ export const captureDiagramAsImage = (containerRef) => {
   return null;
 };
 
-export default DiagramRenderer;
+export default React.memo(DiagramRenderer);

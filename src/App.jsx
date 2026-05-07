@@ -1,15 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import SignUp from './pages/SignUp';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Write from './pages/Write';
-import MyFiles from './pages/MyFiles';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import RefundPolicy from './pages/RefundPolicy';
-import HelpSupport from './pages/HelpSupport';
 import ProtectedRoute from './components/ProtectedRoute';
 import PaymentModal from './components/PaymentModal';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -18,8 +9,31 @@ import Toast from './components/Toast';
 import HomePage from './components/home/HomePage';
 import usePayment from './hooks/usePayment';
 import './App.css';
-import Settings from './pages/Settings';
-import CitationVerify from './pages/CitationVerify';
+
+const SignUp = lazy(() => import('./pages/SignUp'));
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Write = lazy(() => import('./pages/Write'));
+const MyFiles = lazy(() => import('./pages/MyFiles'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
+const HelpSupport = lazy(() => import('./pages/HelpSupport'));
+const Settings = lazy(() => import('./pages/Settings'));
+const CitationVerify = lazy(() => import('./pages/CitationVerify'));
+
+const loadingStyle = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  minHeight: '100vh', fontSize: '16px', color: '#6b7280'
+};
+
+const Page = ({ children }) => (
+  <ErrorBoundary>
+    <Suspense fallback={<div style={loadingStyle}>Loading...</div>}>
+      {children}
+    </Suspense>
+  </ErrorBoundary>
+);
 
 function AppContent() {
   const { colors } = useTheme();
@@ -41,18 +55,18 @@ function AppContent() {
         <Header onPremiumClick={handlePremiumClick} />
         <div style={{ flex: 1 }}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/write/:projectId" element={<ProtectedRoute><Write /></ProtectedRoute>} />
-            <Route path="/myfiles" element={<ProtectedRoute><MyFiles /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/citations/:projectId" element={<ProtectedRoute><CitationVerify /></ProtectedRoute>} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/refund" element={<RefundPolicy />} />
-            <Route path="/help" element={<HelpSupport />} />
+            <Route path="/" element={<Page><HomePage /></Page>} />
+            <Route path="/signup" element={<Page><SignUp /></Page>} />
+            <Route path="/login" element={<Page><Login /></Page>} />
+            <Route path="/dashboard" element={<Page><ProtectedRoute><Dashboard /></ProtectedRoute></Page>} />
+            <Route path="/write/:projectId" element={<Page><ProtectedRoute><Write /></ProtectedRoute></Page>} />
+            <Route path="/myfiles" element={<Page><ProtectedRoute><MyFiles /></ProtectedRoute></Page>} />
+            <Route path="/settings" element={<Page><ProtectedRoute><Settings /></ProtectedRoute></Page>} />
+            <Route path="/citations/:projectId" element={<Page><ProtectedRoute><CitationVerify /></ProtectedRoute></Page>} />
+            <Route path="/privacy" element={<Page><PrivacyPolicy /></Page>} />
+            <Route path="/terms" element={<Page><TermsOfService /></Page>} />
+            <Route path="/refund" element={<Page><RefundPolicy /></Page>} />
+            <Route path="/help" element={<Page><HelpSupport /></Page>} />
           </Routes>
         </div>
         {showPaymentModal && activeProjectForPayment && (

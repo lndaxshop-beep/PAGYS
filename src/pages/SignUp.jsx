@@ -77,6 +77,10 @@ const SignUp = () => {
         setError('Email already registered. Please login instead.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password is too weak. Use at least 8 characters.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait and try again.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your connection.');
       } else {
         setError('Sign up failed. Please try again.');
       }
@@ -198,8 +202,8 @@ const SignUp = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>
-              <input type="checkbox" name="agreeToTerms" checked={formData.agreeToTerms} onChange={handleChange} required style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: colors.primary }} />
-              <label style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: '1.5' }}>I agree to the Terms of Service and Privacy Policy *</label>
+              <input id="agreeToTerms" type="checkbox" name="agreeToTerms" checked={formData.agreeToTerms} onChange={handleChange} required style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: colors.primary }} />
+              <label htmlFor="agreeToTerms" style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: '1.5' }}>I agree to the Terms of Service and Privacy Policy *</label>
             </div>
 
             <button type="submit" disabled={loading}

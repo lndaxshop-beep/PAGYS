@@ -1,9 +1,42 @@
 import React from 'react';
-import * as flags from 'country-flag-icons/react/3x2';
+import US from 'country-flag-icons/react/3x2/US';
+import GB from 'country-flag-icons/react/3x2/GB';
+import CA from 'country-flag-icons/react/3x2/CA';
+import AU from 'country-flag-icons/react/3x2/AU';
+import DE from 'country-flag-icons/react/3x2/DE';
+import FR from 'country-flag-icons/react/3x2/FR';
+import CN from 'country-flag-icons/react/3x2/CN';
+import IN from 'country-flag-icons/react/3x2/IN';
+import BR from 'country-flag-icons/react/3x2/BR';
+import NG from 'country-flag-icons/react/3x2/NG';
+import ZA from 'country-flag-icons/react/3x2/ZA';
+import KE from 'country-flag-icons/react/3x2/KE';
+import GH from 'country-flag-icons/react/3x2/GH';
+import EG from 'country-flag-icons/react/3x2/EG';
+import MA from 'country-flag-icons/react/3x2/MA';
+import TZ from 'country-flag-icons/react/3x2/TZ';
+import UG from 'country-flag-icons/react/3x2/UG';
+import RW from 'country-flag-icons/react/3x2/RW';
+import ZW from 'country-flag-icons/react/3x2/ZW';
+import ZM from 'country-flag-icons/react/3x2/ZM';
+import BW from 'country-flag-icons/react/3x2/BW';
+import NA from 'country-flag-icons/react/3x2/NA';
+import MZ from 'country-flag-icons/react/3x2/MZ';
+import AO from 'country-flag-icons/react/3x2/AO';
+import ET from 'country-flag-icons/react/3x2/ET';
+import SD from 'country-flag-icons/react/3x2/SD';
+import TN from 'country-flag-icons/react/3x2/TN';
+import DZ from 'country-flag-icons/react/3x2/DZ';
+import LY from 'country-flag-icons/react/3x2/LY';
+import MU from 'country-flag-icons/react/3x2/MU';
+import SC from 'country-flag-icons/react/3x2/SC';
+import MW from 'country-flag-icons/react/3x2/MW';
+import LS from 'country-flag-icons/react/3x2/LS';
+import SZ from 'country-flag-icons/react/3x2/SZ';
 
+const flags = { US, GB, CA, AU, DE, FR, CN, IN, BR, NG, ZA, KE, GH, EG, MA, TZ, UG, RW, ZW, ZM, BW, NA, MZ, AO, ET, SD, TN, DZ, LY, MU, SC, MW, LS, SZ };
 
 const CountryFlag = ({ countryCode, size = 20 }) => {
-  // Map country names to country codes
   const countryCodeMap = {
     'United States': 'US',
     'USA': 'US',

@@ -381,8 +381,8 @@ const MyFiles = () => {
         </div>
         {projects.length > 0 && (
           <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
-            <label style={{ fontWeight: '500', color: colors.text }}>Select Project:</label>
-            <select value={selectedProject} onChange={(e) => handleProjectChange(e.target.value)} style={{ width: '100%', maxWidth: '400px', padding: '10px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', marginLeft: '12px', backgroundColor: colors.input, color: colors.text }}>
+            <label htmlFor="myfilesProject" style={{ fontWeight: '500', color: colors.text }}>Select Project:</label>
+            <select id="myfilesProject" value={selectedProject} onChange={(e) => handleProjectChange(e.target.value)} style={{ width: '100%', maxWidth: '400px', padding: '10px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', marginLeft: '12px', backgroundColor: colors.input, color: colors.text }}>
               {projects.map(p => <option key={p.id} value={p.id}>{p.title} ({p.level})</option>)}
             </select>
           </div>

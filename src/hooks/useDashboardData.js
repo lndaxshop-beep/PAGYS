@@ -104,22 +104,32 @@ export const useDashboardData = ({ confirmAction, notify } = {}) => {
     });
     if (!confirmed) return;
     const project = projects.find(p => p.id === id);
-    await deleteProject(id);
-    await saveDeletedProject({ ...project, deletedAt: new Date().toISOString() });
-    invalidateProgressCache(id);
-    loadProjects();
-    loadDeletedProjects();
-    notify('Project moved to Recycle Bin', 'success');
+    try {
+      await deleteProject(id);
+      await saveDeletedProject({ ...project, deletedAt: new Date().toISOString() });
+      invalidateProgressCache(id);
+      loadProjects();
+      loadDeletedProjects();
+      notify('Project moved to Recycle Bin', 'success');
+    } catch (e) {
+      console.error('Error moving project to recycle bin:', e);
+      notify('Failed to move project. Please try again.', 'error');
+    }
   };
 
   const handleRestoreProject = async (id) => {
     const project = deletedProjects.find(p => p.id === id);
-    await saveProject(project);
-    await permanentlyDeleteProject(id);
-    invalidateProgressCache(id);
-    loadProjects();
-    loadDeletedProjects();
-    notify('Project restored successfully!', 'success');
+    try {
+      await saveProject(project);
+      await permanentlyDeleteProject(id);
+      invalidateProgressCache(id);
+      loadProjects();
+      loadDeletedProjects();
+      notify('Project restored successfully!', 'success');
+    } catch (e) {
+      console.error('Error restoring project:', e);
+      notify('Failed to restore project. Please try again.', 'error');
+    }
   };
 
   const handlePermanentDelete = async (id) => {
@@ -130,10 +140,15 @@ export const useDashboardData = ({ confirmAction, notify } = {}) => {
       danger: true,
     });
     if (!confirmed) return;
-    await permanentlyDeleteProject(id);
-    invalidateProgressCache(id);
-    loadDeletedProjects();
-    notify('Project permanently deleted', 'error');
+    try {
+      await permanentlyDeleteProject(id);
+      invalidateProgressCache(id);
+      loadDeletedProjects();
+      notify('Project permanently deleted', 'error');
+    } catch (e) {
+      console.error('Error permanently deleting project:', e);
+      notify('Failed to delete project. Please try again.', 'error');
+    }
   };
 
   const handleEmptyRecycleBin = async () => {
@@ -144,12 +159,17 @@ export const useDashboardData = ({ confirmAction, notify } = {}) => {
       danger: true,
     });
     if (!confirmed) return;
-    for (const project of deletedProjects) {
-      await permanentlyDeleteProject(project.id);
-      invalidateProgressCache(project.id);
+    try {
+      for (const project of deletedProjects) {
+        await permanentlyDeleteProject(project.id);
+        invalidateProgressCache(project.id);
+      }
+      loadDeletedProjects();
+      notify('Recycle bin emptied', 'error');
+    } catch (e) {
+      console.error('Error emptying recycle bin:', e);
+      notify('Failed to empty recycle bin. Please try again.', 'error');
     }
-    loadDeletedProjects();
-    notify('Recycle bin emptied', 'error');
   };
 
   const continueProject = (id) => navigate(`/write/${id}`);

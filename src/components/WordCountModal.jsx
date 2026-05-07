@@ -261,7 +261,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose })
           }}>
             <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
               <div style={{ flex: 1 }}>
-                <label style={{ 
+                <label htmlFor="wcMinWords" style={{ 
                   display: 'block', 
                   fontSize: '13px', 
                   fontWeight: '500',
@@ -270,7 +270,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose })
                 }}>
                   Minimum Words
                 </label>
-                <input
+                <input id="wcMinWords"
                   type="number"
                   value={customMin}
                   onChange={(e) => setCustomMin(e.target.value)}
@@ -293,7 +293,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose })
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ 
+                <label htmlFor="wcMaxWords" style={{ 
                   display: 'block', 
                   fontSize: '13px', 
                   fontWeight: '500',
@@ -302,7 +302,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose })
                 }}>
                   Maximum Words
                 </label>
-                <input
+                <input id="wcMaxWords"
                   type="number"
                   value={customMax}
                   onChange={(e) => setCustomMax(e.target.value)}

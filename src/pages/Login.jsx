@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import Toast from '../components/Toast';
@@ -51,12 +51,36 @@ const Login = () => {
         setError('Invalid email or password. Please try again.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many login attempts. Please wait and try again.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your connection.');
       } else {
         setError('Login failed. Please try again.');
       }
     }
 
     setLoading(false);
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!formData.email.trim()) {
+      setToast({ message: 'Please enter your email address first.', type: 'error' });
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      setToast({ message: 'Password reset email sent! Check your inbox.', type: 'success' });
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setToast({ message: 'No account found with this email.', type: 'error' });
+      } else if (err.code === 'auth/invalid-email') {
+        setToast({ message: 'Please enter a valid email address.', type: 'error' });
+      } else {
+        setToast({ message: 'Failed to send reset email. Please try again.', type: 'error' });
+      }
+    }
   };
 
   const inputStyle = { width: '100%', padding: '14px 14px 14px 42px', border: `2px solid ${error ? '#dc2626' : colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text, outline: 'none', transition: 'all 0.2s' };
@@ -101,15 +125,15 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={fieldContainerStyle}>
-            <label style={labelStyle}>Email *</label>
+            <label htmlFor="email" style={labelStyle}>Email *</label>
             <span style={iconStyle}>👤</span>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="you@university.edu" />
+            <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="you@university.edu" />
           </div>
 
           <div style={{ ...fieldContainerStyle, marginBottom: '16px' }}>
-            <label style={labelStyle}>Password *</label>
+            <label htmlFor="password" style={labelStyle}>Password *</label>
             <span style={iconStyle}>🔒</span>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+            <input id="password" type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -117,11 +141,9 @@ const Login = () => {
               <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: colors.primary }} />
               Remember me
             </label>
-            <a href="#" onClick={(e) => { e.preventDefault(); setToast({ message: 'Password reset feature coming soon. Please contact support.', type: 'info' }); }} style={{ color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'opacity 0.2s' }}
-              onMouseEnter={(e) => { e.target.style.opacity = '0.8'; }}
-              onMouseLeave={(e) => { e.target.style.opacity = '1'; }}>
+            <button onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer', padding: 0 }}>
               Forgot password?
-            </a>
+            </button>
           </div>
 
           <button type="submit" disabled={loading}

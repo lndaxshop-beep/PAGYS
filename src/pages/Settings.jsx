@@ -32,7 +32,7 @@ const Settings = () => {
         setEmail(parsed.email || '');
         setUsername(parsed.username || '');
         setCountry(parsed.country || '');
-      } catch {}
+      } catch (e) { console.warn('Failed to parse cached user:', e); }
     }
   }, []);
 
@@ -119,23 +119,23 @@ const Settings = () => {
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '24px' }}>Profile Information</h2>
           <div style={{ display: 'grid', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Full Name</label>
-              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+              <label htmlFor="settingsFullName" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Full Name</label>
+              <input id="settingsFullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
                 style={{ width: '100%', padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Email Address</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              <label htmlFor="settingsEmail" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Email Address</label>
+              <input id="settingsEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 style={{ width: '100%', padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Username</label>
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+              <label htmlFor="settingsUsername" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Username</label>
+              <input id="settingsUsername" type="text" value={username} onChange={(e) => setUsername(e.target.value)}
                 style={{ width: '100%', padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Country</label>
-              <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g., Ghana"
+              <label htmlFor="settingsCountry" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Country</label>
+              <input id="settingsCountry" type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g., Ghana"
                 style={{ width: '100%', padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
             </div>
           </div>
@@ -149,7 +149,7 @@ const Settings = () => {
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Premium Status</h2>
           {(() => {
             let projects = [];
-            try { projects = JSON.parse(localStorage.getItem('thesisProjects') || '[]'); } catch {}
+            try { projects = JSON.parse(localStorage.getItem('thesisProjects') || '[]'); } catch (e) { console.warn('Failed to parse thesisProjects:', e); }
             const userProjects = projects.filter(p => p.userId === user?.uid);
             const isPremium = userProjects.some(p => p.isPremium);
             return isPremium ? (

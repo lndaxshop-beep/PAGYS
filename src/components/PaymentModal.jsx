@@ -100,11 +100,12 @@ const PaymentModal = ({ project, onSuccess, onClose, onNotify }) => {
 
         {/* Payment Form */}
         <div style={{ marginBottom: '24px' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
+            <div style={{ marginBottom: '16px' }}>
+            <label htmlFor="paymentName" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
               Full Name *
             </label>
             <input
+              id="paymentName"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -121,10 +122,11 @@ const PaymentModal = ({ project, onSuccess, onClose, onNotify }) => {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
+            <label htmlFor="paymentEmail" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
               Email Address *
             </label>
             <input
+              id="paymentEmail"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

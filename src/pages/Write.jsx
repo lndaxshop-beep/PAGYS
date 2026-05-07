@@ -133,11 +133,11 @@ const Write = () => {
     loadProject();
   }, [projectId, navigate]);
 
-  useEffect(() => { if (projectId && Object.keys(generatedSubsections).length) saveGeneratedContent(projectId, generatedSubsections); }, [generatedSubsections, projectId]);
-  useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations); }, [chapterCitations, projectId]);
-  useEffect(() => { if (projectId && Object.keys(diagramData).length) saveVisualData(projectId, 'diagrams', diagramData); }, [diagramData, projectId]);
-  useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData); }, [chartData, projectId]);
-  useEffect(() => { if (projectId && Object.keys(tableData).length) saveVisualData(projectId, 'tables', tableData); }, [tableData, projectId]);
+  useEffect(() => { if (projectId && Object.keys(generatedSubsections).length) saveGeneratedContent(projectId, generatedSubsections).catch(e => console.error('Auto-save generated content failed:', e)); }, [generatedSubsections, projectId]);
+  useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations).catch(e => console.error('Auto-save citations failed:', e)); }, [chapterCitations, projectId]);
+  useEffect(() => { if (projectId && Object.keys(diagramData).length) saveVisualData(projectId, 'diagrams', diagramData).catch(e => console.error('Auto-save diagrams failed:', e)); }, [diagramData, projectId]);
+  useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData).catch(e => console.error('Auto-save charts failed:', e)); }, [chartData, projectId]);
+  useEffect(() => { if (projectId && Object.keys(tableData).length) saveVisualData(projectId, 'tables', tableData).catch(e => console.error('Auto-save tables failed:', e)); }, [tableData, projectId]);
 
 
   const handleDragStart = (e, index) => {
@@ -345,7 +345,7 @@ const Write = () => {
   const handleInstrumentsDownload = (downloadedTypes) => {
     setInstrumentsCompleted(true); modals.setShowDataCollectionModal(false);
     setChapters(prev => prev.map(ch => ch.id === 'chapter4' ? { ...ch, unlocked: true } : ch));
-    try { localStorage.setItem(`instruments_${projectId}`, JSON.stringify(downloadedTypes || [])); } catch {}
+    try { localStorage.setItem(`instruments_${projectId}`, JSON.stringify(downloadedTypes || [])); } catch (e) { console.warn('Failed to cache instruments:', e); }
   };
 
   const overallProgress = calculateOverallProgress(chapters, generatedSubsections);

@@ -212,21 +212,35 @@ export const humaniseContent = async (text) => {
 TEXT TO HUMANISE:
 ${text}
 
-RULES:
-1. Destroy uniformity — dramatic sentence length variation
-2. Kill robotic transitions — replace "Furthermore", "Moreover" with formal alternatives
-3. Vary paragraph structure — some 2 sentences, others 7-8
-4. Add strategic natural variation
-5. Keep ALL citations, data, tables, [CHART:{...}] tags, and mermaid diagrams exactly as they are
-6. Keep subsection headings unchanged
-7. DO NOT add reference lists or word count footnotes
-8. NO markdown (###), NO HTML tags
-9. MAINTAIN FORMAL ACADEMIC THIRD-PERSON TONE
-10. NO contractions
-11. NO em dashes (—)
-12. ENSURE every paragraph has in-text citations
+## CRITICAL RULES
 
-Return ONLY the rewritten text. No explanations.`;
+### SENTENCE RHYTHM (BURSTINESS)
+1. DESTROY UNIFORMITY — dramatic sentence length variation. Mix 2–5 word sentences with 20–45 word sentences. No two consecutive sentences should have similar lengths.
+2. VARY PARAGRAPH LENGTHS drastically — alternate between 2-sentence paragraphs and 7–8 sentence paragraphs unpredictably.
+3. VARY SENTENCE STRUCTURE — alternate simple, compound, and complex sentences. No two consecutive sentences should start with the same word.
+
+### TRANSITION ELIMINATION
+4. KILL ROBOTIC TRANSITIONS — do NOT use: "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion", "It is worth noting that", "This highlights".
+5. Where a transition is genuinely needed, use formal alternatives sparingly: "In addition", "Similarly", "Conversely", "Nevertheless", "Accordingly", "Therefore", "Specifically".
+
+### CITATION INTEGRITY
+6. PRESERVE ALL citation integrity — keep EVERY in-text citation exactly as written. Do not change, remove, or add any (Author, Year) markers.
+7. PRESERVE [CITATION:...] markers exactly as they appear — do not modify, remove, or replace them.
+8. ENSURE every paragraph has at least one in-text citation after rewriting — do not strip citations from any paragraph.
+9. ENSURE the total citation count stays the same or increases slightly — never reduce the number of citations.
+
+### STRUCTURAL PRESERVATION
+10. Keep ALL data, tables, [CHART:{...}] tags, and mermaid diagrams exactly as they are.
+11. Keep subsection headings unchanged — do not modify heading text.
+12. DO NOT add reference lists, bibliographies, or word count footnotes.
+
+### FORMATTING
+13. NO markdown headings (###, ##), NO HTML tags.
+14. NO contractions — write out all words fully.
+15. NO em dashes (—) — use commas or parentheses instead.
+16. MAINTAIN FORMAL ACADEMIC THIRD-PERSON TONE throughout.
+
+Return ONLY the rewritten text. No explanations, no meta-commentary.`;
 
     const result = await model.generateContent(prompt);
     return cleanOutput(result.response.text());

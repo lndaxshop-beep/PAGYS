@@ -1,5 +1,6 @@
 import { genAI, MODEL } from './config';
 import { cleanOutput, extractJSONArray } from './utils';
+import { MERMAID_RULES, TABLE_RULES } from './writingRules';
 
 export const generateSubtopics = async (promptData) => {
   try {
@@ -85,58 +86,90 @@ export const generateAcademicContent = async (promptData) => {
     const wordRange = promptData.wordCount || { min: 500, max: 1000 };
     const targetWords = Math.floor((wordRange.min + wordRange.max) / 2);
 
-    const visualGuidance = `VISUALS: You may use a markdown table or a chart [CHART:…] if it genuinely supports the argument. For diagrams, use only the simplest Mermaid flowchart. ONLY letters A‑Z for node IDs, plain text labels, NO styling, NO CSS, NO fill or stroke, max 10 nodes and 10 arrows, under 12 lines. If uncertain, DO NOT include a diagram.`;
-
     let chapterNames = { 'ONE': 'CHAPTER ONE', 'TWO': 'CHAPTER TWO', 'THREE': 'CHAPTER THREE', 'FOUR': 'CHAPTER FOUR', 'FIVE': 'CHAPTER FIVE' };
     let structureInstruction = promptData.isFirstSubsection && promptData.chapterNumber
       ? `Start with "${chapterNames[promptData.chapterNumber] || 'CHAPTER'}" on its own line, then the chapter title on its own line, then the subsection heading.`
       : `Start directly with the subsection heading.`;
 
-    const prompt = `You are an advanced academic writing assistant. Generate a thesis draft that reads like a thoughtful, professional scholar's work—never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+    const prompt = `You are an advanced academic writing assistant helping a ${promptData.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
 
 TOPIC: "${promptData.topic}"
 CHAPTER: ${promptData.chapter}
 SUBSECTION: ${promptData.subsection}
-${promptData.realCitations ? `\nREAL CITATIONS YOU MUST USE:\n${promptData.realCitations}\n\nIMPORTANT: You MUST use ONLY the citations listed above in your in-text citations. Use their exact author names and years.` : ''}
-TARGET WORD COUNT: ${targetWords} words (write between ${wordRange.min}-${wordRange.max})
+TARGET WORD COUNT: ${targetWords} words (range: ${wordRange.min}–${wordRange.max})
 METHODOLOGY: ${promptData.methodology || 'mixed methods'}
 ${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}
 ${promptData.findings ? `RESEARCH FINDINGS: ${promptData.findings}` : ''}
 
 ${structureInstruction}
-${visualGuidance}
 
 ---
 
 # CRITICAL RULES — FOLLOW EVERY SINGLE ONE
 
 ## ACADEMIC TONE AND PROFESSIONALISM
-- This is a FORMAL ACADEMIC THESIS. The writing must be scholarly, professional, and authoritative.
-- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest". Never use first-person pronouns.
-- NO contractions: write out ALL words fully.
+- This is a FORMAL ACADEMIC THESIS. Writing must be scholarly, professional, and authoritative.
+- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest". Never use first-person pronouns (I, we, my, our).
+- Use ACTIVE VOICE wherever possible: "The analysis reveals..." not "It is revealed by the analysis...".
+- NO contractions: write out ALL words fully ("do not", "will not", "cannot", "it is").
+- Write in a formal, objective register — no rhetorical questions, no colloquialisms, no conversational phrases.
 
 ## SENTENCE RHYTHM (BURSTINESS)
-- Mix very short sentences (2-5 words) with long, complex ones (20-45 words). No predictable pattern.
-- Vary paragraph lengths drastically.
+- Mix very short sentences (2–5 words) with long, complex ones (20–45 words). No predictable pattern.
+- Vary paragraph lengths drastically — alternate between 2-sentence paragraphs and 7–8 sentence paragraphs.
+- Use a mix of simple, compound, and complex sentence structures.
+- Avoid starting consecutive sentences with the same word.
+- No two adjacent paragraphs should have the same sentence-length profile.
 
-## LANGUAGE AND PHRASING BANS
-You must NEVER use: em dashes (—), "In today's rapidly evolving society", "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion".
-
-## REAL CITATIONS ONLY — NO FABRICATION
-- EVERY in-text citation MUST correspond to a REAL source you found via Google Search grounding.
-- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
-- If Google Search Grounding did not return a verifiable source for a claim, DO NOT add a citation for it — write the claim without a citation instead.
-- Only use author names and publication years from sources you have actually found via search.
-- DO NOT make up citations that sound plausible. Every "(Author, Year)" must match a real, searchable publication.
+## LANGUAGE BANS
+You must NEVER use the following:
+- Em dashes (—)
+- "In today's rapidly evolving society" or any variation
+- "In today's digital age/world/era"
+- "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion"
+- "It is worth noting that", "It is important to note that"
+- "A myriad of", "The realm of", "A plethora of"
+- Rhetorical questions ("What does this mean?", "Why is this important?")
+- "This underscores", "This highlights", "This emphasizes"
+- "Delves into", "Navigates the complexities of"
+- "Paves the way for", "Sets the stage for"
 
 ## IN-TEXT CITATIONS (MANDATORY — EVERY PARAGRAPH)
 - EVERY paragraph MUST contain at least one in-text citation.
-- Use only real, grounded citations from Google Search results.
-- Format: (Author, Year) or (Author and Author, Year) or (Author et al., Year)
+- Use Google Search Grounding to find REAL sources. NEVER fabricate a citation.
+- Format: (Author, Year) — e.g., (Smith, 2023).
+- For two authors: (Author and Author, Year).
+- For three+ authors: (Author et al., Year).
+- If no grounded source exists for a claim, write the claim without a citation.
+- Every (Author, Year) must correspond to an actual, searchable publication.
 
-## FORMATTING
-- Plain text only. NO markdown headings (###), NO HTML.
-- Do NOT write "(Word Count: X words)".
+## REAL CITATIONS ONLY — NO FABRICATION
+- EVERY in-text citation MUST correspond to a REAL source found via Google Search Grounding.
+- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
+- Only use author names and publication years from sources you have actually found.
+- DO NOT make up citations that sound plausible.
+
+## FORMATTING RULES
+- Plain text only. NO markdown headings (###, ##), NO HTML tags.
+- Do NOT write "(Word Count: X words)" or any word count footnote.
+- Use a single blank line between paragraphs, never more (except before tables/diagrams).
+${TABLE_RULES}
+${MERMAID_RULES}
+- For charts, use the format [CHART:{"title":"...","type":"bar","data":{"labels":["A","B"],"values":[10,20]},"caption":"..."}].
+
+## VISUAL GUIDANCE
+If the user has provided screenshots, images, or reference files:
+- Analyse each uploaded image carefully — extract data, patterns, tables, and figures.
+- Reference specific findings from images in your writing.
+- Integrate visual information naturally into the academic narrative.
+
+## NEGATIVE EXAMPLE — DO NOT WRITE LIKE THIS
+"In today's rapidly evolving society, technology plays a crucial role in education. Furthermore, it is important to note that AI has significantly impacted learning outcomes. Moreover, this highlights the significance of technological integration in modern classrooms."
+Why this is bad: generic opener, stacked transitions, no specific claim, no citation, no voice.
+
+## POSITIVE EXAMPLE — WRITE LIKE THIS
+"Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores — a finding that challenges the assumption that AI tools primarily benefit advanced learners."
+Why this is good: specific data, grounded claim, meaningful citation, original insight, varied sentence rhythm.
 
 Write the complete content now. Aim for approximately ${targetWords} words.`;
 

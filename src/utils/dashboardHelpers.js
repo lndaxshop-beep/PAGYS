@@ -3,10 +3,10 @@ export const calculateProjectProgress = (project, chapters, content) => {
   let totalActive = 0, totalGenerated = 0;
   chapters.forEach(ch => {
     if (ch.subsections) {
-      const active = ch.subsections.filter(s => s.title !== 'References');
+      const active = ch.subsections.filter(s => s.type !== 'references');
       totalActive += active.length;
       active.forEach(sub => {
-        const subContent = content[ch.id]?.[sub.title];
+        const subContent = content[ch.id]?.[sub.id];
         const hasContent = subContent && typeof subContent === 'string' && subContent.trim().length > 0;
         if (sub.generated || hasContent) totalGenerated++;
       });

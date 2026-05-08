@@ -90,16 +90,18 @@ const CitationVerify = () => {
   const chapterData = chapters.map(chapter => {
     const chapterId = chapter.id;
     const contentMap = generatedContent[chapterId] || {};
-    const subsectionTitles = new Set((chapter?.subsections || []).filter(s => !s.deleted && s.title !== 'References').map(s => s.title));
+    const subsectionIds = new Set((chapter?.subsections || []).filter(s => !s.deleted && s.type !== 'references').map(s => s.id));
+    const subsectionTitleMap = {};
+    (chapter?.subsections || []).forEach(s => { subsectionTitleMap[s.id] = s.title; });
 
     const subsections = [];
-    Object.entries(contentMap).forEach(([title, content]) => {
-      if (title === 'References' || !content) return;
-      if (subsectionTitles.size > 0 && !subsectionTitles.has(title)) return;
+    Object.entries(contentMap).forEach(([key, content]) => {
+      if (key === 'references' || !content) return;
+      if (subsectionIds.size > 0 && !subsectionIds.has(key)) return;
       const citations = extractCitations(content);
       const uniqueCitations = [...new Set(citations)];
       if (uniqueCitations.length > 0) {
-        subsections.push({ title, citations: uniqueCitations });
+        subsections.push({ title: subsectionTitleMap[key] || key, citations: uniqueCitations });
       }
     });
 

@@ -5,15 +5,15 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
   const handleChapterClick = useCallback(async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (chapter && chapter.unlocked) {
-      const hasContent = chapter.generated || (chapter.subsections.length > 0 && chapter.subsections.some(s => s.title !== 'References'));
+      const hasContent = chapter.generated || (chapter.subsections.length > 0 && chapter.subsections.some(s => s.type !== 'references'));
       if (chapterId === 'chapter2' && !hasContent && !literatureReviewType) return { action: 'showLitType', chapterId };
       if (!hasContent && !chapter.completed) return { action: 'showStructure', chapterId };
       if (!chapterWordCountSet[chapterId]) return { action: 'showWordCount', chapterId };
       return {
         action: 'openChapter',
         chapterId,
-        firstIndex: chapter.subsections.findIndex(s => s.title !== 'References'),
-        content: chapter.generated ? (generatedSubsections[chapterId]?.[chapter.subsections.find(s => s.title !== 'References')?.title] || '') : '',
+        firstIndex: chapter.subsections.findIndex(s => s.type !== 'references'),
+        content: chapter.generated ? (generatedSubsections[chapterId]?.[chapter.subsections.find(s => s.type !== 'references')?.id] || '') : '',
         needsSubtopics: !chapter.generated || chapter.subsections.length === 0
       };
     }
@@ -48,7 +48,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
       setActiveChapter(chapterId);
       setIsViewingReferences(false);
       setIsPreviewMode(true);
-      setCurrentSubsectionIndex(ch?.subsections.findIndex(s => s.title !== 'References') || 0);
+      setCurrentSubsectionIndex(ch?.subsections.findIndex(s => s.type !== 'references') || 0);
       setCurrentContent('');
     }
     setPendingChapterForStructure(null);
@@ -83,7 +83,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setChapters(prev => prev.map(ch => {
       if (ch.id === activeChapter) {
         const newSubsection = { id: `${activeChapter}_custom_${Date.now()}`, title, type: 'subsection', hasPlaceholder: false, generated: false, deleted: false };
-        const referencesIndex = ch.subsections.findIndex(s => s.title === 'References');
+        const referencesIndex = ch.subsections.findIndex(s => s.type === 'references');
         let newSubsections;
         if (referencesIndex !== -1) { newSubsections = [...ch.subsections]; newSubsections.splice(referencesIndex, 0, newSubsection); }
         else { newSubsections = [...ch.subsections, newSubsection]; }
@@ -106,8 +106,8 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
   const isChapterComplete = useCallback(() => {
     const currentChapter = chapters.find(c => c.id === activeChapter);
     if (!currentChapter) return false;
-    const activeSubs = currentChapter.subsections.filter(s => s.title !== 'References' && !s.deleted);
-    const referencesSub = currentChapter.subsections.find(s => s.title === 'References');
+    const activeSubs = currentChapter.subsections.filter(s => s.type !== 'references' && !s.deleted);
+    const referencesSub = currentChapter.subsections.find(s => s.type === 'references');
     const allActiveGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
     const refContent = generatedSubsections[activeChapter]?.references || generatedSubsections[activeChapter]?.['References'] || '';
     const referencesGenerated = referencesSub?.generated || (refContent && refContent.length > 0);
@@ -132,7 +132,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     if (!chapters.length) return { percentage: 0, currentStep: 1, totalSteps: 1 };
     let totalActive = 0, totalGenerated = 0;
     chapters.forEach(ch => {
-      const active = ch.subsections.filter(s => s.title !== 'References' && !s.deleted);
+      const active = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
       totalActive += active.length;
       totalGenerated += active.filter(s => s.generated).length;
     });

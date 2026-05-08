@@ -6,7 +6,7 @@ import TableRenderer from '../components/TableRenderer';
 export const calculateOverallProgress = (chapters, generatedSubsections) => {
   let total = 0, generated = 0;
   chapters.forEach(ch => {
-    const active = ch.subsections?.filter(s => s.title !== 'References' && !s.deleted) || [];
+    const active = ch.subsections?.filter(s => s.type !== 'references' && !s.deleted) || [];
     total += active.length;
     generated += active.filter(s => s.generated).length;
   });
@@ -118,11 +118,17 @@ export const getFallbackSubtopics = (chapterId, chapterTitle) => {
 
 export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
   const chapterNum = chapterNumber || (chapterId === 'proposal' ? 'P' : chapterId.replace('chapter', ''));
-  return subsections.map((sub, i) => ({
-    ...sub,
-    id: `${chapterId}_sub_${i + 1}`,
-    number: `${chapterNum}.${i + 1}`
-  }));
+  return subsections.map((sub, i) => {
+    const newNumber = `${chapterNum}.${i + 1}`;
+    const newTitle = sub.type === 'references'
+      ? sub.title
+      : sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `);
+    return {
+      ...sub,
+      number: newNumber,
+      title: newTitle,
+    };
+  });
 };
 
 export const distributeWordCount = (min, max, subsections, currentTitle) => {

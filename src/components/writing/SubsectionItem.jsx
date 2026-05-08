@@ -20,7 +20,7 @@ const SubsectionItem = ({
   onRename
 }) => {
   const { colors, isDarkMode } = useTheme();
-  const isReferences = subsection.title === 'References' || subsection.type === 'references';
+  const isReferences = subsection.type === 'references';
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(subsection.title);
   const inputRef = useRef(null);

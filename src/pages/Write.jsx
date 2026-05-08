@@ -70,8 +70,8 @@ const Write = () => {
   const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter, buildSubsectionsFromHeadings, previewSubtopics, addChapter, removeChapter, renameChapter, handleChapterDrop } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
 
   const currentChapter = chapters.find(c => c.id === activeChapter);
-  const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
-  const currentSubsection = isViewingReferences ? { title: 'References', generated: true } : activeSubsections[currentSubsectionIndex];
+  const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
+  const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
 
   const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode);
 
@@ -171,7 +171,7 @@ const Write = () => {
 
   const handleDragStart = (e, index) => {
     const subsection = chapters.find(c => c.id === activeChapter)?.subsections[index];
-    if (subsection?.title === 'References') { e.preventDefault(); return; }
+    if (subsection?.type === 'references') { e.preventDefault(); return; }
     setDraggedItem(index);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -227,7 +227,7 @@ const Write = () => {
       const chapter = chapters.find(c => c.id === modals.pendingChapterAfterWordCount);
       if (chapter) {
         setActiveChapter(modals.pendingChapterAfterWordCount); setIsViewingReferences(false); setIsPreviewMode(true);
-        const idx = chapter.subsections.findIndex(s => s.title !== 'References');
+        const idx = chapter.subsections.findIndex(s => s.type !== 'references');
         setCurrentSubsectionIndex(idx >= 0 ? idx : 0); setCurrentContent(''); setShowReferenceInTextarea(false);
       }
     }
@@ -238,7 +238,7 @@ const Write = () => {
     const result = handlePrevSubsection();
     if (result?.action === 'prev' && result.index >= 0) {
       setCurrentSubsectionIndex(result.index); setIsViewingReferences(false); setIsPreviewMode(true);
-      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubsections[result.index].title] || '');
+      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubsections[result.index].id] || '');
       setShowReferenceInTextarea(false);
     }
   };
@@ -247,7 +247,7 @@ const Write = () => {
     const result = handleNextSubsection(activeSubsections);
     if (result?.action === 'next') {
       setCurrentSubsectionIndex(result.index); setIsViewingReferences(false); setIsPreviewMode(true);
-      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubsections[result.index].title] || '');
+      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubsections[result.index].id] || '');
       setShowReferenceInTextarea(false);
     }
   };
@@ -277,16 +277,16 @@ const Write = () => {
       const result = await handleGenerateCurrent(activeSubsections);
       if (!result || result.error) { toastError(result?.message || 'Generation failed.'); return; }
       if (result.skipped) return;
-      const { content, citations, subsectionId, subsectionTitle } = result;
+      const { content, citations, subsectionId } = result;
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionTitle]: content } }));
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionId]: content } }));
       setCurrentContent(content);
       setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, generated: true } : s) } : ch));
       setIsPreviewMode(true);
       preRenderDiagrams(content, isDarkMode).then(rendered => {
         if (rendered && Object.keys(rendered).length > 0) {
           const existing = JSON.parse(localStorage.getItem(`diagramSVGs_${projectId}`) || '{}');
-          localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_${subsectionTitle}`]: rendered }));
+          localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_${subsectionId}`]: rendered }));
         }
       });
       autoGenerateReferences(activeChapter).then(refResult => {
@@ -301,29 +301,30 @@ const Write = () => {
   };
 
   const wrappedGenerateReferences = async () => {
-    if (currentSubsection && currentSubsection.title !== 'References') {
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: currentContent } }));
+    if (currentSubsection && currentSubsection.type !== 'references') {
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: currentContent } }));
     }
     const result = await handleGenerateReferences(currentChapter, currentContent);
     if (!result || result.error) { toastError(result?.message || 'References generation failed.'); return; }
     const { content, usedGrounding } = result;
     setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
-    setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.title === 'References' ? { ...s, generated: true } : s) } : ch));
+    setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.type === 'references' ? { ...s, generated: true } : s) } : ch));
     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
     toastSuccess(usedGrounding ? 'References generated from real sources!' : 'References generated from citations. Verify entries before submitting.');
   };
 
-  const wrappedHandleSubsectionClick = (subsectionTitle) => {
-    const activeSubs = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
-    if (subsectionTitle === 'References') {
+  const wrappedHandleSubsectionClick = (subsectionId) => {
+    const activeSubs = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
+    const sub = currentChapter?.subsections.find(s => s.id === subsectionId);
+    if (sub?.type === 'references') {
       const allOthersGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
       if (!allOthersGenerated) { toastError('Please generate all other subsections first.'); return; }
       wrappedGenerateReferences(); return;
     }
-    const index = activeSubs.findIndex(s => s.title === subsectionTitle);
+    const index = activeSubs.findIndex(s => s.id === subsectionId);
     if (index !== -1) {
       setCurrentSubsectionIndex(index); setIsViewingReferences(false); setIsPreviewMode(true);
-      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubs[index].title] || '');
+      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubs[index].id] || '');
       setShowReferenceInTextarea(false);
     }
   };
@@ -335,7 +336,7 @@ const Write = () => {
       if (!result || result.error) { toastError(result?.message || 'Humanise failed.'); return; }
       const { humanisedText, humaniseKey } = result;
       setCurrentContent(humanisedText);
-      if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: humanisedText } }));
+      if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: humanisedText } }));
       setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
     } catch (error) {
       console.error('Humanise failed:', error);
@@ -346,12 +347,12 @@ const Write = () => {
   const wrappedApplyFeedback = async () => {
     try {
       if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
-      const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.title] || '';
+      const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.id] || '';
       const result = await handleApplyFeedback(currentContentText, modals.feedbackText, modals.feedbackFiles, modals.currentFeedbackSubsection);
       if (!result || result.error) { toastError(result?.message || 'Feedback application failed.'); return; }
       const { modifiedContent, feedbackKey } = result;
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.title]: modifiedContent } }));
-      if (currentSubsection?.title === modals.currentFeedbackSubsection.title) setCurrentContent(modifiedContent);
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
+      if (currentSubsection?.id === modals.currentFeedbackSubsection.id) setCurrentContent(modifiedContent);
       setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
       autoGenerateReferences(activeChapter).then(refResult => {
         if (refResult && refResult.content) {
@@ -389,20 +390,20 @@ const Write = () => {
     generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
-      const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.title !== 'References') || 0;
+      const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.type !== 'references') || 0;
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
   const handleGenerateWithAI = (findingsData) => { setUploadedFindings(findingsData); modals.setShowUploadFindings(false); generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
-      const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.title !== 'References') || 0;
+      const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.type !== 'references') || 0;
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
 
   const handleGenerateAll = async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (!chapter) return;
-    const subs = chapter.subsections.filter(s => !s.generated && s.title !== 'References' && !s.deleted);
+    const subs = chapter.subsections.filter(s => !s.generated && s.type !== 'references' && !s.deleted);
     if (subs.length === 0) { toastError('All subsections already generated.'); return; }
     setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId });
     const activeSubsList = chapter.subsections.filter(s => !s.deleted);
@@ -415,7 +416,7 @@ const Write = () => {
       if (result?.error) { errorCount++; setGeneratingAll(prev => prev ? { ...prev, errors: prev.errors + 1, completed: prev.completed + 1 } : null); continue; }
       if (result?.skipped) { setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null); continue; }
       setChapterCitations(prev => ({ ...prev, [chapterId]: [...new Set([...(prev[chapterId] || []), ...result.citations])] }));
-      setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], [result.subsectionTitle]: result.content } }));
+      setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], [result.subsectionId]: result.content } }));
       setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: ch.subsections.map(s => s.id === result.subsectionId ? { ...s, generated: true } : s) } : ch));
       setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null);
     }
@@ -434,7 +435,7 @@ const Write = () => {
   const totalActive = activeSubsections.length;
   const generatedActive = activeSubsections.filter(s => s.generated).length;
   const chapterComplete = isChapterComplete();
-  const referencesSub = currentChapter?.subsections.find(s => s.title === 'References');
+  const referencesSub = currentChapter?.subsections.find(s => s.type === 'references');
   const refContent = generatedSubsections[activeChapter]?.references || generatedSubsections[activeChapter]?.['References'] || '';
   const referencesGenerated = referencesSub?.generated || (refContent && refContent.length > 0);
 
@@ -448,8 +449,8 @@ const Write = () => {
   const feedbackLeft = feedbackLimit - (feedbackUsed[`${activeChapter}_${activeSubsections[currentSubsectionIndex]?.id}`] || 0);
 
   const handleSaveEdit = () => {
-    if (currentSubsection && currentSubsection.title !== 'References') {
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: currentContent } }));
+    if (currentSubsection && currentSubsection.type !== 'references') {
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: currentContent } }));
     }
     setIsPreviewMode(true);
   };

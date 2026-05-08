@@ -74,7 +74,7 @@ const LeftPane = ({
 
   const handleSubsectionClick = (subsection, allSubsections) => {
     if (!validateReferencesClick(subsection, allSubsections)) return;
-    onSubsectionClick?.(subsection.title);
+    onSubsectionClick?.(subsection.id);
   };
 
   return (
@@ -159,7 +159,7 @@ const LeftPane = ({
                   {activeSubsections.length > 0 && (
                     <div>
                       {activeSubsections.map((sub, idx) => {
-                        const isRefs = sub.title === 'References' || sub.type === 'references';
+                        const isRefs = sub.type === 'references';
                         const draggable = !isRefs;
                         const clickable = !isRefs || refsClickable;
                         const totalWC = chapterWordCounts?.[chapter.id] || { min: 1000, max: 2000 };
@@ -191,7 +191,7 @@ const LeftPane = ({
                   )}
 
                   <AddSubsection onAdd={onAddSubsection} />
-                  {onGenerateAll && activeSubsections.some(s => !s.generated && s.title !== 'References') && (
+                  {onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
                     generatingAll && generatingAll.chapterId === chapter.id ? (
                       <div style={{ marginTop: '12px', padding: '8px', fontSize: '12px', color: colors.primary, textAlign: 'center', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
                         Generating {generatingAll.completed}/{generatingAll.total}...
@@ -209,7 +209,7 @@ const LeftPane = ({
                         onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; }}
                       >
-                        ⚡ Generate All Remaining ({activeSubsections.filter(s => !s.generated && s.title !== 'References').length})
+                        ⚡ Generate All Remaining ({activeSubsections.filter(s => !s.generated && s.type !== 'references').length})
                       </button>
                     )
                   )}

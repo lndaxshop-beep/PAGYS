@@ -74,7 +74,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const sub = ch.subsections.find(s => s.id === subId);
     if (!sub) return { error: true, message: 'Subsection not found.' };
     if (sub.generated) return { skipped: true, reason: 'already generated' };
-    if (sub.title === 'References') return { skipped: true, reason: 'references' };
+    if (sub.type === 'references') return { skipped: true, reason: 'references' };
 
     const chapterTitle = getChapterDisplayTitle(ch);
     const ordinal = getChapterOrdinal(ch, chapters);
@@ -144,7 +144,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const currentChapter = chapters.find(c => c.id === activeChapter);
     if (currentSubsectionIndex >= activeSubsections.length) return { error: true, message: 'All subsections generated!' };
     const currentSub = activeSubsections[currentSubsectionIndex];
-    if (currentSub.title === 'References') return { skipped: true, reason: 'references' };
+    if (currentSub.type === 'references') return { skipped: true, reason: 'references' };
     if (currentSub.generated) return { error: true, message: 'This subsection has already been generated.' };
     setGenerating(true);
     try {
@@ -155,11 +155,11 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   }, [activeChapter, currentSubsectionIndex, generateSubsectionContent]);
 
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
-    const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.title !== 'References' && !s.deleted);
+    const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.type !== 'references' && !s.deleted);
     if (allGeneratedSubsections.length === 0) return { error: true, message: 'Please generate some content first.' };
     let allCitations = [];
     allGeneratedSubsections.forEach(sub => {
-      const content = generatedSubsections[activeChapter]?.[sub.title] || '';
+      const content = generatedSubsections[activeChapter]?.[sub.id] || '';
       const citations = extractCitations(content);
       allCitations = [...allCitations, ...citations];
     });
@@ -220,7 +220,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   const autoGenerateReferences = useCallback(async (chapterId) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return null;
-    const allSubsections = ch.subsections.filter(s => s.title !== 'References' && !s.deleted);
+    const allSubsections = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
     const allGenerated = allSubsections.every(s => s.generated);
     if (!allGenerated || !allSubsections.length) return null;
     try {

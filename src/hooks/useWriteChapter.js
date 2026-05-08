@@ -37,7 +37,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     setChapters(prev => prev.map(ch => {
       if (ch.id === (chapterId || activeChapter)) {
         const subsectionToDelete = ch.subsections.find(s => s.id === subsectionId);
-        if (subsectionToDelete && subsectionToDelete.title !== 'References') {
+        if (subsectionToDelete && subsectionToDelete.type !== 'references') {
           const markedDeleted = { ...subsectionToDelete, deleted: true };
           const updatedDeleted = [...(ch.deletedSubsections || []), markedDeleted];
           const updatedSubsections = ch.subsections.filter(s => s.id !== subsectionId);
@@ -57,7 +57,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
         if (subsectionToRestore) {
           const updatedDeleted = (ch.deletedSubsections || []).filter(s => s.id !== subsectionId);
           const restored = { ...subsectionToRestore, deleted: false };
-          const referencesIndex = ch.subsections.findIndex(s => s.title === 'References');
+          const referencesIndex = ch.subsections.findIndex(s => s.type === 'references');
           let updatedSubsections = [...ch.subsections];
           if (referencesIndex !== -1) updatedSubsections.splice(referencesIndex, 0, restored);
           else updatedSubsections.push(restored);
@@ -74,7 +74,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     setChapters(prev => prev.map(ch => {
       if (ch.id === (chapterId || activeChapter)) {
         const subsections = [...ch.subsections];
-        if (subsections[dropIndex]?.title === 'References') return ch;
+        if (subsections[dropIndex]?.type === 'references') return ch;
         const [movedItem] = subsections.splice(draggedItem, 1);
         subsections.splice(dropIndex, 0, movedItem);
         const ord = getChapterOrdinal(ch, prev);
@@ -89,10 +89,11 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     const ordinal = chapter ? getChapterOrdinal(chapter, chapters) : -1;
     const chapterNum = chapterId === 'proposal' ? 'P' : ordinal > 0 ? String(ordinal) : chapterId.replace('chapter', '');
     const filtered = headings.filter(t => !t.toLowerCase().includes('reference'));
-    const numbered = filtered.map((title, i) => {
+    const clean = filtered.map((title, i) => {
       let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
       return {
-        id: `${chapterId}_${i}`, title: `${chapterNum}.${i + 1} ${cleanTitle}`,
+        id: `${chapterId}_sub_${Date.now()}_${i}`,
+        title: cleanTitle,
         type: 'subsection',
         hasPlaceholder: cleanTitle.toLowerCase().includes('organisation') || cleanTitle.toLowerCase().includes('organization') || cleanTitle.toLowerCase().includes('company') || cleanTitle.toLowerCase().includes('institution'),
         placeholder: 'Organization', customValue: project?.organizationName || '',
@@ -100,8 +101,9 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
       };
     });
     const ref = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false };
-    setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: [...numbered, ref], generated: true } : ch));
-  }, [project]);
+    const numbered = renumberSubsections([...clean, ref], chapterId, chapterNum);
+    setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: numbered, generated: true } : ch));
+  }, [project, chapters, renumberSubsections]);
 
   const handleSubtopicsFallback = useCallback((chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
@@ -194,19 +196,10 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
       updated.splice(dropIndex, 0, moved);
       const renumbered = updated.map((ch, idx) => {
         if (idx === 0) return ch;
-        const chapterNum = String(idx);
-        const prefix = idx === 0 ? 'P' : chapterNum;
+        const prefix = String(idx);
         return {
           ...ch,
-          subsections: ch.subsections.map((sub, si) => {
-            const newNumber = `${prefix}.${si + 1}`;
-            return {
-              ...sub,
-              id: `${ch.id}_sub_${si + 1}`,
-              number: newNumber,
-              title: sub.type === 'references' ? sub.title : sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `)
-            };
-          })
+          subsections: renumberSubsections(ch.subsections, ch.id, prefix),
         };
       });
       return renumbered;

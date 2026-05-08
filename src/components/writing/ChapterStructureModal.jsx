@@ -59,12 +59,12 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUp
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Upload Chapter Structure</h2>
-        <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>Upload screenshots or paste text showing how you want this chapter structured.</p>
+        <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>Upload screenshots or paste text showing how you want this chapter structured. The AI will follow the exact structure, numbering, and visual placements.</p>
 
         <div style={{ border: `2px dashed ${colors.border}`, borderRadius: '8px', padding: '24px', textAlign: 'center', marginBottom: '16px' }}>
           <input type="file" id="structure-upload" accept=".jpg,.jpeg,.png" multiple style={{ display: 'none' }} onChange={handleFileChange} />
           <label htmlFor="structure-upload" style={{ backgroundColor: colors.primary, color: 'white', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', display: 'inline-block' }}>📎 Upload Screenshots</label>
-          <p style={{ marginTop: '12px', color: colors.textSecondary, fontSize: '13px' }}>Supported: JPG, PNG</p>
+          <p style={{ marginTop: '12px', color: colors.textSecondary, fontSize: '13px' }}>Supported: JPG, PNG (You can select multiple files)</p>
         </div>
 
         {fileList.length > 0 && (
@@ -81,7 +81,9 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, uploadedFiles, setUp
 
         <div style={{ textAlign: 'center', marginBottom: '20px' }}><span style={{ color: colors.textSecondary, fontWeight: '500' }}>— OR —</span></div>
 
-        <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Paste your chapter structure here...&#10;&#10;Example:&#10;2.0 Introduction&#10;2.1 Theoretical Framework [with diagram]&#10;2.2 Conceptual Framework..." rows="15" style={{ width: '100%', padding: '14px', marginBottom: '16px', border: `1px solid ${colors.border}`, borderRadius: '8px', backgroundColor: colors.input, color: colors.text, fontSize: '14px', resize: 'vertical', fontFamily: 'monospace', lineHeight: '1.6', minHeight: '250px' }} />
+        <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Paste your chapter structure here...&#10;&#10;Example:&#10;2.0 Introduction&#10;2.1 Theoretical Framework [with diagram]&#10;2.2 Conceptual Framework&#10;2.3 Empirical Review&#10;2.4 Research Gaps&#10;2.5 Summary&#10;&#10;You can paste an ENTIRE chapter or document. The AI will extract ONLY the structure (headings, numbering, hierarchy, diagram placements, table positions) and adapt it to your topic." rows="15" style={{ width: '100%', padding: '14px', marginBottom: '8px', border: `1px solid ${colors.border}`, borderRadius: '8px', backgroundColor: colors.input, color: colors.text, fontSize: '14px', resize: 'vertical', fontFamily: 'monospace', lineHeight: '1.6', minHeight: '250px' }} />
+
+        <p style={{ fontSize: '11px', color: colors.textSecondary, marginBottom: '20px', textAlign: 'right' }}>{textValue.length} characters</p>
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={handleSubmit} style={{ flex: 1, backgroundColor: '#059669', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>✅ Use This Structure</button>

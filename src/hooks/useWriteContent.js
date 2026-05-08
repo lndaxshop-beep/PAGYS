@@ -80,7 +80,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     let chapterNumber = chapterId === 'chapter1' ? 'ONE' : chapterId === 'chapter2' ? 'TWO' : chapterId === 'chapter3' ? 'THREE' : chapterId === 'chapter4' ? 'FOUR' : chapterId === 'chapter5' ? 'FIVE' : '';
     const totalWordCount = ch.wordCount || { min: 1000, max: 2000 };
     const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsList, subTitle);
-    const { generateAcademicContent } = await import('../services/geminiService');
+    const { generateAcademicContent, selfReviewContent } = await import('../services/geminiService');
     const result = await generateAcademicContent({
       chapter: chapterTitle, chapterId, chapterNumber, subsection: subTitle,
       topic: project.title, field: project.field, level: project.level, methodology: project.methodology,
@@ -89,6 +89,16 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
     });
     let generatedContent = typeof result === 'object' ? result.text : result;
+    try {
+      const reviewed = await selfReviewContent(generatedContent, {
+        topic: project.title, chapter: chapterTitle, subsection: subTitle
+      });
+      if (reviewed && reviewed.trim().length > 50) {
+        generatedContent = reviewed;
+      }
+    } catch (e) {
+      console.warn('[useWriteContent] Self-review failed, using original output:', e.message);
+    }
     const sources = typeof result === 'object' ? (result.sources || []) : [];
     if (sources.length > 0) {
       const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');

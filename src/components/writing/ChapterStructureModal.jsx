@@ -24,7 +24,7 @@ const CHAPTER_HINTS = {
 let idCounter = 0;
 const nextId = () => ++idCounter;
 
-const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedFiles, setUploadedFiles, pendingChapter, onError }) => {
+const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedFiles, setUploadedFiles, pendingChapter, onError, stepIndicator }) => {
   const { colors, isDarkMode } = useTheme();
   const [textValue, setTextValue] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
@@ -125,6 +125,14 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
 
   const renderInputStep = () => (
     <>
+      {stepIndicator && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', padding: '8px 14px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f9ff', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#3d3d3d' : '#bfdbfe'}` }}>
+          <span style={{ fontSize: '12px', color: colors.primary, fontWeight: '600', whiteSpace: 'nowrap' }}>{stepIndicator}</span>
+          <div style={{ flex: 1, height: '4px', backgroundColor: isDarkMode ? '#3d3d3d' : '#e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: '66%', backgroundColor: colors.primary, borderRadius: '999px', transition: 'width 0.3s' }} />
+          </div>
+        </div>
+      )}
       <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Upload Chapter Structure</h2>
       <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>Upload screenshots or paste text showing how you want this chapter structured. The AI will follow the exact structure, numbering, and visual placements.</p>
 

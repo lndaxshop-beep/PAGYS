@@ -74,13 +74,19 @@ const FileUploader = ({ responseType, selectedOption, uploadedFiles, onFileUploa
             Uploaded Files ({uploadedFiles.length})
           </h3>
           <div style={{
-            maxHeight: '150px',
+            maxHeight: '250px',
             overflowY: 'auto',
             border: `1px solid ${colors.border}`,
             borderRadius: '8px',
             backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff'
           }}>
-            {uploadedFiles.map((file, index) => (
+            {uploadedFiles.map((file, index) => {
+              const ext = file.name.split('.').pop()?.toLowerCase();
+              const iconMap = { csv: '📊', xlsx: '📊', xls: '📊', pdf: '📕', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', txt: '📄', doc: '📝', docx: '📝' };
+              const typeIcon = iconMap[ext] || '📄';
+              const hintMap = { csv: 'Tabular data — rows and columns will be extracted', xlsx: 'Excel data — sheets will be parsed', xls: 'Excel data — sheets will be parsed', pdf: 'Document text — AI will extract findings', jpg: 'Image — AI will analyze visually', jpeg: 'Image — AI will analyze visually', png: 'Image — AI will analyze visually' };
+              const hint = hintMap[ext] || 'AI will analyze content';
+              return (
               <div key={index} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -88,11 +94,11 @@ const FileUploader = ({ responseType, selectedOption, uploadedFiles, onFileUploa
                 padding: '10px 16px',
                 borderBottom: index < uploadedFiles.length - 1 ? `1px solid ${colors.border}` : 'none'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '20px' }}>📄</span>
-                  <div>
-                    <div style={{ fontSize: '14px', color: colors.text, fontWeight: '500' }}>{file.name}</div>
-                    <div style={{ fontSize: '11px', color: colors.textSecondary }}>{(file.size / 1024).toFixed(1)} KB</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, overflow: 'hidden' }}>
+                  <span style={{ fontSize: '20px', flexShrink: 0 }}>{typeIcon}</span>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{ fontSize: '14px', color: colors.text, fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
+                    <div style={{ fontSize: '11px', color: colors.textSecondary }}>{(file.size / 1024).toFixed(1)} KB — {hint}</div>
                   </div>
                 </div>
                 <button
@@ -104,7 +110,8 @@ const FileUploader = ({ responseType, selectedOption, uploadedFiles, onFileUploa
                     cursor: 'pointer',
                     fontSize: '18px',
                     padding: '4px 8px',
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    flexShrink: 0
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fee2e2'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
@@ -112,7 +119,8 @@ const FileUploader = ({ responseType, selectedOption, uploadedFiles, onFileUploa
                   ✕
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

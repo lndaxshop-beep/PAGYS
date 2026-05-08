@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose, project }) => {
@@ -8,42 +8,42 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose, project })
   const [selectedType, setSelectedType] = useState('');
   const [showDetails, setShowDetails] = useState(false);
 
-  useEffect(() => {
-    const getRecommendation = async () => {
-      setLoading(true);
-      try {
-        const { recommendLiteratureReviewType } = await import('../services/geminiService');
-        const result = project ? await recommendLiteratureReviewType(project) : null;
-        if (result && result.recommendedType) {
-          setRecommendation(result);
-          setSelectedType(result.recommendedType);
-        } else {
-          setFallbackRecommendation();
-        }
-      } catch {
+  const setFallbackRecommendation = useCallback(() => {
+    setRecommendation({
+      recommendedType: 'analytical',
+      reason: 'Based on your research topic, an analytical literature review would be most appropriate as it allows you to compare and contrast different theoretical perspectives and identify key themes.',
+      approach: 'Structure your review thematically, comparing different authors\' views on each theme.',
+      keyElements: [
+        'Compare different theoretical perspectives',
+        'Identify gaps in existing research',
+        'Synthesize findings from multiple studies',
+        'Critically evaluate methodologies used'
+      ]
+    });
+    setSelectedType('analytical');
+  }, []);
+
+  const getRecommendation = useCallback(async (useFallback) => {
+    setLoading(true);
+    try {
+      if (useFallback) { setFallbackRecommendation(); setLoading(false); return; }
+      const { recommendLiteratureReviewType } = await import('../services/geminiService');
+      const result = project ? await recommendLiteratureReviewType(project) : null;
+      if (result && result.recommendedType) {
+        setRecommendation(result);
+        setSelectedType(result.recommendedType);
+      } else {
         setFallbackRecommendation();
       }
-      setLoading(false);
-    };
+    } catch {
+      setFallbackRecommendation();
+    }
+    setLoading(false);
+  }, [project, setFallbackRecommendation]);
 
-    const setFallbackRecommendation = () => {
-      let rec = {
-        recommendedType: 'analytical',
-        reason: 'Based on your research topic, an analytical literature review would be most appropriate as it allows you to compare and contrast different theoretical perspectives and identify key themes.',
-        approach: 'Structure your review thematically, comparing different authors\' views on each theme.',
-        keyElements: [
-          'Compare different theoretical perspectives',
-          'Identify gaps in existing research',
-          'Synthesize findings from multiple studies',
-          'Critically evaluate methodologies used'
-        ]
-      };
-      setRecommendation(rec);
-      setSelectedType(rec.recommendedType);
-    };
+  useEffect(() => { getRecommendation(false); }, [getRecommendation]);
 
-    getRecommendation();
-  }, [field, topic, project]);
+  const handleRetry = () => { getRecommendation(false); };
 
   const literatureTypes = [
     {
@@ -235,6 +235,16 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose, project })
                     </ul>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {!loading && (
+              <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+                <button onClick={handleRetry} style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = colors.primary; e.currentTarget.style.borderColor = colors.primary; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.borderColor = colors.border; }}>
+                  ⟳ Get Another Recommendation
+                </button>
               </div>
             )}
 

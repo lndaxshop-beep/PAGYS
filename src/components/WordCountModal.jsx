@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
-const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose }) => {
+const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, stepIndicator }) => {
   const { colors, isDarkMode } = useTheme();
   const [useCustom, setUseCustom] = useState(false);
   const [customMin, setCustomMin] = useState(currentWordCount?.min || '');
@@ -119,6 +119,15 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose })
         border: `1px solid ${colors.border}`
       }}>
         {/* Header with chapter icon */}
+        {stepIndicator && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', padding: '8px 14px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f9ff', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#3d3d3d' : '#bfdbfe'}` }}>
+            <span style={{ fontSize: '12px', color: colors.primary, fontWeight: '600', whiteSpace: 'nowrap' }}>{stepIndicator}</span>
+            <div style={{ flex: 1, height: '4px', backgroundColor: isDarkMode ? '#3d3d3d' : '#e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: '100%', backgroundColor: colors.primary, borderRadius: '999px', transition: 'width 0.3s' }} />
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <div style={{
             width: '48px',
@@ -342,6 +351,16 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose })
             <p style={{ fontSize: '13px', color: colors.textSecondary, marginTop: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span>💡</span> Enter the exact word count range provided by your supervisor
             </p>
+
+            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: isDarkMode ? '#1a1a2e' : '#f0f4ff', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#2d2d4e' : '#c7d2fe'}` }}>
+              <p style={{ fontSize: '12px', fontWeight: '600', color: colors.text, marginBottom: '8px' }}>🏛️ Common Requirements by Level</p>
+              <div style={{ display: 'grid', gap: '4px' }}>
+                <p style={{ fontSize: '11px', color: colors.textSecondary }}><strong>Undergraduate:</strong> 5,000–12,000 words (typical dissertation)</p>
+                <p style={{ fontSize: '11px', color: colors.textSecondary }}><strong>Masters:</strong> 15,000–25,000 words (most institutions)</p>
+                <p style={{ fontSize: '11px', color: colors.textSecondary }}><strong>PhD:</strong> 60,000–100,000 words (thesis)</p>
+                <p style={{ fontSize: '11px', color: colors.textSecondary, marginTop: '4px', fontStyle: 'italic' }}>Per-subsection: approximately 500–2,000 words depending on total chapter length</p>
+              </div>
+            </div>
           </div>
         )}
 

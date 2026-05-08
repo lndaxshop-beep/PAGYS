@@ -506,7 +506,7 @@ const Write = () => {
 
       {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => {}} onDownload={handleInstrumentsDownload} onNotify={toastError} />}
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
-      {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} />}
+      {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} stepIndicator={modals.pendingChapterAfterWordCount === 'chapter2' && modals.literatureReviewType ? 'Step 3 of 3: Word Count' : undefined} />}
       {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} project={project} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterForStructure(null); }} />}
 
       <ChapterStructureModal
@@ -518,6 +518,7 @@ const Write = () => {
         setUploadedFiles={modals.setUploadedStructureFile}
         pendingChapter={modals.pendingChapterForStructure}
         onError={(msg) => toastError(msg)}
+        stepIndicator={modals.pendingChapterForStructure === 'chapter2' && modals.literatureReviewType ? 'Step 2 of 3: Chapter Structure' : undefined}
       />
 
       <FeedbackModal

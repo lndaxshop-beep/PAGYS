@@ -17,7 +17,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
         needsSubtopics: !chapter.generated || chapter.subsections.length === 0
       };
     }
-  }, [chapters, chapterWordCountSet, generatedSubsections]);
+  }, [chapters, chapterWordCountSet, generatedSubsections, literatureReviewType]);
 
   const handleChapterStructureSubmit = useCallback(async (referenceData, pendingChapterForStructure, instrumentsCompleted, setShowUploadFindings, setShowWordCountModal, setPendingChapterAfterWordCount, setPendingChapterForStructure, setShowChapterStructureModal, setUploadedStructureFile, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent) => {
     setShowChapterStructureModal(false);

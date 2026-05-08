@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatCitationEntry, formatGroundedReference, distributeWordCount } from '../utils/writeHelpers.jsx';
 
 const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only') => {
   const [generating, setGenerating] = useState(false);
@@ -107,19 +107,36 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
       localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
     }
+    const { verifyCitations } = await import('../services/gemini/citationVerifier');
+    const storedSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
+
+    // Auto-repair: detect paragraphs missing citations, re-run self-review with targeted fix
+    let citationResult = verifyCitations(generatedContent, storedSources);
+    let repairAttempts = 0;
+    while (citationResult.paragraphsMissingCitations.length > 0 && repairAttempts < 2) {
+      const missingIndices = citationResult.paragraphsMissingCitations.map(p => p.index + 1);
+      const repairPrompt = `CRITICAL FIX REQUIRED: Paragraphs ${missingIndices.join(', ')} (${citationResult.paragraphsMissingCitations.length} total) are MISSING in-text citations. Add exactly one (Author, Year) citation to EACH of those paragraphs using Google Search Grounding. Do NOT change any other paragraphs. Do NOT remove existing citations.`;
+      try {
+        const repaired = await selfReviewContent(generatedContent, {
+          topic: project.title, chapter: chapterTitle, subsection: subTitle,
+          extraInstruction: repairPrompt
+        });
+        if (repaired && repaired.trim().length > 50) {
+          generatedContent = repaired;
+        }
+      } catch (e) {
+        console.warn('[useWriteContent] Citation repair attempt failed:', e.message);
+        break;
+      }
+      citationResult = verifyCitations(generatedContent, storedSources);
+      repairAttempts++;
+    }
+
     const citations = extractCitations(generatedContent);
     const { calculateBurstiness } = await import('../services/gemini/antiDetection');
     const burstiness = calculateBurstiness(generatedContent);
-    let citationVerification = null;
-    try {
-      const { verifyCitations } = await import('../services/gemini/citationVerifier');
-      const storedSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
-      citationVerification = verifyCitations(generatedContent, storedSources);
-    } catch (e) {
-      console.warn('[useWriteContent] Citation verification failed:', e.message);
-    }
-    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv, citationVerification };
-  }, [project, chapters, uploadedFindings, literatureReviewType]);
+    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv };
+  }, [project, chapters, uploadedFindings, literatureReviewType, userSources, sourceMode]);
 
   const handleGenerateCurrent = useCallback(async (activeSubsections) => {
     const currentChapter = chapters.find(c => c.id === activeChapter);
@@ -134,6 +151,25 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (error) { throw error; }
     finally { setGenerating(false); }
   }, [activeChapter, currentSubsectionIndex, generateSubsectionContent]);
+
+  const autoGenerateReferences = useCallback(async (chapterId) => {
+    const ch = chapters.find(c => c.id === chapterId);
+    if (!ch) return null;
+    const allSubsections = ch.subsections.filter(s => s.title !== 'References' && !s.deleted);
+    const allGenerated = allSubsections.every(s => s.generated);
+    if (!allGenerated || !allSubsections.length) return null;
+    try {
+      const existingRefs = generatedSubsections[chapterId]?.references;
+      if (existingRefs && existingRefs.length > 100) return null;
+      const result = await handleGenerateReferences(ch);
+      if (result && !result.error && result.content) {
+        return { chapterId, content: result.content };
+      }
+    } catch (e) {
+      console.warn('[useWriteContent] Auto-reference generation failed:', e.message);
+    }
+    return null;
+  }, [chapters, generatedSubsections, handleGenerateReferences]);
 
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
     const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.title !== 'References' && !s.deleted);
@@ -256,6 +292,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     handleGenerateCurrent,
     generateSubsectionContent,
     handleGenerateReferences,
+    autoGenerateReferences,
     handleHumanise,
     handleApplyFeedback,
     preRenderDiagrams

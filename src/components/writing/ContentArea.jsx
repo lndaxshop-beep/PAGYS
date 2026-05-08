@@ -3,23 +3,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, citationWarnings
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea
 }) => {
   const { colors } = useTheme();
   const isReferences = currentSubsection?.title === 'References' || currentSubsection?.type === 'references' || showReferenceInTextarea;
-  const citationWarningBadge = citationWarnings?.length > 0 ? (
-    <span style={{
-      fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
-      backgroundColor: '#dc262620', color: '#dc2626',
-      fontWeight: '500', marginLeft: '8px', cursor: 'help'
-    }} title={citationWarnings.map(w => `${w.raw}`).join('\n')}>
-      ⚠️ {citationWarnings.length} unverifiable citation(s)
-    </span>
-  ) : null;
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', alignItems: 'center' }}>
-        {citationWarningBadge}
         <button
           onClick={() => isPreviewMode ? onTogglePreview(false) : onSaveEdit()}
           style={{

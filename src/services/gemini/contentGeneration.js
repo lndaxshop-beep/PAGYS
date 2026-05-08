@@ -270,6 +270,7 @@ export const selfReviewContent = async (text, promptData) => {
       tools: [{ googleSearch: {} }],
       generationConfig: { temperature: 0.5, topP: 0.85 }
     });
+    const extraInstr = promptData?.extraInstruction ? `\n\n## ADDITIONAL INSTRUCTION\n${promptData.extraInstruction}` : '';
     const prompt = `You are a senior academic editor performing a quality review on AI-generated thesis content. Your task: identify all detectable AI writing patterns and rewrite the text so it is COMPLETELY INDISTINGUISHABLE from human academic writing.
 
 ORIGINAL TEXT (AI-generated):
@@ -277,7 +278,7 @@ ${text}
 
 TOPIC: "${promptData?.topic || 'thesis'}"
 CHAPTER: ${promptData?.chapter || 'N/A'}
-SUBSECTION: ${promptData?.subsection || 'N/A'}
+SUBSECTION: ${promptData?.subsection || 'N/A'}${extraInstr}
 
 ## DETECTION CHECKLIST — Scan the text for every item below
 

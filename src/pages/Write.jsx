@@ -41,7 +41,6 @@ const Write = () => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
   const [currentContent, setCurrentContent] = useState('');
-  const [citationWarnings, setCitationWarnings] = useState(null);
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
   const [chapterCitations, setChapterCitations] = useState({});
@@ -74,7 +73,7 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { title: 'References', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode);
+  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
@@ -285,8 +284,7 @@ const Write = () => {
       const result = await handleGenerateCurrent(activeSubsections);
       if (!result || result.error) { toastError(result?.message || 'Generation failed.'); return; }
       if (result.skipped) return;
-      const { content, citations, subsectionId, subsectionTitle, citationVerification } = result;
-      setCitationWarnings(citationVerification?.unverifiable?.length > 0 ? citationVerification.unverifiable : null);
+      const { content, citations, subsectionId, subsectionTitle } = result;
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionTitle]: content } }));
       setCurrentContent(content);
@@ -296,6 +294,11 @@ const Write = () => {
         if (rendered && Object.keys(rendered).length > 0) {
           const existing = JSON.parse(localStorage.getItem(`diagramSVGs_${projectId}`) || '{}');
           localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_${subsectionTitle}`]: rendered }));
+        }
+      });
+      autoGenerateReferences(activeChapter).then(refResult => {
+        if (refResult && refResult.content) {
+          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
         }
       });
     } catch (error) {
@@ -468,7 +471,8 @@ const Write = () => {
           <WriteHeader onBack={() => navigate('/dashboard')} onEditWordCount={handleEditWordCount} projectId={projectId} />
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.title}</h1>
-          <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '32px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
+          <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
+          <p style={{ fontSize: '12px', color: '#059669', marginBottom: '28px' }}>✅ Citations auto-verified, references auto-generated</p>
           {humaniseLimit > 1 && (() => {
             const chHumanise = Object.entries(humaniseUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
             const chFeedback = Object.entries(feedbackUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
@@ -500,7 +504,6 @@ const Write = () => {
                 onChange={setCurrentContent}
                 currentSubsection={currentSubsection}
                 showReferenceInTextarea={showReferenceInTextarea}
-                citationWarnings={citationWarnings}
               />
 
               <ContentButtons

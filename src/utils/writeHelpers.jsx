@@ -157,7 +157,7 @@ export const distributeWordCount = (min, max, subsections, currentTitle) => {
 
 export const extractCitations = (content) => {
   if (!content) return [];
-  const regex = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et al[.,]*)?)*,\s*\d{4})\)/g;
+  const regex = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)*,\s*\d{4}[a-z]?)\)/g;
   const matches = content.match(regex) || [];
   return matches.map(m => m.slice(1, -1).trim());
 };
@@ -251,12 +251,7 @@ export const normalizeNumbering = (text) => {
   }).join('\n');
 };
 
-export const formatSimpleReference = (author, year, style) => {
+export const formatSimpleReference = (author, year) => {
   const y = year || 'n.d.';
-  if (style === 'apa') return `${author}. (${y}). Title of the work. Source.`;
-  if (style === 'mla') return `${author}. "Title of the Work." Source, ${y}.`;
-  if (style === 'chicago') return `${author}. ${y}. "Title of the Work." Source.`;
-  if (style === 'harvard') return `${author} (${y}). Title of the work. Source.`;
-  if (style === 'ieee') return `${author}, "Title of the work." Source, ${y}.`;
-  return `${author}. (${y}). Title of the work. Source.`;
+  return `[UNVERIFIED CITATION NEEDS MANUAL REVIEW: ${author}, ${y}]`;
 };

@@ -1,5 +1,5 @@
-const CITATION_REGEX = /\(([A-Z][a-z'-]+(?:\s+et\s+al\.?)?(?:\s+and\s+[A-Z][a-z'-]+)?,?\s*\d{4}[a-z]?)\)/g;
-const CITATION_MARKER_REGEX = /\[CITATION:\s*([^\]]+)\]/g;
+export const CITATION_REGEX = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)*,\s*\d{4}[a-z]?)\)/g;
+export const CITATION_MARKER_REGEX = /\[CITATION:\s*([^\]]+)\]/g;
 
 const splitParagraphs = (text) => {
   if (!text) return [];

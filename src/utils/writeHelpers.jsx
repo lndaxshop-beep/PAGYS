@@ -226,6 +226,22 @@ export const formatGroundedReference = (source, style) => {
   return `${cleanDomain}. ${title}.`;
 };
 
+export const normalizeNumbering = (text) => {
+  const romanMap = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6, VII: 7, VIII: 8, IX: 9, X: 10 };
+  return text.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return line;
+    if (/^\d+\.\d/.test(trimmed)) return line;
+    const match = trimmed.match(/^([IVX]+)(?:\.(\d+(?:\.\d+)*))?[.)\s]+\s*(.+)/);
+    if (match && romanMap[match[1]]) {
+      const num = romanMap[match[1]];
+      const sub = match[2] ? `.${match[2]}` : '.0';
+      return `${num}${sub} ${match[3]}`;
+    }
+    return line;
+  }).join('\n');
+};
+
 export const formatSimpleReference = (author, year, style) => {
   const y = year || 'n.d.';
   if (style === 'apa') return `${author}. (${y}). Title of the work. Source.`;

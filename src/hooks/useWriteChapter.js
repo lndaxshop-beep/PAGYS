@@ -81,16 +81,27 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     }));
   }, [activeChapter]);
 
+  const buildSubsectionsFromHeadings = useCallback((chapterId, headings) => {
+    const chapterNum = chapterId === 'proposal' ? 'P' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
+    const filtered = headings.filter(t => !t.toLowerCase().includes('reference'));
+    const numbered = filtered.map((title, i) => {
+      let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
+      return {
+        id: `${chapterId}_${i}`, title: `${chapterNum}.${i + 1} ${cleanTitle}`,
+        type: 'subsection',
+        hasPlaceholder: cleanTitle.toLowerCase().includes('organisation') || cleanTitle.toLowerCase().includes('organization') || cleanTitle.toLowerCase().includes('company') || cleanTitle.toLowerCase().includes('institution'),
+        placeholder: 'Organization', customValue: project?.organizationName || '',
+        generated: false, deleted: false
+      };
+    });
+    const ref = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false };
+    setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: [...numbered, ref], generated: true } : ch));
+  }, [project]);
+
   const handleSubtopicsFallback = useCallback((chapterId) => {
     const fallbackSubtopics = getFallbackSubtopics(chapterId).filter(sub => !sub.title.toLowerCase().includes('reference'));
-    const chapterNum = chapterId === 'proposal' ? 'P' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
-    const numberedFallback = fallbackSubtopics.map((sub, index) => {
-      let cleanTitle = sub.title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
-      return { id: `${chapterId}_${index}`, title: `${chapterNum}.${index + 1} ${cleanTitle}`, type: 'subsection', hasPlaceholder: cleanTitle.toLowerCase().includes('organisation'), placeholder: 'Organization', customValue: project?.organizationName || '', generated: false, deleted: false };
-    });
-    const referencesSubsection = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false };
-    setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: [...numberedFallback, referencesSubsection], generated: true } : ch));
-  }, [project]);
+    buildSubsectionsFromHeadings(chapterId, fallbackSubtopics.map(s => s.title));
+  }, [buildSubsectionsFromHeadings]);
 
   const generateSubtopicsForChapter = useCallback(async (chapterId, referenceData = null) => {
     const chapter = chapters.find(c => c.id === chapterId);
@@ -99,19 +110,24 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
       const { generateSubtopics } = await import('../services/geminiService');
       const subtopics = await generateSubtopics({ chapterId, chapterTitle: chapter.title, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
       if (!subtopics || !Array.isArray(subtopics)) { handleSubtopicsFallback(chapterId); return; }
-      const filteredSubtopics = subtopics.filter(title => !title.toLowerCase().includes('reference'));
-      const chapterNum = chapterId === 'proposal' ? 'P' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
-      const numberedSubtopics = filteredSubtopics.map((title, index) => {
-        let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
-        return { id: `${chapterId}_${index}`, title: `${chapterNum}.${index + 1} ${cleanTitle}`, type: 'subsection', hasPlaceholder: cleanTitle.toLowerCase().includes('organisation') || cleanTitle.toLowerCase().includes('organization') || cleanTitle.toLowerCase().includes('company') || cleanTitle.toLowerCase().includes('institution'), placeholder: 'Organization', customValue: project?.organizationName || '', generated: false, deleted: false };
-      });
-      const referencesSubsection = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false };
-      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: [...numberedSubtopics, referencesSubsection], generated: true } : ch));
+      buildSubsectionsFromHeadings(chapterId, subtopics);
     } catch (error) {
       console.error('Error generating subtopics:', error);
       handleSubtopicsFallback(chapterId);
     }
-  }, [chapters, project, handleSubtopicsFallback]);
+  }, [chapters, project, handleSubtopicsFallback, buildSubsectionsFromHeadings]);
+
+  const previewSubtopics = useCallback(async (chapterId, referenceData) => {
+    const chapter = chapters.find(c => c.id === chapterId);
+    if (!chapter) return null;
+    try {
+      const { generateSubtopics } = await import('../services/geminiService');
+      return await generateSubtopics({ chapterId, chapterTitle: chapter.title, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
+    } catch (error) {
+      console.error('Error previewing subtopics:', error);
+      return null;
+    }
+  }, [chapters, project]);
 
   const setChapterWordCount = useCallback((chapterId, min, max) => {
     setChapterWordCounts(prev => ({ ...prev, [chapterId]: { min, max } }));
@@ -133,6 +149,8 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     handleRestoreSubsection,
     handleDrop,
     generateSubtopicsForChapter,
+    buildSubsectionsFromHeadings,
+    previewSubtopics,
     setChapterWordCount
   };
 };

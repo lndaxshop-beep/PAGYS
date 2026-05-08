@@ -63,7 +63,7 @@ const Write = () => {
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
   const { state: editorContent, set: setEditorContent, undo, redo, canUndo, canRedo } = useUndoRedo('');
 
-  const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
+  const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter, buildSubsectionsFromHeadings, previewSubtopics } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
 
   const currentChapter = chapters.find(c => c.id === activeChapter);
   const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
@@ -71,7 +71,7 @@ const Write = () => {
 
   const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
@@ -209,6 +209,10 @@ const Write = () => {
     const setUploadedFiles = modals.setUploadedStructureFile;
     const result = await handleChapterStructureSubmit(referenceData, modals.pendingChapterForStructure, instrumentsCompleted, modals.setShowUploadFindings, modals.setShowWordCountModal, modals.setPendingChapterAfterWordCount, modals.setPendingChapterForStructure, modals.setShowChapterStructureModal, setUploadedFiles, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent);
     if (result?.action === 'error') toastError(result.message);
+  };
+
+  const handlePreview = async (chapterId, referenceData) => {
+    return await previewSubtopics(chapterId, referenceData);
   };
 
   const wrappedHandleWordCountSubmit = (range, useCustom) => {
@@ -509,6 +513,7 @@ const Write = () => {
         isOpen={modals.showChapterStructureModal}
         onClose={() => { modals.setShowChapterStructureModal(false); modals.setUploadedStructureFile(null); }}
         onSubmit={wrappedHandleChapterStructureSubmit}
+        onPreview={(chapterId, referenceData) => handlePreview(chapterId, referenceData)}
         uploadedFiles={modals.uploadedStructureFile}
         setUploadedFiles={modals.setUploadedStructureFile}
         pendingChapter={modals.pendingChapterForStructure}

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { renumberSubsections } from '../utils/writeHelpers.jsx';
 
-const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, handleDrop, handleGenerateCurrent) => {
+const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent) => {
   const handleChapterClick = useCallback(async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (chapter && chapter.unlocked) {
@@ -24,20 +24,24 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setUploadedStructureFile(null);
     const chapterId = pendingChapterForStructure;
     if (!chapterId) return;
-    let finalReferenceData = referenceData;
-    if (referenceData?.type === 'combined') {
-      finalReferenceData = { ...referenceData, content: referenceData.text + '\n\n[Uploaded ' + referenceData.files.length + ' screenshot(s) for structure reference]' };
-    } else if (referenceData?.type === 'files') {
-      finalReferenceData = { ...referenceData, content: '[Uploaded ' + referenceData.files.length + ' screenshot(s) for structure reference]' };
+    if (referenceData?.editedHeadings) {
+      buildSubsectionsFromHeadings(chapterId, referenceData.editedHeadings);
+    } else {
+      let finalReferenceData = referenceData;
+      if (referenceData?.type === 'combined') {
+        finalReferenceData = { ...referenceData, content: referenceData.text + '\n\n[Uploaded ' + referenceData.files.length + ' screenshot(s) for structure reference]' };
+      } else if (referenceData?.type === 'files') {
+        finalReferenceData = { ...referenceData, content: '[Uploaded ' + referenceData.files.length + ' screenshot(s) for structure reference]' };
+      }
+      if (chapterId === 'chapter4') {
+        if (!instrumentsCompleted) { setPendingChapterForStructure(null); return { action: 'error', message: 'Please complete and download the questionnaire first.' }; }
+        setShowUploadFindings(true);
+        setPendingChapterAfterWordCount(chapterId);
+        setPendingChapterForStructure(null);
+        return;
+      }
+      await generateSubtopicsForChapter(chapterId, finalReferenceData);
     }
-    if (chapterId === 'chapter4') {
-      if (!instrumentsCompleted) { setPendingChapterForStructure(null); return { action: 'error', message: 'Please complete and download the questionnaire first.' }; }
-      setShowUploadFindings(true);
-      setPendingChapterAfterWordCount(chapterId);
-      setPendingChapterForStructure(null);
-      return;
-    }
-    await generateSubtopicsForChapter(chapterId, finalReferenceData);
     if (!chapterWordCountSet[chapterId]) { setShowWordCountModal(true); setPendingChapterAfterWordCount(chapterId); }
     else {
       const ch = chapters.find(c => c.id === chapterId);
@@ -48,7 +52,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
       setCurrentContent('');
     }
     setPendingChapterForStructure(null);
-  }, [chapters, chapterWordCountSet, generateSubtopicsForChapter]);
+  }, [chapters, chapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings]);
 
   const handleWordCountSubmit = useCallback((range, useCustom, pendingChapterAfterWordCount, setShowWordCountModal) => {
     setChapterWordCounts(prev => ({ ...prev, [pendingChapterAfterWordCount]: range }));

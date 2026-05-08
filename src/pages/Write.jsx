@@ -40,6 +40,7 @@ const Write = () => {
   });
   const [currentContent, setCurrentContent] = useState('');
   const [detectionScore, setDetectionScore] = useState(null);
+  const [citationWarnings, setCitationWarnings] = useState(null);
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
   const [chapterCitations, setChapterCitations] = useState({});
@@ -280,8 +281,9 @@ const Write = () => {
       const result = await handleGenerateCurrent(activeSubsections);
       if (!result || result.error) { toastError(result?.message || 'Generation failed.'); return; }
       if (result.skipped) return;
-      const { content, citations, subsectionId, subsectionTitle, burstiness } = result;
+      const { content, citations, subsectionId, subsectionTitle, burstiness, citationVerification } = result;
       setDetectionScore(burstiness !== undefined ? burstiness : null);
+      setCitationWarnings(citationVerification?.unverifiable?.length > 0 ? citationVerification.unverifiable : null);
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionTitle]: content } }));
       setCurrentContent(content);
@@ -475,6 +477,7 @@ const Write = () => {
                 currentSubsection={currentSubsection}
                 showReferenceInTextarea={showReferenceInTextarea}
                 detectionScore={detectionScore}
+                citationWarnings={citationWarnings}
               />
 
               <ContentButtons

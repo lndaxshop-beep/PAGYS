@@ -109,7 +109,15 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const citations = extractCitations(generatedContent);
     const { calculateBurstiness } = await import('../services/gemini/antiDetection');
     const burstiness = calculateBurstiness(generatedContent);
-    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv };
+    let citationVerification = null;
+    try {
+      const { verifyCitations } = await import('../services/gemini/citationVerifier');
+      const storedSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
+      citationVerification = verifyCitations(generatedContent, storedSources);
+    } catch (e) {
+      console.warn('[useWriteContent] Citation verification failed:', e.message);
+    }
+    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv, citationVerification };
   }, [project, chapters, uploadedFindings, literatureReviewType]);
 
   const handleGenerateCurrent = useCallback(async (activeSubsections) => {

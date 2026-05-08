@@ -8,6 +8,7 @@ import Toast from '../components/Toast';
 import SourceLibrary from '../components/writing/SourceLibrary';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
+import { generateChapterDocument } from '../utils/merge/chapterDownloadEngine.js';
 
 const MyFiles = () => {
   const { colors, isDarkMode } = useTheme();
@@ -76,201 +77,24 @@ const MyFiles = () => {
     const cleanTitle = (projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
     const date = new Date().toISOString().split('T')[0];
     const prefix = chapter.id === 'proposal' ? 'Proposal' : chapter.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-    return `${prefix}-${cleanTitle}_${date}.doc`;
-  };
-
-  const captureChartAsImage = (chartData) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 600; canvas.height = 400;
-      const ctx = canvas.getContext('2d');
-      const barColors = ['#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe'];
-      const labels = chartData.labels || [];
-      const values = (chartData.values || []).map(v => parseFloat(v) || 0);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      if (chartData.type === 'pie') {
-        const cx = canvas.width / 2, cy = canvas.height / 2, r = Math.min(cx, cy) - 60;
-        const total = values.reduce((s, v) => s + v, 0);
-        let sa = 0;
-        values.forEach((v, i) => {
-          const angle = (v / total) * 2 * Math.PI;
-          ctx.beginPath(); ctx.fillStyle = barColors[i % barColors.length];
-          ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, sa, sa + angle); ctx.closePath(); ctx.fill();
-          const la = sa + angle / 2;
-          ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText(`${((v/total)*100).toFixed(1)}%`, cx + Math.cos(la) * r * 0.65, cy + Math.sin(la) * r * 0.65);
-          sa += angle;
-        });
-      } else {
-        const pad = 50, cw = canvas.width - 2 * pad, ch = canvas.height - 2 * pad;
-        const maxV = Math.max(...values) * 1.15, bw = (cw / values.length) * 0.6, bs = cw / values.length;
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath();
-        ctx.moveTo(pad, pad); ctx.lineTo(pad, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad); ctx.stroke();
-        values.forEach((v, i) => {
-          const x = pad + i * bs + (bs - bw) / 2, bh = (v / maxV) * ch, y = canvas.height - pad - bh;
-          ctx.fillStyle = barColors[i % barColors.length]; ctx.fillRect(x, y, bw, bh);
-          ctx.fillStyle = '#333'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText(v, x + bw / 2, y - 5);
-          ctx.fillText(labels[i] || '', x + bw / 2, canvas.height - pad + 18);
-        });
-      }
-      if (chartData.title) { ctx.fillStyle = '#111'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(chartData.title, canvas.width / 2, 25); }
-      resolve(canvas.toDataURL('image/png'));
-    });
-  };
-
-  const getSavedDiagrams = (chapterId, subsectionTitle) => {
-    try {
-      const saved = localStorage.getItem(`diagramSVGs_${selectedProject}`);
-      if (saved) {
-        const allDiagrams = JSON.parse(saved);
-        const key = `${chapterId}_${subsectionTitle}`;
-        return allDiagrams[key] || null;
-      }
-    } catch (e) {}
-    return null;
-  };
-
-  const svgToDataUrl = (svgString) => {
-    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
-  };
-
-  const parseContentForWord = async (rawContent, chapterId = null) => {
-    if (!rawContent) return '';
-    let html = '';
-    const lines = rawContent.split('\n');
-    let inTable = false, tableHtml = '', inMermaid = false, mermaidLines = [];
-    let inChartBlock = false, chartDataStr = '', inTableBlock = false, tableDataStr = '';
-    let figureCounter = 0, diagramIdx = 0;
-    let pendingPromises = [], pendingPlaceholders = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (line.startsWith('```mermaid')) { inMermaid = true; mermaidLines = []; continue; }
-      if (inMermaid && line.startsWith('```')) {
-        inMermaid = false; figureCounter++;
-        const savedDiagrams = chapterId ? getSavedDiagrams(chapterId, null) : null;
-        const svgKey = `diagram_${diagramIdx}`;
-        diagramIdx++;
-        
-        if (savedDiagrams && savedDiagrams[svgKey]) {
-          html += `<div style="text-align:center;margin:20px 0;"><p style="font-weight:bold;font-size:11pt;margin-bottom:8px;">Figure ${figureCounter}: Diagram</p><img src="${svgToDataUrl(savedDiagrams[svgKey])}" style="max-width:100%;border:1px solid #ddd;" alt="Figure ${figureCounter}" /></div>`;
-        } else {
-          html += `<div style="border:1px solid #999;padding:15px;margin:20px 0;background:#fafafa;text-align:center;"><p style="font-weight:bold;">Figure ${figureCounter}: Diagram</p><pre style="text-align:left;font-size:9pt;background:#f5f5f5;padding:10px;">${mermaidLines.join('\n').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></div>`;
-        }
-        continue;
-      }
-      if (inMermaid) { mermaidLines.push(line); continue; }
-
-      if (line.startsWith('```chart')) { inChartBlock = true; chartDataStr = ''; continue; }
-      if (inChartBlock && line.startsWith('```')) {
-        inChartBlock = false; figureCounter++;
-        try {
-          const chartData = JSON.parse(chartDataStr.trim());
-          const placeholder = `__CHART_${figureCounter}__`;
-          pendingPlaceholders.push({ placeholder });
-          pendingPromises.push(
-            new Promise((resolve) => {
-              const timeout = setTimeout(() => resolve(null), 3000);
-              captureChartAsImage(chartData).then(img => { clearTimeout(timeout); resolve(img); }).catch(() => { clearTimeout(timeout); resolve(null); });
-            }).then(img => ({
-              placeholder,
-              replacement: img ? `<div style="text-align:center;margin:20px 0;"><p style="font-weight:bold;font-size:11pt;">Figure ${figureCounter}: ${chartData.title || 'Chart'}</p><img src="${img}" style="max-width:100%;border:1px solid #ddd;" />${chartData.caption ? `<p style="font-size:9pt;font-style:italic;">${chartData.caption}</p>` : ''}</div>` : `<div style="text-align:center;margin:20px 0;padding:15px;border:1px solid #ccc;background:#f9f9f9;"><p style="font-weight:bold;">Figure ${figureCounter}: ${chartData.title || 'Chart'}</p><p style="font-size:10pt;">[View in PAGYS app]</p></div>`
-            }))
-          );
-          html += placeholder;
-        } catch (e) { html += '<p style="font-style:italic;">[Chart]</p>'; }
-        continue;
-      }
-      if (inChartBlock) { chartDataStr += line + '\n'; continue; }
-
-      if (line.startsWith('```table')) { inTableBlock = true; tableDataStr = ''; continue; }
-      if (inTableBlock && line.startsWith('```')) {
-        inTableBlock = false; figureCounter++;
-        try {
-          const tableData = JSON.parse(tableDataStr.trim());
-          html += `<div style="margin:20px 0;"><p style="font-weight:bold;font-size:11pt;text-align:center;">${tableData.title || 'Table'}</p><table style="border-collapse:collapse;width:100%;font-size:11pt;">`;
-          if (tableData.headers) {
-            html += '<tr>' + tableData.headers.map(h => `<th style="border:1px solid #000;padding:8px;background:#f2f2f2;font-weight:bold;text-align:left;">${h}</th>`).join('') + '</tr>';
-          }
-          if (tableData.rows) {
-            tableData.rows.forEach(row => {
-              html += '<tr>' + row.map(c => `<td style="border:1px solid #000;padding:8px;text-align:left;">${c}</td>`).join('') + '</tr>';
-            });
-          }
-          html += `</table>${tableData.caption ? `<p style="font-size:9pt;font-style:italic;text-align:center;">${tableData.caption}</p>` : ''}</div>`;
-        } catch (e) { html += '<p style="font-style:italic;">[Table data]</p>'; }
-        continue;
-      }
-      if (inTableBlock) { tableDataStr += line + '\n'; continue; }
-
-      if (line.match(/\[CHART:\{.*\}\]/)) {
-        try {
-          const chartMatch = line.match(/\[CHART:(\{.*\})\]/);
-          if (chartMatch) {
-            const chartData = JSON.parse(chartMatch[1]);
-            figureCounter++;
-            const placeholder = `__CHART_${figureCounter}__`;
-            pendingPlaceholders.push({ placeholder });
-            pendingPromises.push(
-              new Promise((resolve) => {
-                const timeout = setTimeout(() => resolve(null), 3000);
-                captureChartAsImage(chartData).then(img => { clearTimeout(timeout); resolve(img); }).catch(() => { clearTimeout(timeout); resolve(null); });
-              }).then(img => ({
-                placeholder,
-                replacement: img ? `<div style="text-align:center;margin:20px 0;"><p style="font-weight:bold;font-size:11pt;">Figure ${figureCounter}: ${chartData.title || 'Chart'}</p><img src="${img}" style="max-width:100%;border:1px solid #ddd;" />${chartData.caption ? `<p style="font-size:9pt;font-style:italic;">${chartData.caption}</p>` : ''}</div>` : `<div style="text-align:center;margin:20px 0;padding:15px;border:1px solid #ccc;background:#f9f9f9;"><p style="font-weight:bold;">Figure ${figureCounter}: ${chartData.title || 'Chart'}</p><p style="font-size:10pt;">[View in PAGYS app]</p></div>`
-              }))
-            );
-            html += placeholder;
-          }
-        } catch (e) { html += '<p style="font-style:italic;">[Chart]</p>'; }
-        continue;
-      }
-
-      if (line.startsWith('|') && line.endsWith('|')) {
-        if (line.match(/^\|[\s\-:]+\|$/)) continue;
-        if (!inTable) { inTable = true; tableHtml = '<table style="border-collapse:collapse;width:100%;margin:20px 0;font-size:11pt;">'; }
-        const cells = line.split('|').filter(c => c.trim() !== '');
-        const isH = i + 2 < lines.length && lines[i + 1]?.trim().match(/^\|[\s\-:]+\|$/);
-        tableHtml += '<tr>';
-        cells.forEach(c => { tableHtml += `<${isH ? 'th' : 'td'} style="border:1px solid #000;padding:8px;text-align:left;${isH ? 'background:#f2f2f2;font-weight:bold;' : ''}">${c.trim()}</${isH ? 'th' : 'td'}>`; });
-        tableHtml += '</tr>';
-        continue;
-      } else if (inTable) { tableHtml += '</table>'; html += tableHtml; tableHtml = ''; inTable = false; }
-
-      // Headings - no indent
-      if (line.match(/^\d+\.\d+\s/)) html += `<h3 style="font-size:14pt;font-weight:bold;margin-top:30px;margin-bottom:15px;">${line}</h3>`;
-      else if (line.match(/^\d+\.\d+\.\d+\s/)) html += `<h4 style="font-size:13pt;font-weight:bold;margin-top:20px;margin-bottom:10px;font-style:italic;">${line}</h4>`;
-      else if (line === 'References' || line === 'REFERENCES') html += `<h3 style="font-size:14pt;font-weight:bold;margin-top:40px;margin-bottom:20px;">${line}</h3>`;
-      // Regular paragraph - Word default: 2.0 line spacing, justified, 0.5in first-line indent
-      else if (line.length > 0) html += `<p style="font-size:12pt;line-height:2.0;margin-bottom:0;text-align:justify;text-indent:0.5in;">${line}</p>`;
-    }
-    if (inTable && tableHtml) { tableHtml += '</table>'; html += tableHtml; }
-    if (pendingPromises.length > 0) { const results = await Promise.all(pendingPromises); results.forEach(r => { html = html.replace(r.placeholder, r.replacement); }); }
-    return html;
-  };
-
-  // Generate Word document - Word default formatting
-  const generateWordDocument = async (chapter) => {
-        let fc = '';
-    try {
-      const content = await getGeneratedContent(selectedProject);
-      if (content) { const cc = content[chapter.id]; if (cc) { (chapter.subsections || []).forEach(s => { if (cc[s]) fc += cc[s] + '\n\n'; }); if (cc.references) fc += '\n' + cc.references; } }
-    } catch (e) { console.error('Error loading content for document:', e); }
-
-    const parsed = await parseContentForWord(fc, chapter.id);
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${chapter.title}</title>
-    <style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;line-height:2.0;color:#000;font-size:12pt}.chapter-title{font-size:18pt;font-weight:bold;text-align:center;margin-bottom:40px;text-transform:uppercase}h3{font-size:14pt;font-weight:bold;margin-top:30px;margin-bottom:15px;text-indent:0}h4{font-size:13pt;font-weight:bold;margin-top:20px;margin-bottom:10px;font-style:italic;text-indent:0}p{font-size:12pt;line-height:2.0;margin-bottom:0;text-align:justify;text-indent:0.5in}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{border:1px solid #000;padding:8px;text-align:left;font-size:11pt}th{background:#f2f2f2;font-weight:bold}img{max-width:100%;height:auto}</style></head>
-    <body>${chapter.id === 'proposal' ? `<div class="chapter-title">PROPOSAL</div>` : ''}<div class="content">${parsed || '<p>Content not available.</p>'}</div></body></html>`;
+    return `${prefix}-${cleanTitle}_${date}.docx`;
   };
 
   const downloadChapter = async (chapter) => {
     setPreparingDownload(true); setDownloadProgress('Preparing document...');
-    try { const c = await generateWordDocument(chapter); saveAs(new Blob([c], { type: 'application/msword' }), generateCleanFilename(chapter)); }
-    catch (e) { notify('Error preparing download.', 'error'); }
-    finally { setPreparingDownload(false); setDownloadProgress(''); }
+    try {
+      const content = await getGeneratedContent(selectedProject);
+      const chapterContent = content?.[chapter.id] || {};
+      const blob = await generateChapterDocument({
+        chapter,
+        content: chapterContent,
+        formatConfig: null,
+      });
+      saveAs(blob, generateCleanFilename(chapter));
+    } catch (e) {
+      console.error('Error preparing download:', e);
+      notify('Error preparing download.', 'error');
+    } finally { setPreparingDownload(false); setDownloadProgress(''); }
   };
 
   const generateAbbreviationsDocument = () => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>List of Abbreviations</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:10px}th{background:#f2f2f2}</style></head><body><h1>List of Abbreviations</h1>${abbreviations.length > 0 ? `<table><thead><tr><th>Abbreviation</th><th>Meaning</th></tr></thead><tbody>${abbreviations.map(a => `<tr><td>${a.abbr}</td><td>${a.meaning}</td></tr>`).join('')}</tbody></table>` : '<p>None found.</p>'}</body></html>`;

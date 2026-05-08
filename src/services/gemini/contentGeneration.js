@@ -188,6 +188,59 @@ Write the complete content now. Aim for approximately ${targetWords} words.`;
   } catch (error) { console.error('Error generating academic content:', error); throw error; }
 };
 
+export const selfReviewContent = async (text, promptData) => {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      tools: [{ googleSearch: {} }],
+      generationConfig: { temperature: 0.5, topP: 0.85 }
+    });
+    const prompt = `You are a senior academic editor performing a quality review on AI-generated thesis content. Your task: identify all detectable AI writing patterns and rewrite the text so it is COMPLETELY INDISTINGUISHABLE from human academic writing.
+
+ORIGINAL TEXT (AI-generated):
+${text}
+
+TOPIC: "${promptData?.topic || 'thesis'}"
+CHAPTER: ${promptData?.chapter || 'N/A'}
+SUBSECTION: ${promptData?.subsection || 'N/A'}
+
+## DETECTION CHECKLIST — Scan the text for every item below
+
+### 1. BANNED PHRASES
+Remove: "In this contemporary world", "it is important to note that", "furthermore", "moreover", "additionally", "consequently", "thus", "hence", "in conclusion", "this highlights", "this underscores", "the realm of", "a myriad of", "a plethora of", "delves into", "navigates the complexities of", "plays a crucial role in", "in today's rapidly evolving society", "it is worth noting that".
+
+### 2. BURSTINESS (Sentence Rhythm)
+Check: Are sentence lengths too uniform? Are paragraphs all the same length?
+Fix: Break long sentences. Combine short ones. Vary paragraph lengths (2 to 8 sentences). No two consecutive sentences should start with the same word.
+
+### 3. TRANSITION STACKING
+Check: Are robotic transitions used multiple times? ("Furthermore... Moreover... Additionally...")
+Fix: Remove most transitions entirely. Let ideas flow naturally. Use transitions only where genuinely needed, and vary them.
+
+### 4. CITATION INTEGRITY
+Check: Does every paragraph have at least one (Author, Year) or [CITATION:...] marker?
+Fix: Do NOT add new citations. Do NOT remove existing ones. Keep [CITATION:...] markers untouched.
+
+### 5. DEPTH AND SPECIFICITY
+Check: Does the text make specific, grounded claims? Or does it use generic statements that could apply to any topic?
+Fix: Replace vague claims with specific ones. Remove filler. Add concrete details from the original context.
+
+### 6. ACADEMIC TONE
+Check: Are there contractions, first-person pronouns, rhetorical questions, or informal phrases?
+Fix: Maintain third person, no contractions, formal register, no em dashes.
+
+## REWRITE INSTRUCTIONS
+- Rewrite the ENTIRE text incorporating all fixes above.
+- Preserve ALL: tables, mermaid diagrams, [CHART:{...}] tags, data, numbers, statistics.
+- Preserve ALL subsection headings exactly as they appear.
+- DO NOT change the word count drastically (stay within 85–115% of original).
+- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`;
+
+    const result = await model.generateContent(prompt);
+    return cleanOutput(result.response.text());
+  } catch (error) { console.error('Error in self-review:', error); return text; }
+};
+
 export const applyFeedbackToContent = async (currentContent, feedback, subsectionTitle, project) => {
   try {
     const model = genAI.getGenerativeModel({ 

@@ -1,7 +1,9 @@
 import React from 'react';
 import { INSTRUMENT_TYPES } from '../../utils/instrumentHelpers';
 
-const InstrumentTabs = ({ selectedInstruments, generatedContent, downloadedInstruments, activeTab, onTabClick, colors }) => (
+const InstrumentTabs = ({ selectedInstruments, generatedContent, downloadedInstruments, activeTab, onTabClick, colors, customQuestions }) => {
+  const customCount = customQuestions?.length || 0;
+  return (
   <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', borderBottom: `1px solid ${colors.border}`, paddingBottom: '12px' }}>
     {selectedInstruments.filter(id => generatedContent[id]).map(id => {
       const type = INSTRUMENT_TYPES[id];
@@ -13,7 +15,13 @@ const InstrumentTabs = ({ selectedInstruments, generatedContent, downloadedInstr
         </button>
       );
     })}
+    {customCount > 0 && (
+      <button onClick={() => onTabClick('customQuestions')} style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${activeTab === 'customQuestions' ? colors.primary : colors.border}`, backgroundColor: activeTab === 'customQuestions' ? colors.primary : 'transparent', color: activeTab === 'customQuestions' ? 'white' : colors.text, fontWeight: '500', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}>
+        ✏️ Custom Questions ({customCount})
+      </button>
+    )}
   </div>
-);
+  );
+};
 
 export default InstrumentTabs;

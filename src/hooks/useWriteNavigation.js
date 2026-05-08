@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import { renumberSubsections } from '../utils/writeHelpers.jsx';
 
-const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent) => {
+const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, literatureReviewType) => {
   const handleChapterClick = useCallback(async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (chapter && chapter.unlocked) {
       const hasContent = chapter.generated || (chapter.subsections.length > 0 && chapter.subsections.some(s => s.title !== 'References'));
+      if (chapterId === 'chapter2' && !hasContent && !literatureReviewType) return { action: 'showLitType', chapterId };
       if (!hasContent && !chapter.completed) return { action: 'showStructure', chapterId };
-      if (chapterId === 'chapter2' && !chapter.generated) return { action: 'showLitType', chapterId };
       if (!chapterWordCountSet[chapterId]) return { action: 'showWordCount', chapterId };
       return {
         action: 'openChapter',

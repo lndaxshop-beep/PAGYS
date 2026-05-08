@@ -1,7 +1,23 @@
 import React from 'react';
 import { INSTRUMENT_TYPES, formatQuestionType, formatFieldType } from '../../utils/instrumentHelpers';
 
-const InstrumentPreview = ({ instrumentId, content, colors }) => {
+const InstrumentPreview = ({ instrumentId, content, colors, customQuestions }) => {
+  if (instrumentId === 'customQuestions') {
+    const items = customQuestions || [];
+    if (items.length === 0) return <p style={{ color: colors.textSecondary }}>No custom questions added yet.</p>;
+    return (
+      <div>
+        <h4 style={{ fontSize: '16px', fontWeight: '600', color: colors.primary, marginBottom: '16px', paddingBottom: '8px', borderBottom: `1px solid ${colors.primary}` }}>✏️ Custom Questions</h4>
+        {items.map((q, i) => (
+          <div key={q.id} style={{ marginBottom: '12px', padding: '12px', backgroundColor: i % 2 === 0 ? 'transparent' : '#f9fafb', borderRadius: '6px', borderLeft: `3px solid ${colors.primary}` }}>
+            <p style={{ fontWeight: '500', color: colors.text }}>{i + 1}. {q.text}</p>
+            <p style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '4px' }}>Open-ended question</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (!content) return <p style={{ color: colors.textSecondary }}>No content generated.</p>;
 
   if (instrumentId === 'questionnaire' && content.sections) {

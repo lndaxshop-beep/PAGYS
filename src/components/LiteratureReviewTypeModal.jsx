@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
-const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose }) => {
+const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose, project }) => {
   const { colors, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [recommendation, setRecommendation] = useState(null);
@@ -9,13 +9,24 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    // Simulate AI recommendation
     const getRecommendation = async () => {
       setLoading(true);
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock recommendation based on field
+      try {
+        const { recommendLiteratureReviewType } = await import('../services/geminiService');
+        const result = project ? await recommendLiteratureReviewType(project) : null;
+        if (result && result.recommendedType) {
+          setRecommendation(result);
+          setSelectedType(result.recommendedType);
+        } else {
+          setFallbackRecommendation();
+        }
+      } catch {
+        setFallbackRecommendation();
+      }
+      setLoading(false);
+    };
+
+    const setFallbackRecommendation = () => {
       let rec = {
         recommendedType: 'analytical',
         reason: 'Based on your research topic, an analytical literature review would be most appropriate as it allows you to compare and contrast different theoretical perspectives and identify key themes.',
@@ -27,52 +38,12 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose }) => {
           'Critically evaluate methodologies used'
         ]
       };
-
-      if (field === 'sciences') {
-        rec = {
-          recommendedType: 'systematic',
-          reason: 'For scientific research, a systematic literature review is recommended to ensure comprehensive coverage of empirical studies and reproducible results.',
-          approach: 'Follow PRISMA guidelines, clearly state inclusion/exclusion criteria, and systematically analyze findings.',
-          keyElements: [
-            'Define search strategy and databases',
-            'Set clear inclusion/exclusion criteria',
-            'Assess quality of included studies',
-            'Synthesize findings systematically'
-          ]
-        };
-      } else if (field === 'humanities') {
-        rec = {
-          recommendedType: 'critical',
-          reason: 'In the humanities, a critical literature review helps you engage deeply with texts and develop your own interpretive framework.',
-          approach: 'Engage critically with key texts, identify debates, and position your own argument within the scholarly conversation.',
-          keyElements: [
-            'Engage with canonical texts',
-            'Identify scholarly debates',
-            'Develop your interpretive stance',
-            'Connect to broader cultural contexts'
-          ]
-        };
-      } else if (field === 'business' || field === 'social') {
-        rec = {
-          recommendedType: 'analytical',
-          reason: 'For business and social sciences research, an analytical literature review helps synthesize diverse perspectives and identify practical implications.',
-          approach: 'Group literature by themes, compare findings across studies, and identify patterns relevant to your research questions.',
-          keyElements: [
-            'Identify key themes and patterns',
-            'Compare methodologies and findings',
-            'Synthesize theoretical frameworks',
-            'Highlight practical applications'
-          ]
-        };
-      }
-
       setRecommendation(rec);
       setSelectedType(rec.recommendedType);
-      setLoading(false);
     };
 
     getRecommendation();
-  }, [field, topic]);
+  }, [field, topic, project]);
 
   const literatureTypes = [
     {
@@ -188,7 +159,7 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose }) => {
               margin: '0 auto 20px',
               animation: 'spin 1s linear infinite'
             }} />
-            <p style={{ color: colors.primary, fontSize: '16px' }}>AI is analyzing your topic...</p>
+            <p style={{ color: colors.primary, fontSize: '16px' }}>Analyzing your research topic...</p>
             <p style={{ color: colors.textSecondary, fontSize: '14px', marginTop: '10px' }}>
               Determining the most suitable literature review approach
             </p>
@@ -219,7 +190,7 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose }) => {
                   alignItems: 'center',
                   gap: '6px'
                 }}>
-                  <span>✨</span> AI Recommendation
+                  <span>✨</span> Recommendation
                 </div>
                 
                 <div style={{ marginTop: '16px' }}>

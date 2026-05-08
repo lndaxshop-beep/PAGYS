@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { saveAs } from 'file-saver';
 import useInstrumentGeneration from '../../hooks/useInstrumentGeneration';
 import InstrumentSelection from './InstrumentSelection';
 import InstrumentTabs from './InstrumentTabs';
 import InstrumentPreview from './InstrumentPreview';
 import GenerationState from './GenerationState';
 import ErrorState from './ErrorState';
+import CustomQuestions from '../questionnaire/CustomQuestions';
 
 const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
   const { colors, isDarkMode } = useTheme();
@@ -15,7 +17,9 @@ const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
     activeTab, autoSelect, generationProgress, error, canClose, hasGeneratedContent,
     setSelectedInstruments, setAutoSelect, setActiveTab, setError, setGenerating,
     toggleInstrument, selectAllRecommended, handleGenerate, handleDownloadInstrument,
-    handleDownloadAll, handleStartOver, onClose: handleClose
+    handleDownloadAll, handleStartOver, onClose: handleClose,
+    customQuestions, newCustomQuestion, setNewCustomQuestion,
+    handleAddCustomQuestion, handleRemoveCustomQuestion
   } = useInstrumentGeneration(project, onClose, onDownload, onNotify);
 
   if (error) {
@@ -72,21 +76,61 @@ const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
               activeTab={activeTab}
               onTabClick={setActiveTab}
               colors={colors}
+              customQuestions={customQuestions}
             />
 
-            {activeTab && generatedContent[activeTab] && (
+            {activeTab && activeTab !== 'customQuestions' && generatedContent[activeTab] && (
               <div style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff', borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}`, marginBottom: '20px', maxHeight: '400px', overflowY: 'auto' }}>
-                <InstrumentPreview instrumentId={activeTab} content={generatedContent[activeTab]} colors={colors} />
+                <InstrumentPreview instrumentId={activeTab} content={generatedContent[activeTab]} colors={colors} customQuestions={customQuestions} />
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => handleDownloadInstrument(activeTab)} style={{ flex: 1, backgroundColor: '#059669', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s' }}>📄 Download Selected Instrument</button>
+            {activeTab === 'customQuestions' && customQuestions.length > 0 && (
+              <div style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff', borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}`, marginBottom: '20px', maxHeight: '400px', overflowY: 'auto' }}>
+                <InstrumentPreview instrumentId="customQuestions" customQuestions={customQuestions} colors={colors} />
+              </div>
+            )}
+
+            <div style={{
+              marginTop: '24px', paddingTop: '24px', borderTop: `2px dashed ${colors.border}`,
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>✏️ Add Custom Questions</h3>
+              <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>
+                Add your own questions to supplement the AI-generated instruments
+              </p>
+              <CustomQuestions
+                customQuestions={customQuestions}
+                newCustomQuestion={newCustomQuestion}
+                onChangeInput={(e) => setNewCustomQuestion(e.target.value)}
+                onAdd={handleAddCustomQuestion}
+                onRemove={handleRemoveCustomQuestion}
+                colors={colors}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {activeTab !== 'customQuestions' && (
+                <button onClick={() => handleDownloadInstrument(activeTab)} style={{ flex: 1, minWidth: '180px', backgroundColor: '#059669', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s' }}>📄 Download Selected Instrument</button>
+              )}
               {selectedInstruments.filter(id => generatedContent[id]).length > 1 && (
-                <button onClick={handleDownloadAll} style={{ flex: 1, backgroundColor: colors.primary, color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s' }}>📦 Download All Instruments</button>
+                <button onClick={handleDownloadAll} style={{ flex: 1, minWidth: '180px', backgroundColor: colors.primary, color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s' }}>📦 Download All Instruments</button>
               )}
               <button onClick={handleStartOver} style={{ backgroundColor: 'transparent', color: colors.text, padding: '14px 24px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontWeight: '600', fontSize: '15px', cursor: 'pointer' }}>Start Over</button>
             </div>
+
+            {customQuestions.length > 0 && (
+              <div style={{ marginTop: '12px' }}>
+                <button onClick={() => {
+                  const content = `<html><head><meta charset="UTF-8"><title>Custom Questions - ${project.title}</title><style>body{font-family:'Times New Roman',serif;margin:2.5cm;line-height:1.6}h1{font-size:24pt;text-align:center}h2{font-size:18pt;border-bottom:1px solid #ccc}li{margin:8px 0;font-size:12pt}</style></head><body><h1>✏️ Custom Questions</h1><p style="text-align:center;margin-bottom:30px"><strong>Project:</strong> ${project.title}</p><hr/><ol>${customQuestions.map(q => `<li style="margin:16px 0"><strong>${q.text}</strong><div style="margin-top:8px"><em>Open-ended question</em></div><div style="margin:20px 0;border-bottom:1px solid #999;height:30px"></div></li>`).join('')}</ol><hr/><p style="text-align:center;font-size:11pt;color:#666"><em>Generated by PAGYS Thesis Assistant</em></p></body></html>`;
+                  const blob = new Blob([content], { type: 'application/msword' });
+                  saveAs(blob, `Custom-Questions-${project.title.replace(/\s+/g, '_')}.doc`);
+                }} style={{ width: '100%', backgroundColor: colors.primary, color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  ✏️ Download Custom Questions ({customQuestions.length})
+                </button>
+              </div>
+            )}
 
             <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px', color: colors.textSecondary, fontStyle: 'italic' }}>
               You must download at least one instrument before continuing to Chapter 4

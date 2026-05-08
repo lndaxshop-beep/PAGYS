@@ -323,3 +323,31 @@ Return ONLY valid JSON.`;
     return extractJSON(result.response.text());
   } catch (error) { console.error('Error generating case study protocol:', error); return null; }
 };
+
+export const recommendLiteratureReviewType = async (project) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL });
+    const prompt = `You are an expert research methodology advisor. Based on the following research project, recommend the most appropriate literature review type.
+
+PROJECT TITLE: "${project.title}"
+FIELD: ${project.field}
+METHODOLOGY: ${project.methodology || 'Not specified'}
+ACADEMIC LEVEL: ${project.level}
+
+Available literature review types:
+1. descriptive - Summarizes and describes existing literature without critical evaluation. Best for introductory research, mapping a field, undergraduate theses.
+2. analytical - Compares and contrasts different studies, identifies patterns and themes. Best for most masters theses, identifying research gaps.
+3. critical - Evaluates strengths and weaknesses of existing research, challenges assumptions. Best for PhD theses, developing new theoretical frameworks.
+4. systematic - Comprehensive, methodical review following strict protocols. Best for sciences, medical research, evidence-based practice.
+
+Return ONLY valid JSON in this structure:
+{
+  "recommendedType": "analytical",
+  "reason": "Specific paragraph explaining why this type is best for this particular project, referencing the topic, field, and methodology.",
+  "approach": "Concise paragraph describing how to approach the review using this type.",
+  "keyElements": ["Element 1", "Element 2", "Element 3", "Element 4"]
+}`;
+    const result = await model.generateContent(prompt);
+    return extractJSON(result.response.text());
+  } catch (error) { console.error('Error recommending literature review type:', error); return null; }
+};

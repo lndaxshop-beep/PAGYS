@@ -71,7 +71,7 @@ const Write = () => {
 
   const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
@@ -195,7 +195,7 @@ const Write = () => {
     const result = await handleChapterClick(chapterId);
     if (!result) return;
     if (result.action === 'showStructure') { modals.setPendingChapterForStructure(chapterId); modals.setShowChapterStructureModal(true); }
-    else if (result.action === 'showLitType') { modals.setShowLiteratureTypeModal(true); modals.setPendingChapterAfterWordCount(chapterId); }
+    else if (result.action === 'showLitType') { modals.setShowLiteratureTypeModal(true); modals.setPendingChapterForStructure(chapterId); }
     else if (result.action === 'showWordCount') { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount(chapterId); }
     else if (result.action === 'openChapter') {
       setActiveChapter(chapterId); setIsViewingReferences(false); setIsPreviewMode(true);
@@ -352,7 +352,7 @@ const Write = () => {
   const handleLiteratureTypeSubmit = (type) => {
     modals.setLiteratureReviewType(type);
     modals.setShowLiteratureTypeModal(false);
-    if (modals.pendingChapterAfterWordCount) modals.setShowWordCountModal(true);
+    if (modals.pendingChapterForStructure) modals.setShowChapterStructureModal(true);
   };
 
   const handleUploadFindings = (findingsData) => {
@@ -507,7 +507,7 @@ const Write = () => {
       {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => {}} onDownload={handleInstrumentsDownload} onNotify={toastError} />}
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
       {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} />}
-      {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterAfterWordCount(null); }} />}
+      {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} project={project} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterForStructure(null); }} />}
 
       <ChapterStructureModal
         isOpen={modals.showChapterStructureModal}

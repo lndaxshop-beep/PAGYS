@@ -21,6 +21,8 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
   const [autoSelect, setAutoSelect] = useState(true);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [customQuestions, setCustomQuestions] = useState([]);
+  const [newCustomQuestion, setNewCustomQuestion] = useState('');
 
   useEffect(() => {
     if (autoSelect && project?.methodology) {
@@ -97,12 +99,30 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
   const canClose = downloadedInstruments.length > 0;
   const hasGeneratedContent = Object.keys(generatedContent).length > 0;
 
+  const handleAddCustomQuestion = () => {
+    if (newCustomQuestion.trim()) {
+      setCustomQuestions(prev => [...prev, {
+        id: `custom_${Date.now()}`,
+        text: newCustomQuestion.trim(),
+        type: 'open-ended',
+        isCustom: true
+      }]);
+      setNewCustomQuestion('');
+    }
+  };
+
+  const handleRemoveCustomQuestion = (id) => {
+    setCustomQuestions(prev => prev.filter(q => q.id !== id));
+  };
+
   return {
     selectedInstruments, generatedContent, downloadedInstruments, generating,
     activeTab, autoSelect, generationProgress, error, canClose, hasGeneratedContent,
     setSelectedInstruments, setAutoSelect, setActiveTab, setError, setGenerating,
     toggleInstrument, selectAllRecommended, handleGenerate, handleDownloadInstrument,
-    handleDownloadAll, handleStartOver, onClose, onNotify
+    handleDownloadAll, handleStartOver, onClose, onNotify,
+    customQuestions, newCustomQuestion, setNewCustomQuestion,
+    handleAddCustomQuestion, handleRemoveCustomQuestion
   };
 };
 

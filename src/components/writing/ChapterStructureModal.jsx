@@ -4,7 +4,12 @@ import { normalizeNumbering } from '../../utils/writeHelpers.jsx';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const CHAPTER_NUM = { proposal: 'P', chapter1: '1', chapter2: '2', chapter3: '3', chapter4: '4', chapter5: '5' };
+const getChapterNumber = (chapterId) => {
+  const map = { proposal: 'P', chapter1: '1', chapter2: '2', chapter3: '3', chapter4: '4', chapter5: '5' };
+  if (map[chapterId]) return map[chapterId];
+  const match = chapterId.match(/^chapter_(\d+)$/);
+  return match ? match[1] : 'X';
+};
 
 const STRUCTURE_TEMPLATES = {
   quantitative: (n) => `${n}.0 Introduction\n${n}.1 Theoretical Background\n${n}.1.1 Key Concepts\n${n}.1.2 Empirical Foundations\n${n}.2 Conceptual Framework\n${n}.2.1 Variable Identification\n${n}.2.2 Hypothesis Development\n${n}.3 Empirical Review\n${n}.3.1 Previous Studies\n${n}.3.2 Research Gaps\n${n}.4 Summary`,
@@ -136,9 +141,9 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
       <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Upload Chapter Structure</h2>
       <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>Upload screenshots or paste text showing how you want this chapter structured. The AI will follow the exact structure, numbering, and visual placements.</p>
 
-      {pendingChapter && CHAPTER_HINTS[pendingChapter] && (
+      {pendingChapter && (
         <div style={{ padding: '12px 16px', marginBottom: '16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f7ff', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#3d3d3d' : '#bfdbfe'}` }}>
-          <p style={{ fontSize: '12px', color: colors.textSecondary, lineHeight: '1.5' }}>💡 <strong>Tip:</strong> {CHAPTER_HINTS[pendingChapter]}</p>
+          <p style={{ fontSize: '12px', color: colors.textSecondary, lineHeight: '1.5' }}>💡 <strong>Tip:</strong> {CHAPTER_HINTS[pendingChapter] || 'Upload screenshots or paste your chapter structure. The AI will extract headings, numbering, and hierarchy.'}</p>
         </div>
       )}
 
@@ -169,15 +174,15 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
       <div style={{ textAlign: 'center', marginBottom: '16px' }}><span style={{ color: colors.textSecondary, fontWeight: '500' }}>— OR —</span></div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-        <button onClick={() => setTextValue(STRUCTURE_TEMPLATES.quantitative(CHAPTER_NUM[pendingChapter] || 'X'))}
+        <button onClick={() => setTextValue(STRUCTURE_TEMPLATES.quantitative(getChapterNumber(pendingChapter)))}
           style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', color: colors.primary, border: `1px solid ${colors.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
           📊 Quantitative
         </button>
-        <button onClick={() => setTextValue(STRUCTURE_TEMPLATES.qualitative(CHAPTER_NUM[pendingChapter] || 'X'))}
+        <button onClick={() => setTextValue(STRUCTURE_TEMPLATES.qualitative(getChapterNumber(pendingChapter)))}
           style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', color: colors.primary, border: `1px solid ${colors.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
           📋 Qualitative
         </button>
-        <button onClick={() => setTextValue(STRUCTURE_TEMPLATES.mixed(CHAPTER_NUM[pendingChapter] || 'X'))}
+        <button onClick={() => setTextValue(STRUCTURE_TEMPLATES.mixed(getChapterNumber(pendingChapter)))}
           style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', color: colors.primary, border: `1px solid ${colors.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
           🔀 Mixed Methods
         </button>

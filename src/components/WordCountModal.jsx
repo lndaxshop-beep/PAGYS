@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 
 const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, stepIndicator }) => {
   const { colors, isDarkMode } = useTheme();
@@ -142,7 +143,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
           </div>
           <div>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '4px' }}>
-              Word Count for {chapter?.title}
+              Word Count for {chapter ? getChapterDisplayTitle(chapter) : ''}
             </h2>
             <p style={{ color: colors.textSecondary, fontSize: '14px' }}>
               {level?.charAt(0).toUpperCase() + level?.slice(1)} Level Thesis
@@ -220,7 +221,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
                 </span>
               </div>
               <p style={{ fontSize: '13px', color: colors.textSecondary }}>
-                Recommended for {level} level {chapter?.title}
+                Recommended for {level} level {chapter ? getChapterDisplayTitle(chapter) : ''}
               </p>
               {wordsPerSub && !useCustom && (
                 <p style={{ fontSize: '12px', color: colors.primary, marginTop: '8px' }}>

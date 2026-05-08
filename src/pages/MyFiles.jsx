@@ -7,6 +7,7 @@ import { getProjects, getGeneratedContent, getChapters } from '../services/fires
 import Toast from '../components/Toast';
 import SourceLibrary from '../components/writing/SourceLibrary';
 import useSourceLibrary from '../hooks/useSourceLibrary';
+import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 
 const MyFiles = () => {
   const { colors, isDarkMode } = useTheme();
@@ -56,27 +57,25 @@ const MyFiles = () => {
       const content = await getGeneratedContent(projectId) || {};
       const savedChapters = await getChapters(projectId) || [];
       const refs = {}; // References are now in citationService
-      const mkChapter = (id, title) => ({
-        id, title, fileName: `${id}.doc`, lastEdited: new Date().toLocaleDateString(),
-        wordCount: estimateWordCount(content[id]),
-        content: content[id]?.complete || '',
-        subsections: content[id] ? Object.keys(content[id]).filter(k => !['references','complete','fullChapter'].includes(k)) : [],
-        references: refs[id]?.citations || [],
-        hasReferences: content[id]?.references ? true : false,
-        generated: hasGeneratedContent(content[id])
+      const mkChapter = (ch) => ({
+        id: ch.id,
+        title: getChapterDisplayTitle(ch),
+        fileName: `${ch.id}.doc`, lastEdited: new Date().toLocaleDateString(),
+        wordCount: estimateWordCount(content[ch.id]),
+        content: content[ch.id]?.complete || '',
+        subsections: content[ch.id] ? Object.keys(content[ch.id]).filter(k => !['references','complete','fullChapter'].includes(k)) : [],
+        references: refs[ch.id]?.citations || [],
+        hasReferences: content[ch.id]?.references ? true : false,
+        generated: hasGeneratedContent(content[ch.id])
       });
-      setChapters([
-        mkChapter('proposal','Proposal'), mkChapter('chapter1','Chapter 1: Introduction'),
-        mkChapter('chapter2','Chapter 2: Literature Review'), mkChapter('chapter3','Chapter 3: Methodology'),
-        mkChapter('chapter4','Chapter 4: Results/Analysis'), mkChapter('chapter5','Chapter 5: Discussion & Conclusion')
-      ]);
+      setChapters(savedChapters.map(mkChapter));
     } catch (e) { console.error('Error loading chapters for project:', e); }
   };
 
   const generateCleanFilename = (chapter) => {
     const cleanTitle = (projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
     const date = new Date().toISOString().split('T')[0];
-    const prefix = chapter.id === 'proposal' ? 'Proposal' : 'Chapter-' + chapter.id.replace('chapter', '');
+    const prefix = chapter.id === 'proposal' ? 'Proposal' : chapter.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
     return `${prefix}-${cleanTitle}_${date}.doc`;
   };
 
@@ -300,7 +299,10 @@ const MyFiles = () => {
 
   const generateAbbreviationsDocument = () => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>List of Abbreviations</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:10px}th{background:#f2f2f2}</style></head><body><h1>List of Abbreviations</h1>${abbreviations.length > 0 ? `<table><thead><tr><th>Abbreviation</th><th>Meaning</th></tr></thead><tbody>${abbreviations.map(a => `<tr><td>${a.abbr}</td><td>${a.meaning}</td></tr>`).join('')}</tbody></table>` : '<p>None found.</p>'}</body></html>`;
   const generateDefenceDocument = () => { if (!defenceQuestions) return ''; return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Defence Prep</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}h2{font-size:16pt;font-weight:bold;color:#2c3e50}.qa-item{margin-bottom:25px;padding:15px;background:#f9f9f9;border-left:3px solid #3498db}.question{font-weight:bold}</style></head><body><h1>Defence Preparation Guide</h1><p><strong>${projectData?.title}</strong></p>${Object.entries(defenceQuestions).map(([s, qs]) => { if (!qs || qs.length === 0) return ''; return `<h2>${formatSectionName(s)}</h2>${qs.map((q, i) => `<div class="qa-item"><div class="question">Q${i+1}: ${q.question}</div><div>${q.answer}</div></div>`).join('')}`; }).join('')}</body></html>`; };
-  const formatSectionName = (s) => ({ proposal: 'Proposal', chapter1: 'Ch 1', chapter2: 'Ch 2', chapter3: 'Ch 3', chapter4: 'Ch 4', chapter5: 'Ch 5', final: 'Final' })[s] || s;
+  const formatSectionName = (s) => {
+    const ch = chapters.find(c => c.id === s);
+    return ch ? getChapterDisplayTitle(ch) : ({ final: 'Final', proposal: 'Proposal' })[s] || s;
+  };
 
   const loadAbbreviations = async (pid) => {
     setLoadingAbbr(true);

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
 const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only') => {
   const [generating, setGenerating] = useState(false);
@@ -76,8 +76,10 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     if (sub.generated) return { skipped: true, reason: 'already generated' };
     if (sub.title === 'References') return { skipped: true, reason: 'references' };
 
-    let chapterTitle = chapterId === 'proposal' ? 'Proposal' : chapterId === 'chapter1' ? 'Chapter 1: Introduction' : chapterId === 'chapter2' ? 'Chapter 2: Literature Review' : chapterId === 'chapter3' ? 'Chapter 3: Methodology' : chapterId === 'chapter4' ? 'Chapter 4: Results/Analysis' : 'Chapter 5: Discussion & Conclusion';
-    let chapterNumber = chapterId === 'chapter1' ? 'ONE' : chapterId === 'chapter2' ? 'TWO' : chapterId === 'chapter3' ? 'THREE' : chapterId === 'chapter4' ? 'FOUR' : chapterId === 'chapter5' ? 'FIVE' : '';
+    const chapterTitle = getChapterDisplayTitle(ch);
+    const ordinal = getChapterOrdinal(ch, chapters);
+    const numberWords = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN'];
+    const chapterNumber = ordinal > 0 && ordinal < numberWords.length ? numberWords[ordinal] : '';
     const totalWordCount = ch.wordCount || { min: 1000, max: 2000 };
     const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsList, subTitle);
     const { generateAcademicContent, selfReviewContent } = await import('../services/geminiService');
@@ -251,7 +253,8 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 - Mean sentence length: ${preBurstiness.mean.toFixed(1)} words
 - Sentence length std dev: ${preBurstiness.stdDev.toFixed(1)}`;
 
-      const chapterTitle = activeChapter === 'proposal' ? 'Proposal' : activeChapter === 'chapter1' ? 'Chapter 1: Introduction' : activeChapter === 'chapter2' ? 'Chapter 2: Literature Review' : activeChapter === 'chapter3' ? 'Chapter 3: Methodology' : activeChapter === 'chapter4' ? 'Chapter 4: Results/Analysis' : 'Chapter 5: Discussion & Conclusion';
+      const currentCh = chapters.find(c => c.id === activeChapter);
+      const chapterTitle = currentCh ? getChapterDisplayTitle(currentCh) : activeChapter;
 
       const { humaniseContent } = await import('../services/geminiService');
       const humanisedText = await humaniseContent(content, {

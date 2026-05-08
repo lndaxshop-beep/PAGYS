@@ -13,10 +13,15 @@ const LeftPane = ({
   onDeleteSubsection, onRestoreSubsection, onRenameSubsection, generatingSubtopics,
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
   draggedItem, dragOverItem, chapterWordCounts,
-  generatingAll, onGenerateAll
+  generatingAll, onGenerateAll,
+  onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
+  const [chapterDragIndex, setChapterDragIndex] = useState(null);
+  const [chapterDragOverIndex, setChapterDragOverIndex] = useState(null);
+  const [renamingChapter, setRenamingChapter] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const handleChapterClick = (id) => {
     setExpandedChapters(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
@@ -28,6 +33,44 @@ const LeftPane = ({
     if (allExpanded) setExpandedChapters([]);
     else setExpandedChapters(chapters.filter(c => c.unlocked).map(c => c.id));
   }, [allExpanded, chapters]);
+
+  const handleChapterDragStart = (e, index) => {
+    if (index === 0) { e.preventDefault(); return; }
+    setChapterDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleChapterDragOver = (e, index) => {
+    e.preventDefault();
+    setChapterDragOverIndex(index);
+  };
+
+  const handleChapterDragEnd = () => {
+    if (chapterDragIndex !== null && chapterDragOverIndex !== null && chapterDragIndex !== chapterDragOverIndex && chapterDragIndex !== 0 && chapterDragOverIndex !== 0) {
+      onChapterReorder?.(chapterDragIndex, chapterDragOverIndex);
+    }
+    setChapterDragIndex(null);
+    setChapterDragOverIndex(null);
+  };
+
+  const handleStartRename = (chapter) => {
+    setRenamingChapter(chapter.id);
+    setRenameValue(chapter.customTitle || chapter.title);
+  };
+
+  const handleConfirmRename = (chapterId) => {
+    if (renameValue.trim()) {
+      onRenameChapter?.(chapterId, renameValue.trim());
+    }
+    setRenamingChapter(null);
+    setRenameValue('');
+  };
+
+  const handleDeleteConfirm = (chapterId) => {
+    if (window.confirm('Are you sure you want to delete this chapter? All subsections and generated content will be permanently removed.')) {
+      onRemoveChapter?.(chapterId);
+    }
+  };
 
   const handleSubsectionClick = (subsection, allSubsections) => {
     if (!validateReferencesClick(subsection, allSubsections)) return;
@@ -64,18 +107,40 @@ const LeftPane = ({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {chapters?.length > 0 ? chapters.map((chapter) => {
+        {chapters?.length > 0 ? chapters.map((chapter, chIndex) => {
           const activeSubsections = getActiveSubsections(chapter.subsections || []);
           const refsClickable = isReferencesClickable(activeSubsections);
           const isExpanded = expandedChapters.includes(chapter.id) && chapter.unlocked;
+          const isChDragged = chapterDragIndex === chIndex;
+          const isChDragOver = chapterDragOverIndex === chIndex && chapterDragIndex !== chIndex;
 
           return (
-            <div key={chapter.id} style={{ marginBottom: '4px' }}>
+            <div
+              key={chapter.id}
+              onDragOver={(e) => handleChapterDragOver(e, chIndex)}
+              onDrop={(e) => { e.preventDefault(); handleChapterDragEnd(); }}
+              style={{
+                marginBottom: '4px',
+                borderTop: isChDragOver ? '2px solid ' + colors.primary : 'none',
+                paddingTop: isChDragOver ? '2px' : '0',
+                transition: 'border-top 0.2s, padding-top 0.2s'
+              }}
+            >
               <ChapterHeader
                 chapter={chapter}
                 isActive={activeChapter === chapter.id}
                 isExpanded={expandedChapters.includes(chapter.id)}
                 onClick={handleChapterClick}
+                onRename={() => handleStartRename(chapter)}
+                onDelete={() => handleDeleteConfirm(chapter.id)}
+                isRenaming={renamingChapter === chapter.id}
+                renameValue={renameValue}
+                onRenameChange={(v) => setRenameValue(v)}
+                onRenameConfirm={() => handleConfirmRename(chapter.id)}
+                onRenameCancel={() => setRenamingChapter(null)}
+                draggable={chIndex !== 0}
+                onDragStart={(e) => { e.stopPropagation(); handleChapterDragStart(e, chIndex); }}
+                chIndex={chIndex}
               />
 
               {isExpanded && (
@@ -164,13 +229,30 @@ const LeftPane = ({
         )}
       </div>
 
+      {onAddChapter && (
+        <button
+          onClick={onAddChapter}
+          style={{
+            marginTop: '16px', width: '100%', padding: '12px', fontSize: '13px',
+            backgroundColor: 'transparent', color: colors.primary,
+            border: `2px dashed ${colors.primary}60`, borderRadius: '8px',
+            cursor: 'pointer', fontWeight: '600',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.primary + '10'; e.currentTarget.style.borderColor = colors.primary; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = colors.primary + '60'; }}
+        >
+          + Add Chapter
+        </button>
+      )}
+
       <div style={{
-        marginTop: '24px', paddingTop: '16px', borderTop: `1px solid ${colors.border}`,
+        marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${colors.border}`,
         fontSize: '11px', color: colors.textSecondary, textAlign: 'center'
       }}>
         <p>Click a chapter to view subsections</p>
         <p style={{ marginTop: '4px', fontSize: '10px' }}>
-          ⋮⋮ Drag to reorder • 🗑️ Delete • Restore from Deleted
+          ⋮⋮ Drag to reorder • ✏️ Rename • 🗑️ Delete • Restore from Deleted
         </p>
       </div>
     </div>

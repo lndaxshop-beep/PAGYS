@@ -67,7 +67,7 @@ const Write = () => {
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
   const { state: editorContent, set: setEditorContent, undo, redo, canUndo, canRedo } = useUndoRedo('');
 
-  const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter, buildSubsectionsFromHeadings, previewSubtopics } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
+  const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter, buildSubsectionsFromHeadings, previewSubtopics, addChapter, removeChapter, renameChapter, handleChapterDrop } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
 
   const currentChapter = chapters.find(c => c.id === activeChapter);
   const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
@@ -438,7 +438,11 @@ const Write = () => {
   const refContent = generatedSubsections[activeChapter]?.references || generatedSubsections[activeChapter]?.['References'] || '';
   const referencesGenerated = referencesSub?.generated || (refContent && refContent.length > 0);
 
-  const getButtonText = () => activeChapter === 'chapter5' ? 'Complete & View Files' : 'Complete & Continue';
+  const getButtonText = () => {
+    const lastIdx = chapters.length - 1;
+    const curIdx = chapters.findIndex(c => c.id === activeChapter);
+    return curIdx === lastIdx ? 'Complete & View Files' : 'Complete & Continue';
+  };
 
   const humaniseLeft = humaniseLimit - (humaniseUsed[`${activeChapter}_${activeSubsections[currentSubsectionIndex]?.id}`] || 0);
   const feedbackLeft = feedbackLimit - (feedbackUsed[`${activeChapter}_${activeSubsections[currentSubsectionIndex]?.id}`] || 0);
@@ -461,14 +465,15 @@ const Write = () => {
           onAddSubsection={handleAddSubsection} onSubsectionClick={wrappedHandleSubsectionClick} generatingSubtopics={generatingSubtopics}
           generatedSubsections={generatedSubsections} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleWrappedDrop}
           onDragEnd={handleDragEnd} draggedItem={draggedItem} dragOverItem={dragOverItem} chapterWordCounts={chapterWordCounts}
-          generatingAll={generatingAll} onGenerateAll={handleGenerateAll} />
+          generatingAll={generatingAll} onGenerateAll={handleGenerateAll}
+          onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop} />
       </div>
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
           <WriteHeader onBack={() => navigate('/dashboard')} onEditWordCount={handleEditWordCount} projectId={projectId} />
 
-          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.title}</h1>
+          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
           <p style={{ fontSize: '12px', color: '#059669', marginBottom: '28px' }}>✅ Citations auto-verified, references auto-generated</p>
           {humaniseLimit > 1 && (() => {

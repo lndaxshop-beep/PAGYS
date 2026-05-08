@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getWordCountPresets, getFallbackSubtopics, renumberSubsections } from '../utils/writeHelpers.jsx';
+import { getWordCountPresets, getFallbackSubtopics, renumberSubsections, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
 const useWriteChapter = (project, projectId, firestoreFunctions) => {
   const { saveChapters, saveGeneratedContent, saveCitations, saveVisualData } = firestoreFunctions || {};
@@ -18,12 +18,12 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
   const initializeEmptyChapters = useCallback(() => {
     const presets = getWordCountPresets(project?.level);
     const chaptersData = [
-      { id: 'proposal', title: 'Proposal', unlocked: true, completed: false, generated: false, wordCount: presets.proposal || { min: 1000, max: 1500 }, wordCountSet: false, subsections: [], deletedSubsections: [] },
-      { id: 'chapter1', title: 'Chapter 1: Introduction', unlocked: false, completed: false, generated: false, wordCount: presets.chapter1 || { min: 1000, max: 1800 }, wordCountSet: false, subsections: [], deletedSubsections: [] },
-      { id: 'chapter2', title: 'Chapter 2: Literature Review', unlocked: false, completed: false, generated: false, wordCount: presets.chapter2 || { min: 2500, max: 4000 }, wordCountSet: false, subsections: [], deletedSubsections: [] },
-      { id: 'chapter3', title: 'Chapter 3: Methodology', unlocked: false, completed: false, generated: false, wordCount: presets.chapter3 || { min: 1500, max: 2500 }, wordCountSet: false, subsections: [], deletedSubsections: [] },
-      { id: 'chapter4', title: 'Chapter 4: Results/Analysis', unlocked: false, completed: false, generated: false, wordCount: presets.chapter4 || { min: 1500, max: 3000 }, wordCountSet: false, subsections: [], deletedSubsections: [] },
-      { id: 'chapter5', title: 'Chapter 5: Discussion & Conclusion', unlocked: false, completed: false, generated: false, wordCount: presets.chapter5 || { min: 1000, max: 2000 }, wordCountSet: false, subsections: [], deletedSubsections: [] }
+      { id: 'proposal', title: 'Proposal', unlocked: true, completed: false, generated: false, wordCount: presets.proposal || { min: 1000, max: 1500 }, wordCountSet: false, subsections: [], deletedSubsections: [], isDefault: true, customTitle: null },
+      { id: 'chapter1', title: 'Chapter 1: Introduction', unlocked: false, completed: false, generated: false, wordCount: presets.chapter1 || { min: 1000, max: 1800 }, wordCountSet: false, subsections: [], deletedSubsections: [], isDefault: true, customTitle: null },
+      { id: 'chapter2', title: 'Chapter 2: Literature Review', unlocked: false, completed: false, generated: false, wordCount: presets.chapter2 || { min: 2500, max: 4000 }, wordCountSet: false, subsections: [], deletedSubsections: [], isDefault: true, customTitle: null },
+      { id: 'chapter3', title: 'Chapter 3: Methodology', unlocked: false, completed: false, generated: false, wordCount: presets.chapter3 || { min: 1500, max: 2500 }, wordCountSet: false, subsections: [], deletedSubsections: [], isDefault: true, customTitle: null },
+      { id: 'chapter4', title: 'Chapter 4: Results/Analysis', unlocked: false, completed: false, generated: false, wordCount: presets.chapter4 || { min: 1500, max: 3000 }, wordCountSet: false, subsections: [], deletedSubsections: [], isDefault: true, customTitle: null },
+      { id: 'chapter5', title: 'Chapter 5: Discussion & Conclusion', unlocked: false, completed: false, generated: false, wordCount: presets.chapter5 || { min: 1000, max: 2000 }, wordCountSet: false, subsections: [], deletedSubsections: [], isDefault: true, customTitle: null }
     ];
     if (chaptersData.length > 0) chaptersData[0].projectTitle = project?.title || 'Thesis Project';
     setChapters(chaptersData);
@@ -41,7 +41,8 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
           const markedDeleted = { ...subsectionToDelete, deleted: true };
           const updatedDeleted = [...(ch.deletedSubsections || []), markedDeleted];
           const updatedSubsections = ch.subsections.filter(s => s.id !== subsectionId);
-          const renumbered = renumberSubsections(updatedSubsections, ch.id);
+          const ord = getChapterOrdinal(ch, prev);
+          const renumbered = renumberSubsections(updatedSubsections, ch.id, ord > 0 ? String(ord) : undefined);
           return { ...ch, subsections: renumbered, deletedSubsections: updatedDeleted };
         }
       }
@@ -60,7 +61,8 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
           let updatedSubsections = [...ch.subsections];
           if (referencesIndex !== -1) updatedSubsections.splice(referencesIndex, 0, restored);
           else updatedSubsections.push(restored);
-          return { ...ch, subsections: renumberSubsections(updatedSubsections, ch.id), deletedSubsections: updatedDeleted };
+          const ord = getChapterOrdinal(ch, prev);
+          return { ...ch, subsections: renumberSubsections(updatedSubsections, ch.id, ord > 0 ? String(ord) : undefined), deletedSubsections: updatedDeleted };
         }
       }
       return ch;
@@ -75,14 +77,17 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
         if (subsections[dropIndex]?.title === 'References') return ch;
         const [movedItem] = subsections.splice(draggedItem, 1);
         subsections.splice(dropIndex, 0, movedItem);
-        return { ...ch, subsections: renumberSubsections(subsections, ch.id) };
+        const ord = getChapterOrdinal(ch, prev);
+        return { ...ch, subsections: renumberSubsections(subsections, ch.id, ord > 0 ? String(ord) : undefined) };
       }
       return ch;
     }));
   }, [activeChapter]);
 
   const buildSubsectionsFromHeadings = useCallback((chapterId, headings) => {
-    const chapterNum = chapterId === 'proposal' ? 'P' : chapterId === 'chapter1' ? '1' : chapterId === 'chapter2' ? '2' : chapterId === 'chapter3' ? '3' : chapterId === 'chapter4' ? '4' : '5';
+    const chapter = chapters.find(c => c.id === chapterId);
+    const ordinal = chapter ? getChapterOrdinal(chapter, chapters) : -1;
+    const chapterNum = chapterId === 'proposal' ? 'P' : ordinal > 0 ? String(ordinal) : chapterId.replace('chapter', '');
     const filtered = headings.filter(t => !t.toLowerCase().includes('reference'));
     const numbered = filtered.map((title, i) => {
       let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
@@ -99,16 +104,18 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
   }, [project]);
 
   const handleSubtopicsFallback = useCallback((chapterId) => {
-    const fallbackSubtopics = getFallbackSubtopics(chapterId).filter(sub => !sub.title.toLowerCase().includes('reference'));
+    const chapter = chapters.find(c => c.id === chapterId);
+    const fallbackSubtopics = getFallbackSubtopics(chapterId, chapter?.title).filter(sub => !sub.title.toLowerCase().includes('reference'));
     buildSubsectionsFromHeadings(chapterId, fallbackSubtopics.map(s => s.title));
-  }, [buildSubsectionsFromHeadings]);
+  }, [buildSubsectionsFromHeadings, chapters]);
 
   const generateSubtopicsForChapter = useCallback(async (chapterId, referenceData = null) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (!chapter) return;
+    const displayTitle = getChapterDisplayTitle(chapter);
     try {
       const { generateSubtopics } = await import('../services/geminiService');
-      const subtopics = await generateSubtopics({ chapterId, chapterTitle: chapter.title, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
+      const subtopics = await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
       if (!subtopics || !Array.isArray(subtopics)) { handleSubtopicsFallback(chapterId); return; }
       buildSubsectionsFromHeadings(chapterId, subtopics);
     } catch (error) {
@@ -120,14 +127,91 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
   const previewSubtopics = useCallback(async (chapterId, referenceData) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (!chapter) return null;
+    const displayTitle = getChapterDisplayTitle(chapter);
     try {
       const { generateSubtopics } = await import('../services/geminiService');
-      return await generateSubtopics({ chapterId, chapterTitle: chapter.title, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
+      return await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
     } catch (error) {
       console.error('Error previewing subtopics:', error);
       return null;
     }
   }, [chapters, project]);
+
+  const getNextChapterNumber = useCallback(() => {
+    let max = 5;
+    chapters.forEach(ch => {
+      const match = ch.id.match(/^chapter_(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > max) max = num;
+      }
+    });
+    return max + 1;
+  }, [chapters]);
+
+  const addChapter = useCallback(() => {
+    const nextNum = getNextChapterNumber();
+    const id = `chapter_${nextNum}`;
+    const title = `Chapter ${nextNum}`;
+    const presets = getWordCountPresets(project?.level);
+    const wordCount = presets.default || { min: 1000, max: 2000 };
+    const newChapter = {
+      id, title, unlocked: true, completed: false, generated: false,
+      wordCount, wordCountSet: false,
+      subsections: [], deletedSubsections: [],
+      isDefault: false, customTitle: null
+    };
+    setChapters(prev => [...prev, newChapter]);
+    setChapterWordCounts(prev => ({ ...prev, [id]: wordCount }));
+    setChapterWordCountSet(prev => ({ ...prev, [id]: false }));
+  }, [project, getNextChapterNumber]);
+
+  const removeChapter = useCallback((chapterId) => {
+    setChapters(prev => prev.filter(ch => ch.id !== chapterId));
+    setChapterWordCounts(prev => {
+      const { [chapterId]: _, ...rest } = prev;
+      return rest;
+    });
+    setChapterWordCountSet(prev => {
+      const { [chapterId]: _, ...rest } = prev;
+      return rest;
+    });
+    setActiveChapter(prev => prev === chapterId ? null : prev);
+  }, []);
+
+  const renameChapter = useCallback((chapterId, newTitle) => {
+    if (!newTitle?.trim()) return;
+    setChapters(prev => prev.map(ch =>
+      ch.id === chapterId ? { ...ch, customTitle: newTitle.trim() } : ch
+    ));
+  }, []);
+
+  const handleChapterDrop = useCallback((dragIndex, dropIndex) => {
+    if (dragIndex === dropIndex || dragIndex === 0 || dropIndex === 0) return;
+    setChapters(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(dropIndex, 0, moved);
+      const renumbered = updated.map((ch, idx) => {
+        if (idx === 0) return ch;
+        const chapterNum = String(idx);
+        const prefix = idx === 0 ? 'P' : chapterNum;
+        return {
+          ...ch,
+          subsections: ch.subsections.map((sub, si) => {
+            const newNumber = `${prefix}.${si + 1}`;
+            return {
+              ...sub,
+              id: `${ch.id}_sub_${si + 1}`,
+              number: newNumber,
+              title: sub.type === 'references' ? sub.title : sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `)
+            };
+          })
+        };
+      });
+      return renumbered;
+    });
+  }, []);
 
   const setChapterWordCount = useCallback((chapterId, min, max) => {
     setChapterWordCounts(prev => ({ ...prev, [chapterId]: { min, max } }));
@@ -151,7 +235,11 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     generateSubtopicsForChapter,
     buildSubsectionsFromHeadings,
     previewSubtopics,
-    setChapterWordCount
+    setChapterWordCount,
+    addChapter,
+    removeChapter,
+    renameChapter,
+    handleChapterDrop
   };
 };
 

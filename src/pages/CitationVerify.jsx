@@ -3,18 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { extractCitations, formatGroundedReference } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatGroundedReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { getGeneratedContent, getChapters } from '../services/firestoreService';
-
-const chapterOrder = ['proposal', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
-const chapterLabels = {
-  proposal: 'Proposal',
-  chapter1: 'Chapter 1: Introduction',
-  chapter2: 'Chapter 2: Literature Review',
-  chapter3: 'Chapter 3: Methodology',
-  chapter4: 'Chapter 4: Results/Analysis',
-  chapter5: 'Chapter 5: Discussion & Conclusion'
-};
 
 const CitationVerify = () => {
   const { projectId } = useParams();
@@ -97,9 +87,9 @@ const CitationVerify = () => {
   const chapterMap = {};
   chapters.forEach(ch => { chapterMap[ch.id] = ch; });
 
-  const chapterData = chapterOrder.map(chapterId => {
+  const chapterData = chapters.map(chapter => {
+    const chapterId = chapter.id;
     const contentMap = generatedContent[chapterId] || {};
-    const chapter = chapterMap[chapterId];
     const subsectionTitles = new Set((chapter?.subsections || []).filter(s => !s.deleted && s.title !== 'References').map(s => s.title));
 
     const subsections = [];
@@ -142,7 +132,7 @@ const CitationVerify = () => {
 
     return {
       id: chapterId,
-      label: chapterLabels[chapterId],
+      label: getChapterDisplayTitle(chapter),
       subsections,
       totalCitations,
       citationDetails,

@@ -78,16 +78,25 @@ export const parseContentBlocks = (content) => {
 
 export default ContentRenderer;
 
+export const getChapterDisplayTitle = (chapter) => {
+  return chapter?.customTitle || chapter?.title || '';
+};
+
+export const getChapterOrdinal = (chapter, chapters) => {
+  const idx = chapters.findIndex(c => c.id === chapter?.id);
+  return idx >= 0 ? idx : -1;
+};
+
 export const getWordCountPresets = (level) => {
   const presets = {
-    undergraduate: { proposal: { min: 1000, max: 1500 }, chapter1: { min: 1000, max: 1800 }, chapter2: { min: 2500, max: 4000 }, chapter3: { min: 1500, max: 2500 }, chapter4: { min: 1500, max: 3000 }, chapter5: { min: 1000, max: 2000 } },
-    masters: { proposal: { min: 1500, max: 2000 }, chapter1: { min: 1500, max: 2500 }, chapter2: { min: 4000, max: 7000 }, chapter3: { min: 2500, max: 4000 }, chapter4: { min: 3000, max: 5000 }, chapter5: { min: 2500, max: 4000 } },
-    phd: { proposal: { min: 2000, max: 3000 }, chapter1: { min: 4000, max: 6000 }, chapter2: { min: 15000, max: 25000 }, chapter3: { min: 8000, max: 12000 }, chapter4: { min: 10000, max: 20000 }, chapter5: { min: 10000, max: 15000 } },
+    undergraduate: { proposal: { min: 1000, max: 1500 }, chapter1: { min: 1000, max: 1800 }, chapter2: { min: 2500, max: 4000 }, chapter3: { min: 1500, max: 2500 }, chapter4: { min: 1500, max: 3000 }, chapter5: { min: 1000, max: 2000 }, default: { min: 1000, max: 2000 } },
+    masters: { proposal: { min: 1500, max: 2000 }, chapter1: { min: 1500, max: 2500 }, chapter2: { min: 4000, max: 7000 }, chapter3: { min: 2500, max: 4000 }, chapter4: { min: 3000, max: 5000 }, chapter5: { min: 2500, max: 4000 }, default: { min: 1500, max: 2500 } },
+    phd: { proposal: { min: 2000, max: 3000 }, chapter1: { min: 4000, max: 6000 }, chapter2: { min: 15000, max: 25000 }, chapter3: { min: 8000, max: 12000 }, chapter4: { min: 10000, max: 20000 }, chapter5: { min: 10000, max: 15000 }, default: { min: 4000, max: 6000 } },
   };
   return presets[level] || presets.undergraduate;
 };
 
-export const getFallbackSubtopics = (chapterId) => {
+export const getFallbackSubtopics = (chapterId, chapterTitle) => {
   const subtopics = {
     proposal: ['Introduction', 'Background of the Study', 'Problem Statement', 'Research Objectives', 'Research Questions', 'Significance of the Study', 'Methodology Overview', 'Definition of Terms', 'Limitations', 'Structure of the Proposal'],
     chapter1: ['Introduction', 'Background of the Study', 'Problem Statement', 'Research Objectives', 'Research Questions', 'Significance of the Study', 'Scope and Limitations', 'Definition of Terms'],
@@ -96,11 +105,19 @@ export const getFallbackSubtopics = (chapterId) => {
     chapter4: ['Introduction', 'Descriptive Statistics', 'Data Analysis', 'Findings', 'Summary'],
     chapter5: ['Introduction', 'Summary of Findings', 'Discussion of Findings', 'Implications', 'Recommendations', 'Conclusions', 'Suggestions for Future Research'],
   };
-  return (subtopics[chapterId] || []).map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
+  if (subtopics[chapterId]) return subtopics[chapterId].map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
+  const displayTitle = chapterTitle || chapterId;
+  return [
+    'Introduction',
+    `Overview of ${displayTitle}`,
+    `Key Concepts in ${displayTitle}`,
+    `Analysis and Discussion`,
+    `Summary`
+  ].map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
 };
 
-export const renumberSubsections = (subsections, chapterId) => {
-  const chapterNum = chapterId === 'proposal' ? 'P' : chapterId.replace('chapter', '');
+export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
+  const chapterNum = chapterNumber || (chapterId === 'proposal' ? 'P' : chapterId.replace('chapter', ''));
   return subsections.map((sub, i) => ({
     ...sub,
     id: `${chapterId}_sub_${i + 1}`,

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { renumberSubsections } from '../utils/writeHelpers.jsx';
+import { renumberSubsections, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
 const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, literatureReviewType) => {
   const handleChapterClick = useCallback(async (chapterId) => {
@@ -87,7 +87,8 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
         let newSubsections;
         if (referencesIndex !== -1) { newSubsections = [...ch.subsections]; newSubsections.splice(referencesIndex, 0, newSubsection); }
         else { newSubsections = [...ch.subsections, newSubsection]; }
-        return { ...ch, subsections: renumberSubsections(newSubsections, activeChapter) };
+        const ord = getChapterOrdinal(ch, prev);
+        return { ...ch, subsections: renumberSubsections(newSubsections, activeChapter, ord > 0 ? String(ord) : undefined) };
       }
       return ch;
     }));

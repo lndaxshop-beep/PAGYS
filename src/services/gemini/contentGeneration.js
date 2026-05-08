@@ -301,27 +301,42 @@ export const generateReferences = async (citations, style) => {
       : style === 'mla'
       ? 'MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.'
       : 'Chicago: Author Last, First. Year. Title of Work. Publisher.';
-    const prompt = `You are an expert academic reference librarian. Generate a properly formatted reference list for these in-text citations.
+    const prompt = `You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
 
-CITATIONS TO FORMAT:
+IN-TEXT CITATIONS (extracted from thesis content):
 ${citations.map(c => `- ${c}`).join('\n')}
 
 REFERENCE STYLE: ${style.toUpperCase()}
 STYLE GUIDE: ${styleGuide}
 
-RULES:
-- Search Google to find REAL, VERIFIABLE sources for each citation above
-- Use ONLY real publications, journals, and papers that actually exist
-- If you cannot find a real source for a citation, format it with "Title of the work" and "Source" as placeholders
-- Generate a complete, properly formatted reference for EACH citation
-- Use the EXACT author names and years from the citations
-- Format precisely according to the style guide above
-- Return ONLY the reference entries, one per line, sorted alphabetically by first author
-- NO headings, NO explanations, NO numbering
-- DO NOT invent additional citations not listed above
-- DO NOT fabricate DOIs, journal names, or publication details
+## CRITICAL RULES
 
-Example APA:
+### SOURCE VERIFICATION
+- Search Google for EACH citation independently to find the REAL publication.
+- Use ONLY real publications, journals, books, and papers that actually exist and are verifiable.
+- If you find the real source, format it according to the style guide with the real title, journal, volume, pages, and DOI/URL.
+- CROSS-CHECK: Ensure the author names and year in the generated reference match the in-text citation exactly.
+
+### FILTERING INCOMPLETE CITATIONS
+- If you CANNOT find a real, verifiable source for a given citation after searching, SKIP it entirely. Do not include it in the reference list.
+- NEVER use placeholder text ("Title of the work", "Source", "Publisher", "Unknown", "n.d."). Either produce a real reference or omit the entry.
+- It is better to omit an unfindable citation than to fabricate details.
+
+### NO NEW CITATIONS
+- ONLY produce references for citations in the list above.
+- Do NOT add, invent, or generate references for citations that are not in the provided list.
+- If Google Search Grounding suggests additional related sources, ignore them — only format what was given.
+
+### FORMATTING
+- Use the EXACT author names and years from the citations.
+- Format each reference precisely according to the ${style.toUpperCase()} style guide above.
+- Return ONLY the reference entries, one per line, sorted alphabetically by the first author's last name.
+- NO headings, NO explanations, NO numbering, NO bullet points.
+- NO markdown formatting.
+- NO empty lines between entries.
+- Each entry must be a complete, standalone reference string.
+
+Example (APA):
 Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`;
 
     const result = await model.generateContent(prompt);

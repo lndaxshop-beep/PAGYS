@@ -91,6 +91,42 @@ export const generateAcademicContent = async (promptData) => {
       ? `Start with "${chapterNames[promptData.chapterNumber] || 'CHAPTER'}" on its own line, then the chapter title on its own line, then the subsection heading.`
       : `Start directly with the subsection heading.`;
 
+    let sourceModeInstruction = '';
+    if (promptData.sourceMode === 'user-only' && promptData.userSources?.length > 0) {
+      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
+        title: s.title, authors: s.authors, year: s.year,
+        methodology: s.methodology, keyFindings: s.keyFindings,
+        theoreticalFramework: s.theoreticalFramework
+      })), null, 2);
+      sourceModeInstruction = `
+## USER-PROVIDED SOURCES (MANDATORY — USE ONLY THESE)
+The student has uploaded the following papers to be used as sources. You MUST use ONLY these sources for ALL citations in your response.
+${sourcesJson.substring(0, 15000)}
+
+### USER SOURCE RULES
+- EVERY citation MUST come from these user-provided sources — do NOT use Google Search Grounding.
+- Reference each source by the author and year as listed above.
+- When discussing a finding or concept, cite the specific source that contains it.
+- If no user source covers a needed point, make the argument without a citation rather than fabricating one.
+- At least 2 different user sources should be cited across the subsection.`;
+    } else if (promptData.sourceMode === 'combine' && promptData.userSources?.length > 0) {
+      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
+        title: s.title, authors: s.authors, year: s.year,
+        methodology: s.methodology, keyFindings: s.keyFindings,
+        theoreticalFramework: s.theoreticalFramework
+      })), null, 2);
+      sourceModeInstruction = `
+## USER-PROVIDED SOURCES (PRIORITY)
+The student has uploaded the following papers. PRIORITIZE these sources for citations.
+${sourcesJson.substring(0, 15000)}
+
+### COMBINED SOURCE RULES
+- FIRST check the user-provided sources for each claim.
+- If the user sources cover a point, cite them.
+- Supplement with Google Search Grounding only where user sources do not provide sufficient support.
+- At least 60% of citations should come from user-provided sources.`;
+    }
+
     const prompt = `You are an advanced academic writing assistant helping a ${promptData.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
 
 TOPIC: "${promptData.topic}"
@@ -98,7 +134,7 @@ CHAPTER: ${promptData.chapter}
 SUBSECTION: ${promptData.subsection}
 TARGET WORD COUNT: ${targetWords} words (range: ${wordRange.min}–${wordRange.max})
 METHODOLOGY: ${promptData.methodology || 'mixed methods'}
-${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}
+${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
 
 ## CHAPTER 4 — RESULTS & ANALYSIS VISUAL INSTRUCTIONS (CRITICAL)

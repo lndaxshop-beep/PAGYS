@@ -5,3 +5,4 @@ export { generateDefenceQuestions, formatReferences, extractAbbreviations } from
 export { generateSampleData, analyzeTranscriptText } from './gemini/dataAnalysis';
 export { generateQuestionnaire, generateInterviewGuide, generateFocusGroupProtocol, generateObservationChecklist, generateDocumentAnalysisTemplate, generateCaseStudyProtocol, recommendLiteratureReviewType } from './gemini/instruments';
 export { getWordCountPreset } from './gemini/config';
+export { extractPaperMetadata, generateLiteratureMatrix } from './gemini/sourceExtractor';

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount } from '../utils/writeHelpers.jsx';
 
-const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences) => {
+const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only') => {
   const [generating, setGenerating] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
   const [humanising, setHumanising] = useState(false);
@@ -87,6 +87,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       organization: sub.customValue || project?.organizationName || null,
       hideOrganization: project?.hideOrganization || false, findings: chapterId === 'chapter4' ? uploadedFindings : null,
       wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
+      userSources, sourceMode,
     });
     let generatedContent = typeof result === 'object' ? result.text : result;
     try {

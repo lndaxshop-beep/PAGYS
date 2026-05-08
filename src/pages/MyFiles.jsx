@@ -5,6 +5,8 @@ import { saveAs } from 'file-saver';
 import { INSTRUMENT_TYPES } from '../utils/instrumentHelpers';
 import { getProjects, getGeneratedContent, getChapters } from '../services/firestoreService';
 import Toast from '../components/Toast';
+import SourceLibrary from '../components/writing/SourceLibrary';
+import useSourceLibrary from '../hooks/useSourceLibrary';
 
 const MyFiles = () => {
   const { colors, isDarkMode } = useTheme();
@@ -332,6 +334,34 @@ const MyFiles = () => {
   const downloadDefence = () => { if (!defenceQuestions) return; saveAs(new Blob([generateDefenceDocument()], { type: 'application/msword' }), `defence-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`); };
   const getGeneratedChaptersCount = () => chapters.filter(ch => ch.generated).length;
 
+  const SourcesTabContent = ({ projectId, project }) => {
+    const sl = useSourceLibrary(projectId);
+    const fileInputRef = React.useRef(null);
+
+    const handleFileUpload = async (e) => {
+      const files = e.target.files;
+      for (let i = 0; i < files.length; i++) {
+        const result = await sl.addSource(files[i]);
+        if (result?.error) {
+          notify(result.message, 'warning');
+        }
+      }
+      e.target.value = '';
+    };
+
+    return <SourceLibrary
+      sources={sl.sources}
+      extracting={sl.extracting}
+      loading={false}
+      matrix={sl.matrix}
+      generatingMatrix={sl.generatingMatrix}
+      onAddFile={handleFileUpload}
+      onRemoveSource={sl.removeSource}
+      onGenerateMatrix={() => sl.generateMatrix(project)}
+      onClearSources={sl.clearSources}
+    />;
+  };
+
   const loadGeneratedInstruments = (pid) => {
     const stored = localStorage.getItem(`instruments_${pid}`);
     if (stored) {
@@ -453,9 +483,9 @@ const MyFiles = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
-          {['chapters','lists','defence','instruments'].map(tab => (
+          {['chapters','lists','defence','instruments','sources'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '12px 24px', backgroundColor: activeTab === tab ? colors.primary : 'transparent', color: activeTab === tab ? 'white' : colors.text, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: '500' }}>
-              {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : `📦 Instruments (${generatedInstruments.length})`}
+              {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : '📚 Sources'}
             </button>
           ))}
         </div>
@@ -546,6 +576,9 @@ const MyFiles = () => {
               </div>
             ) : <p style={{ color: colors.textSecondary }}>Complete thesis chapters to generate defence preparation questions.</p>}
           </div>
+        )}
+        {activeTab === 'sources' && selectedProject && (
+          <SourcesTabContent key={selectedProject} projectId={selectedProject} project={projectData} />
         )}
         {activeTab === 'instruments' && (
           <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>

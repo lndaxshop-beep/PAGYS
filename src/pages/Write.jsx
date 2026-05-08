@@ -21,8 +21,10 @@ import ContentArea from '../components/writing/ContentArea';
 import ContentButtons from '../components/writing/ContentButtons';
 import ChapterStructureModal from '../components/writing/ChapterStructureModal';
 import FeedbackModal from '../components/writing/FeedbackModal';
+import SourceModeSelector from '../components/writing/SourceModeSelector';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import useSourceLibrary from '../hooks/useSourceLibrary';
 
 const Write = () => {
   const { projectId } = useParams();
@@ -59,8 +61,10 @@ const Write = () => {
   const [isViewingReferences, setIsViewingReferences] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [showSourceModeModal, setShowSourceModeModal] = useState(false);
 
   const modals = useWriteModals();
+  const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
   const { state: editorContent, set: setEditorContent, undo, redo, canUndo, canRedo } = useUndoRedo('');
 
@@ -70,7 +74,7 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.title !== 'References' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { title: 'References', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences);
+  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
@@ -93,6 +97,7 @@ const Write = () => {
         modals.setShowLiteratureTypeModal(false);
         modals.setShowChapterStructureModal(false);
         modals.setShowDataCollectionModal(false);
+        setShowSourceModeModal(false);
       }
     }
   });
@@ -364,7 +369,18 @@ const Write = () => {
   const handleLiteratureTypeSubmit = (type) => {
     modals.setLiteratureReviewType(type);
     modals.setShowLiteratureTypeModal(false);
-    if (modals.pendingChapterForStructure) modals.setShowChapterStructureModal(true);
+    if (modals.pendingChapterForStructure === 'chapter2') {
+      setShowSourceModeModal(true);
+    } else if (modals.pendingChapterForStructure) {
+      modals.setShowChapterStructureModal(true);
+    }
+  };
+
+  const handleSourceModeClose = () => {
+    setShowSourceModeModal(false);
+    if (modals.pendingChapterForStructure) {
+      modals.setShowChapterStructureModal(true);
+    }
   };
 
   const handleUploadFindings = (findingsData) => {
@@ -521,6 +537,27 @@ const Write = () => {
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
       {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} stepIndicator={modals.pendingChapterAfterWordCount === 'chapter2' && modals.literatureReviewType ? 'Step 3 of 3: Word Count' : undefined} />}
       {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} project={project} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterForStructure(null); }} />}
+
+      {showSourceModeModal && (
+        <SourceModeSelector
+          sourceMode={sourceLibrary.sourceMode}
+          onModeChange={sourceLibrary.setSourceMode}
+          sources={sourceLibrary.sources}
+          extracting={sourceLibrary.extracting}
+          onAddFile={async (e) => {
+            const files = e.target.files;
+            for (let i = 0; i < files.length; i++) {
+              await sourceLibrary.addSource(files[i]);
+            }
+            e.target.value = '';
+          }}
+          onRemoveSource={sourceLibrary.removeSource}
+          onGenerateMatrix={() => sourceLibrary.generateMatrix(project)}
+          generatingMatrix={sourceLibrary.generatingMatrix}
+          matrix={sourceLibrary.matrix}
+          onClose={handleSourceModeClose}
+        />
+      )}
 
       <ChapterStructureModal
         isOpen={modals.showChapterStructureModal}

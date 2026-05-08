@@ -1,0 +1,379 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
+import { saveAs } from 'file-saver';
+import { getProjects, getGeneratedContent, getChapters } from '../services/firestoreService';
+import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
+import { loadInstruments } from '../utils/merge/instrumentExporter.js';
+import generateMergedDocument from '../utils/merge/mergeDocumentEngine.js';
+
+const PLACEHOLDER_FIELDS = [
+  { key: 'fullName', label: 'Full Name', default: '' },
+  { key: 'studentId', label: 'Student ID', default: '' },
+  { key: 'indexNumber', label: 'Index Number', default: '' },
+  { key: 'supervisorName', label: 'Supervisor Name', default: '' },
+  { key: 'courseName', label: 'Course/Program Name', default: '' },
+  { key: 'department', label: 'Department', default: '' },
+  { key: 'faculty', label: 'Faculty', default: '' },
+  { key: 'universityName', label: 'University Name', default: '' },
+  { key: 'dateOfSubmission', label: 'Date of Submission', default: '' },
+  { key: 'monthYear', label: 'Month, Year', default: '' },
+];
+
+const FRONT_MATTER_OPTIONS = [
+  { key: 'titlePage', label: 'Title Page', default: true },
+  { key: 'declaration', label: 'Declaration', default: true },
+  { key: 'dedication', label: 'Dedication', default: false },
+  { key: 'acknowledgements', label: 'Acknowledgements', default: false },
+  { key: 'abstract', label: 'Abstract', default: true },
+  { key: 'toc', label: 'Table of Contents (Word TOC Field)', default: true },
+  { key: 'listOfFigures', label: 'List of Figures', default: false },
+  { key: 'listOfTables', label: 'List of Tables', default: false },
+  { key: 'abbreviations', label: 'List of Abbreviations', default: false },
+];
+
+const MergeDocument = () => {
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const { colors, isDarkMode } = useTheme();
+
+  const [project, setProject] = useState(null);
+  const [chapters, setChapters] = useState([]);
+  const [generatedSubsections, setGeneratedSubsections] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const [selectedChapterIds, setSelectedChapterIds] = useState([]);
+  const [frontMatter, setFrontMatter] = useState(() => {
+    const fm = {};
+    FRONT_MATTER_OPTIONS.forEach(o => { fm[o.key] = o.default; });
+    return fm;
+  });
+  const [placeholders, setPlaceholders] = useState(() => {
+    const p = {};
+    PLACEHOLDER_FIELDS.forEach(f => { p[f.key] = ''; });
+    p.dedicationText = '';
+    p.acknowledgementsText = '';
+    p.abstractText = '';
+    return p;
+  });
+  const [instruments, setInstruments] = useState([]);
+  const [selectedInstrumentIds, setSelectedInstrumentIds] = useState([]);
+  const [templateFile, setTemplateFile] = useState(null);
+  const [templateFileName, setTemplateFileName] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const projectsList = await getProjects();
+        const currentProject = projectsList.find(p => p.id.toString() === projectId);
+        if (!currentProject) { navigate('/dashboard'); return; }
+        setProject(currentProject);
+
+        const [savedContent, savedChapters] = await Promise.all([
+          getGeneratedContent(projectId),
+          getChapters(projectId)
+        ]);
+
+        if (savedContent && Object.keys(savedContent).length) setGeneratedSubsections(savedContent);
+        if (savedChapters && Array.isArray(savedChapters)) {
+          setChapters(savedChapters);
+          const contentChapters = savedChapters.filter(ch => ch.id !== 'proposal');
+          setSelectedChapterIds(contentChapters.map(ch => ch.id));
+        }
+
+        const loadedInstruments = loadInstruments(projectId);
+        setInstruments(loadedInstruments);
+        if (loadedInstruments.length > 0) {
+          setSelectedInstrumentIds(loadedInstruments.map(inst => inst.id));
+        }
+      } catch (e) {
+        console.error('Error loading project:', e);
+        navigate('/dashboard');
+      }
+      setLoading(false);
+    };
+    load();
+  }, [projectId, navigate]);
+
+  const toggleChapter = (id) => {
+    setSelectedChapterIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleFrontMatter = (key) => {
+    setFrontMatter(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleInstrument = (id) => {
+    setSelectedInstrumentIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const updatePlaceholder = (key, value) => {
+    setPlaceholders(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleTemplateUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setTemplateFile(file);
+      setTemplateFileName(file.name);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (selectedChapterIds.length === 0) {
+      setError('Please select at least one chapter to include.');
+      return;
+    }
+    setError('');
+    setGenerating(true);
+    setProgress('Initializing...');
+
+    try {
+      const style = project?.referenceStyle || 'apa';
+      const blob = await generateMergedDocument({
+        project,
+        chapters,
+        generatedSubsections,
+        selectedChapterIds,
+        frontMatter,
+        placeholders,
+        templateFile,
+        selectedInstrumentIds: selectedInstrumentIds,
+        projectId,
+        style,
+        onProgress: setProgress,
+      });
+
+      const safeTitle = (project?.title || 'thesis').replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `${safeTitle}_Complete_Thesis_${date}.docx`;
+
+      saveAs(blob, filename);
+      setProgress('Download complete!');
+    } catch (e) {
+      console.error('Merge failed:', e);
+      setError('Failed to generate document: ' + (e.message || 'Unknown error'));
+    }
+    setGenerating(false);
+  };
+
+  const contentChapters = chapters.filter(ch => ch.id !== 'proposal');
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>
+        Loading project...
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>
+        Project not found
+      </div>
+    );
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', borderRadius: '6px',
+    border: `1px solid ${colors.inputBorder}`,
+    backgroundColor: colors.input, color: colors.text, fontSize: '14px',
+    boxSizing: 'border-box', outline: 'none',
+  };
+
+  const textareaStyle = {
+    ...inputStyle, minHeight: '80px', resize: 'vertical', fontFamily: 'inherit',
+  };
+
+  const labelStyle = {
+    display: 'block', fontSize: '13px', fontWeight: '500', color: colors.text, marginBottom: '4px',
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: colors.background, padding: '32px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <button
+          onClick={() => navigate('/myfiles')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '24px', padding: '8px 16px', backgroundColor: 'transparent', border: `1px solid ${colors.text}40`, borderRadius: '6px', color: colors.text, cursor: 'pointer', fontSize: '14px' }}
+        >
+          &larr; Back to My Files
+        </button>
+
+        <h1 style={{ fontSize: '28px', fontWeight: '700', color: colors.text, margin: '0 0 4px' }}>Merge Thesis Document</h1>
+        <p style={{ fontSize: '15px', color: `${colors.text}99`, margin: '0 0 24px' }}>{project?.title} &bull; {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
+
+        {error && (
+          <div style={{ padding: '12px 16px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {generating && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+            <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', textAlign: 'center', minWidth: '320px' }}>
+              <div style={{ width: '48px', height: '48px', border: `4px solid ${colors.primary}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 20px', animation: 'spin 0.8s linear infinite' }} />
+              <p style={{ color: colors.text, fontWeight: '600', fontSize: '16px', marginBottom: '8px' }}>Generating Your Document</p>
+              <p style={{ color: colors.textSecondary, fontSize: '13px' }}>{progress}</p>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Section 1: Chapter Selection */}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Select Chapters to Include</h2>
+            <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>Choose which chapters to merge into the final document. Proposal is excluded.</p>
+            {contentChapters.length === 0 ? (
+              <p style={{ color: colors.textSecondary, fontSize: '14px' }}>No chapters available. Generate content first.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {contentChapters.map(ch => (
+                  <label key={ch.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}`, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={selectedChapterIds.includes(ch.id)} onChange={() => toggleChapter(ch.id)} style={{ width: '18px', height: '18px', accentColor: colors.primary }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '500', color: colors.text, fontSize: '14px' }}>{getChapterDisplayTitle(ch)}</div>
+                      <div style={{ fontSize: '12px', color: colors.textSecondary }}>{ch.subsections?.filter(s => s.generated).length || 0} subsections generated</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Template Upload */}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>University Template (Optional)</h2>
+            <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>Upload your university's .docx or .pdf thesis format guide. The app will extract the section order, fonts, margins, and styling.</p>
+
+            <div style={{ border: `2px dashed ${colors.border}`, borderRadius: '8px', padding: '24px', textAlign: 'center' }}>
+              <input type="file" id="template-upload" accept=".docx,.pdf" style={{ display: 'none' }} onChange={handleTemplateUpload} />
+              <label htmlFor="template-upload" style={{ backgroundColor: colors.primary, color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'inline-block', fontSize: '14px' }}>
+                📎 Upload Template
+              </label>
+              {templateFileName && (
+                <p style={{ marginTop: '12px', fontSize: '13px', color: '#059669' }}>✓ Loaded: {templateFileName}</p>
+              )}
+              <p style={{ marginTop: '8px', fontSize: '12px', color: colors.textSecondary }}>Supported: .docx, .pdf</p>
+            </div>
+          </div>
+
+          {/* Section 3: Placeholder Fields */}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Personal Details</h2>
+            <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>Fill in the fields below. Blanks will appear as placeholders in the document.</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {PLACEHOLDER_FIELDS.map(field => (
+                <div key={field.key}>
+                  <label style={labelStyle}>{field.label}</label>
+                  <input
+                    style={inputStyle}
+                    value={placeholders[field.key] || ''}
+                    onChange={(e) => updatePlaceholder(field.key, e.target.value)}
+                    placeholder={`[${field.label}]`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <label style={labelStyle}>Dedication Text</label>
+              <textarea
+                style={textareaStyle}
+                value={placeholders.dedicationText || ''}
+                onChange={(e) => updatePlaceholder('dedicationText', e.target.value)}
+                placeholder="[Write your dedication here or leave blank for placeholder]"
+              />
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <label style={labelStyle}>Acknowledgements Text</label>
+              <textarea
+                style={textareaStyle}
+                value={placeholders.acknowledgementsText || ''}
+                onChange={(e) => updatePlaceholder('acknowledgementsText', e.target.value)}
+                placeholder="[Write your acknowledgements here or leave blank for placeholder]"
+              />
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <label style={labelStyle}>Abstract (optional; leave blank for placeholder)</label>
+              <textarea
+                style={{ ...textareaStyle, minHeight: '120px' }}
+                value={placeholders.abstractText || ''}
+                onChange={(e) => updatePlaceholder('abstractText', e.target.value)}
+                placeholder="[Write your abstract here or leave blank for a placeholder]"
+              />
+            </div>
+          </div>
+
+          {/* Section 4: Front Matter */}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Preliminary Pages</h2>
+            <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>Toggle which front matter sections to include.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {FRONT_MATTER_OPTIONS.map(option => (
+                <label key={option.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', backgroundColor: frontMatter[option.key] ? (isDarkMode ? '#2d2d2d' : '#f5f3ff') : 'transparent' }}>
+                  <input type="checkbox" checked={frontMatter[option.key]} onChange={() => toggleFrontMatter(option.key)} style={{ width: '18px', height: '18px', accentColor: colors.primary }} />
+                  <span style={{ fontSize: '14px', color: colors.text }}>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 5: References Info */}
+          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>References</h2>
+            <p style={{ fontSize: '13px', color: colors.textSecondary }}>
+              All in-text citations from selected chapters will be collected, deduplicated, matched against grounded sources, sorted alphabetically, and formatted in {project?.referenceStyle?.toUpperCase() || 'APA'} style.
+            </p>
+          </div>
+
+          {/* Section 6: Appendices */}
+          {instruments.length > 0 && (
+            <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Appendices — Data Collection Instruments</h2>
+              <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>Select instruments to include as appendices.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {instruments.map(inst => (
+                  <label key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}`, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={selectedInstrumentIds.includes(inst.id)} onChange={() => toggleInstrument(inst.id)} style={{ width: '18px', height: '18px', accentColor: colors.primary }} />
+                    <span style={{ fontSize: '14px', color: colors.text }}>{inst.icon || '📋'} {inst.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Generate Button */}
+          <button
+            onClick={handleGenerate}
+            disabled={generating || selectedChapterIds.length === 0}
+            style={{
+              width: '100%', padding: '16px', fontSize: '16px', fontWeight: '700',
+              backgroundColor: generating ? colors.textSecondary : '#059669',
+              color: 'white', border: 'none', borderRadius: '10px',
+              cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: generating ? 0.6 : 1,
+              transition: 'all 0.2s',
+              marginBottom: '40px',
+            }}
+          >
+            {generating ? 'Generating...' : '⚡ Generate & Download .docx'}
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+};
+
+export default MergeDocument;

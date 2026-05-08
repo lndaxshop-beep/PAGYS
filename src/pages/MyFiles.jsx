@@ -492,8 +492,9 @@ const MyFiles = () => {
           ))}
         </div>
         {(activeTab === 'chapters' && getGeneratedChaptersCount() > 0) && (
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button onClick={mergeAllChapters} disabled={merging} style={{ backgroundColor: '#059669', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: merging ? 'not-allowed' : 'pointer' }}>{merging ? 'Preparing...' : '📄 Merge All Chapters'}</button>
+            <button onClick={() => navigate(`/merge/${selectedProject}`)} style={{ backgroundColor: '#7c3aed', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>📑 Merge Thesis Document</button>
           </div>
         )}
         {activeTab === 'chapters' && (

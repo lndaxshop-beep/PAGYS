@@ -22,6 +22,7 @@ const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
 const HelpSupport = lazy(() => import('./pages/HelpSupport'));
 const Settings = lazy(() => import('./pages/Settings'));
 const CitationVerify = lazy(() => import('./pages/CitationVerify'));
+const MergeDocument = lazy(() => import('./pages/MergeDocument'));
 
 const loadingStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -71,6 +72,7 @@ function AppContent() {
             <Route path="/terms" element={<Page><TermsOfService /></Page>} />
             <Route path="/refund" element={<Page><RefundPolicy /></Page>} />
             <Route path="/help" element={<Page><HelpSupport /></Page>} />
+            <Route path="/merge/:projectId" element={<Page><ProtectedRoute><MergeDocument /></ProtectedRoute></Page>} />
           </Routes>
         </div>
         {showPremiumModal && <PremiumModal onClose={handleClosePremiumModal} />}

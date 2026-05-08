@@ -279,7 +279,19 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     setApplyingSubFeedback(true);
     try {
       const { applyFeedbackToContent } = await import('../services/geminiService');
-      const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: feedbackFiles.map(f => f.name) }, currentFeedbackSubsection.title, project);
+      const { fileToBase64, extractTextFromFile } = await import('../utils/fileExtractors');
+      const processedFiles = [];
+      for (const file of feedbackFiles) {
+        const isImage = file.type.startsWith('image/');
+        if (isImage) {
+          const base64 = await fileToBase64(file);
+          processedFiles.push({ name: file.name, type: 'image', content: base64 });
+        } else {
+          const extracted = await extractTextFromFile(file);
+          processedFiles.push({ name: file.name, type: 'document', extractedText: extracted?.text || '' });
+        }
+      }
+      const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: processedFiles }, currentFeedbackSubsection.title, project);
       return { modifiedContent, feedbackKey: `${activeChapter}_${currentFeedbackSubsection.id}` };
     } catch (error) { throw error; }
     finally { setApplyingSubFeedback(false); }

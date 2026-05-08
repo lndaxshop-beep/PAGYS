@@ -112,7 +112,7 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
             <div>
               <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, margin: '0 0 4px 0' }}>💎 Unlock Premium Features</h3>
               <p style={{ fontSize: '13px', color: colors.textSecondary, margin: 0 }}>
-                Free: 1× Humanise & Feedback per subsection · <strong style={{ color: '#f59e0b' }}>Premium: 4× per subsection</strong>
+                Regular: 1× Humanise & Feedback per subsection · <strong style={{ color: '#f59e0b' }}>Premium: 4× per subsection</strong>
               </p>
             </div>
             <button onClick={onPremiumClick} style={{ backgroundColor: '#f59e0b', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap' }}>

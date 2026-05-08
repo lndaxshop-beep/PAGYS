@@ -14,7 +14,7 @@ import useWriteContent from '../hooks/useWriteContent';
 import useWriteNavigation from '../hooks/useWriteNavigation';
 import { useWriteModals } from '../hooks/useWriteModals';
 import { useWriteVisuals } from '../hooks/useWriteVisuals';
-import { calculateOverallProgress, isHumaniseAvailable, isFeedbackAvailable } from '../utils/writeHelpers.jsx';
+import { calculateOverallProgress } from '../utils/writeHelpers.jsx';
 import WriteHeader from '../components/writing/WriteHeader';
 import CurrentSubsectionBanner from '../components/writing/CurrentSubsectionBanner';
 import ContentArea from '../components/writing/ContentArea';
@@ -272,13 +272,6 @@ const Write = () => {
     }
   };
 
-  const openFeedbackModal = (subsection) => {
-    modals.setCurrentFeedbackSubsection(subsection);
-    modals.setFeedbackText('');
-    modals.setFeedbackFiles([]);
-    modals.setShowFeedbackModal(true);
-  };
-
   const wrappedGenerateCurrent = async () => {
     try {
       const result = await handleGenerateCurrent(activeSubsections);
@@ -360,6 +353,11 @@ const Write = () => {
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.title]: modifiedContent } }));
       if (currentSubsection?.title === modals.currentFeedbackSubsection.title) setCurrentContent(modifiedContent);
       setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
+      autoGenerateReferences(activeChapter).then(refResult => {
+        if (refResult && refResult.content) {
+          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+        }
+      });
       toastSuccess('Feedback applied successfully!');
       modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
     } catch (error) {
@@ -521,7 +519,7 @@ const Write = () => {
                 referencesGenerated={referencesGenerated}
                 onGenerate={wrappedGenerateCurrent}
                 onHumanise={wrappedHumanise}
-                onFeedback={openFeedbackModal}
+                onFeedback={modals.openFeedbackModal}
                 onPrev={wrappedHandlePrevSubsection}
                 onNext={wrappedHandleNextSubsection}
                 onComplete={wrappedHandleCompleteChapter}

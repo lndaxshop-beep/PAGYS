@@ -323,7 +323,24 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
       model: MODEL,
       tools: [{ googleSearch: {} }]
     });
-    let filesInstruction = feedback.files?.length ? `\nUploaded ${feedback.files.length} file(s): ${feedback.files.join(', ')}.` : '';
+    let filesInstruction = '';
+    let imageParts = [];
+    if (feedback.files?.length) {
+      const imageFiles = feedback.files.filter(f => f.type === 'image' && f.content);
+      const nonImageFiles = feedback.files.filter(f => f.type !== 'image');
+      imageParts = imageFiles.map(f => {
+        const matches = f.content.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (matches) return { inlineData: { mimeType: matches[1], data: matches[2] } };
+        return null;
+      }).filter(Boolean);
+      const fileNames = feedback.files.map(f => f.name).join(', ');
+      filesInstruction = `\nUploaded ${feedback.files.length} file(s): ${fileNames}.`;
+      if (nonImageFiles.length > 0) {
+        nonImageFiles.forEach(f => {
+          if (f.extractedText) filesInstruction += `\nContent from ${f.name}: ${f.extractedText.substring(0, 3000)}`;
+        });
+      }
+    }
     const prompt = `You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
 
 SUBSECTION: ${subsectionTitle}
@@ -368,7 +385,8 @@ ${currentContent}
 - Plain text only.
 
 Return ONLY the complete modified text for this subsection.`;
-    const result = await model.generateContent(prompt);
+    const parts = imageParts.length > 0 ? [...imageParts, { text: prompt }] : [{ text: prompt }];
+    const result = await model.generateContent({ contents: [{ role: "user", parts }] });
     return cleanOutput(result.response.text());
   } catch (error) { console.error('Error applying feedback:', error); throw error; }
 };

@@ -50,23 +50,25 @@ const MyFiles = () => {
   const estimateWordCount = (ch) => { if (!ch || typeof ch !== 'object') return 0; let total = 0; Object.entries(ch).forEach(([k, v]) => { if (!['references', 'complete', 'fullChapter'].includes(k) && typeof v === 'string') total += v.split(/\s+/).filter(Boolean).length; }); return total; };
 
     const loadChaptersForProject = async (projectId) => {
-    const content = await getGeneratedContent(projectId) || {};
-    const savedChapters = await getChapters(projectId) || [];
-    const refs = {}; // References are now in citationService
-    const mkChapter = (id, title) => ({
-      id, title, fileName: `${id}.doc`, lastEdited: new Date().toLocaleDateString(),
-      wordCount: estimateWordCount(content[id]),
-      content: content[id]?.complete || '',
-      subsections: content[id] ? Object.keys(content[id]).filter(k => !['references','complete','fullChapter'].includes(k)) : [],
-      references: refs[id]?.citations || [],
-      hasReferences: content[id]?.references ? true : false,
-      generated: hasGeneratedContent(content[id])
-    });
-    setChapters([
-      mkChapter('proposal','Proposal'), mkChapter('chapter1','Chapter 1: Introduction'),
-      mkChapter('chapter2','Chapter 2: Literature Review'), mkChapter('chapter3','Chapter 3: Methodology'),
-      mkChapter('chapter4','Chapter 4: Results/Analysis'), mkChapter('chapter5','Chapter 5: Discussion & Conclusion')
-    ]);
+    try {
+      const content = await getGeneratedContent(projectId) || {};
+      const savedChapters = await getChapters(projectId) || [];
+      const refs = {}; // References are now in citationService
+      const mkChapter = (id, title) => ({
+        id, title, fileName: `${id}.doc`, lastEdited: new Date().toLocaleDateString(),
+        wordCount: estimateWordCount(content[id]),
+        content: content[id]?.complete || '',
+        subsections: content[id] ? Object.keys(content[id]).filter(k => !['references','complete','fullChapter'].includes(k)) : [],
+        references: refs[id]?.citations || [],
+        hasReferences: content[id]?.references ? true : false,
+        generated: hasGeneratedContent(content[id])
+      });
+      setChapters([
+        mkChapter('proposal','Proposal'), mkChapter('chapter1','Chapter 1: Introduction'),
+        mkChapter('chapter2','Chapter 2: Literature Review'), mkChapter('chapter3','Chapter 3: Methodology'),
+        mkChapter('chapter4','Chapter 4: Results/Analysis'), mkChapter('chapter5','Chapter 5: Discussion & Conclusion')
+      ]);
+    } catch (e) { console.error('Error loading chapters for project:', e); }
   };
 
   const generateCleanFilename = (chapter) => {
@@ -138,6 +140,7 @@ const MyFiles = () => {
     let html = '';
     const lines = rawContent.split('\n');
     let inTable = false, tableHtml = '', inMermaid = false, mermaidLines = [];
+    let inChartBlock = false, chartDataStr = '', inTableBlock = false, tableDataStr = '';
     let figureCounter = 0, diagramIdx = 0;
     let pendingPromises = [], pendingPlaceholders = [];
 
@@ -159,6 +162,48 @@ const MyFiles = () => {
         continue;
       }
       if (inMermaid) { mermaidLines.push(line); continue; }
+
+      if (line.startsWith('```chart')) { inChartBlock = true; chartDataStr = ''; continue; }
+      if (inChartBlock && line.startsWith('```')) {
+        inChartBlock = false; figureCounter++;
+        try {
+          const chartData = JSON.parse(chartDataStr.trim());
+          const placeholder = `__CHART_${figureCounter}__`;
+          pendingPlaceholders.push({ placeholder });
+          pendingPromises.push(
+            new Promise((resolve) => {
+              const timeout = setTimeout(() => resolve(null), 3000);
+              captureChartAsImage(chartData).then(img => { clearTimeout(timeout); resolve(img); }).catch(() => { clearTimeout(timeout); resolve(null); });
+            }).then(img => ({
+              placeholder,
+              replacement: img ? `<div style="text-align:center;margin:20px 0;"><p style="font-weight:bold;font-size:11pt;">Figure ${figureCounter}: ${chartData.title || 'Chart'}</p><img src="${img}" style="max-width:100%;border:1px solid #ddd;" />${chartData.caption ? `<p style="font-size:9pt;font-style:italic;">${chartData.caption}</p>` : ''}</div>` : `<div style="text-align:center;margin:20px 0;padding:15px;border:1px solid #ccc;background:#f9f9f9;"><p style="font-weight:bold;">Figure ${figureCounter}: ${chartData.title || 'Chart'}</p><p style="font-size:10pt;">[View in PAGYS app]</p></div>`
+            }))
+          );
+          html += placeholder;
+        } catch (e) { html += '<p style="font-style:italic;">[Chart]</p>'; }
+        continue;
+      }
+      if (inChartBlock) { chartDataStr += line + '\n'; continue; }
+
+      if (line.startsWith('```table')) { inTableBlock = true; tableDataStr = ''; continue; }
+      if (inTableBlock && line.startsWith('```')) {
+        inTableBlock = false; figureCounter++;
+        try {
+          const tableData = JSON.parse(tableDataStr.trim());
+          html += `<div style="margin:20px 0;"><p style="font-weight:bold;font-size:11pt;text-align:center;">${tableData.title || 'Table'}</p><table style="border-collapse:collapse;width:100%;font-size:11pt;">`;
+          if (tableData.headers) {
+            html += '<tr>' + tableData.headers.map(h => `<th style="border:1px solid #000;padding:8px;background:#f2f2f2;font-weight:bold;text-align:left;">${h}</th>`).join('') + '</tr>';
+          }
+          if (tableData.rows) {
+            tableData.rows.forEach(row => {
+              html += '<tr>' + row.map(c => `<td style="border:1px solid #000;padding:8px;text-align:left;">${c}</td>`).join('') + '</tr>';
+            });
+          }
+          html += `</table>${tableData.caption ? `<p style="font-size:9pt;font-style:italic;text-align:center;">${tableData.caption}</p>` : ''}</div>`;
+        } catch (e) { html += '<p style="font-style:italic;">[Table data]</p>'; }
+        continue;
+      }
+      if (inTableBlock) { tableDataStr += line + '\n'; continue; }
 
       if (line.match(/\[CHART:\{.*\}\]/)) {
         try {
@@ -212,7 +257,7 @@ const MyFiles = () => {
     try {
       const content = await getGeneratedContent(selectedProject);
       if (content) { const cc = content[chapter.id]; if (cc) { (chapter.subsections || []).forEach(s => { if (cc[s]) fc += cc[s] + '\n\n'; }); if (cc.references) fc += '\n' + cc.references; } }
-    } catch (e) {}
+    } catch (e) { console.error('Error loading content for document:', e); }
 
     const parsed = await parseContentForWord(fc, chapter.id);
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${chapter.title}</title>

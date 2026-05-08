@@ -99,7 +99,46 @@ SUBSECTION: ${promptData.subsection}
 TARGET WORD COUNT: ${targetWords} words (range: ${wordRange.min}–${wordRange.max})
 METHODOLOGY: ${promptData.methodology || 'mixed methods'}
 ${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}
-${promptData.findings ? `RESEARCH FINDINGS: ${promptData.findings}` : ''}
+${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
+
+## CHAPTER 4 — RESULTS & ANALYSIS VISUAL INSTRUCTIONS (CRITICAL)
+You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above contains real survey responses, demographic data, and key findings. You MUST:
+
+### DATA ANALYSIS
+- Reference specific numbers, percentages, and statistics from the findings data.
+- Identify meaningful patterns and trends in the data.
+- Connect findings to the research questions or objectives implied by the topic.
+- Use proper statistical language: "the mean score was", "a majority of respondents", "the distribution shows".
+
+### VISUAL EMBEDDING — EMBED CHARTS, TABLES, AND DIAGRAMS INLINE
+For every key quantitative finding, embed a visual using code fences at the natural point in the discussion:
+- Use \`\`\`chart blocks to visualize distributions and comparisons: followed by a JSON line with title, type (bar/pie/line), data (labels + values), and caption
+- Use \`\`\`table blocks for demographic profiles and detailed results: followed by a JSON line with title, headers, rows, and caption
+- Use \`\`\`mermaid blocks for flow diagrams or conceptual relationships
+
+Example of embedded chart:
+\`\`\`chart
+{"title":"Age Distribution of Respondents","type":"bar","data":{"labels":["18-25","26-35","36-45","46-55","55+"],"values":[15,22,10,4,1]},"caption":"Figure 4.1: Age distribution of survey participants (n=52)"}
+\`\`\`
+
+Example of embedded table:
+\`\`\`table
+{"title":"Demographic Profile of Respondents","headers":["Variable","Category","Frequency","Percentage"],"rows":[["Age","18-25","15","28.8%"],["Age","26-35","22","42.3%"],["Gender","Male","28","53.8%"],["Gender","Female","24","46.2%"]],"caption":"Table 4.1: Demographic characteristics of the sample"}
+\`\`\`
+
+Rules for visual embedding:
+- Embed at least 2-3 visuals per subsection where data supports them.
+- Place each visual block on its own line, between paragraphs.
+- Reference each visual in the surrounding text: "As shown in the chart below", "Table X presents".
+- For key findings with numerical data, include BOTH a table (exact values) AND a chart (pattern).
+- Charts, tables, and diagrams must contain REAL data from the findings — never fabricate numbers.
+- Do NOT put the chart/table JSON inside a sentence — put it on its own line between paragraphs.
+
+### ACADEMIC RESULTS WRITING
+- Present findings objectively in past tense: "the data revealed", "respondents reported".
+- Describe what the data shows without interpreting causes in Chapter 4.
+- Follow proper academic structure: introduce the analysis, present the data, highlight key observations.
+- Every paragraph should connect to a specific finding from the data.` : ''}
 
 ${structureInstruction}
 
@@ -168,7 +207,7 @@ If the user has provided screenshots, images, or reference files:
 Why this is bad: generic opener, stacked transitions, no specific claim, no citation, no voice.
 
 ## POSITIVE EXAMPLE — WRITE LIKE THIS
-"Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores — a finding that challenges the assumption that AI tools primarily benefit advanced learners."
+"Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores: a finding that challenges the assumption that AI tools primarily benefit advanced learners."
 Why this is good: specific data, grounded claim, meaningful citation, original insight, varied sentence rhythm.
 
 Write the complete content now. Aim for approximately ${targetWords} words.`;
@@ -300,8 +339,7 @@ Return ONLY the complete modified text for this subsection.`;
 export const humaniseContent = async (text) => {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: MODEL,
-      tools: [{ googleSearch: {} }]
+      model: MODEL
     });
     const prompt = `You are an expert editor who transforms AI-generated academic text into writing that is COMPLETELY INDISTINGUISHABLE from human academic writing — while maintaining a PROFESSIONAL, FORMAL, SCHOLARLY tone.
 
@@ -317,7 +355,7 @@ ${text}
 
 ### TRANSITION ELIMINATION
 4. KILL ROBOTIC TRANSITIONS — do NOT use: "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion", "It is worth noting that", "This highlights".
-5. Where a transition is genuinely needed, use formal alternatives sparingly: "In addition", "Similarly", "Conversely", "Nevertheless", "Accordingly", "Therefore", "Specifically".
+5. Where a transition is genuinely needed, use formal alternatives sparingly: "Similarly", "Conversely", "Nevertheless", "Accordingly", "Therefore", "Specifically".
 
 ### CITATION INTEGRITY
 6. PRESERVE ALL citation integrity — keep EVERY in-text citation exactly as written. Do not change, remove, or add any (Author, Year) markers.

@@ -70,6 +70,15 @@ export const parseContentBlocks = (content) => {
     }
     if (inChart) { chartDataStr += line + '\n'; continue; }
     if (inTable) { tableDataStr += line + '\n'; continue; }
+    const chartInlineMatch = line.match(/\[CHART:\{.*\}\]/);
+    if (chartInlineMatch) {
+      if (currentHtml) { blocks.push({ type: 'text', html: currentHtml.trim() }); currentHtml = ''; }
+      try {
+        const chartData = JSON.parse(chartInlineMatch[0].replace('[CHART:', '').replace(']', ''));
+        blocks.push({ type: 'chart', data: chartData });
+      } catch { blocks.push({ type: 'text', html: `<p>[Chart data]</p>` }); }
+      continue;
+    }
     if (line.trim() === '') { if (currentHtml) { blocks.push({ type: 'text', html: currentHtml.trim() }); currentHtml = ''; } continue; }
     if (line.startsWith('# ')) currentHtml += `<h1>${line.slice(2)}</h1>`;
     else if (line.startsWith('## ')) currentHtml += `<h2>${line.slice(3)}</h2>`;

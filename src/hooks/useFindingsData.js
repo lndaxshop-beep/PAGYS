@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { generateAIData, generateUploadData, parseManualData } from '../utils/findingsHelpers';
+import { parseCSV, analyzeManualData } from '../utils/findingsHelpers';
+import { generateSampleData, analyzeTranscriptText } from '../services/gemini/dataAnalysis';
 
 const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -27,14 +28,19 @@ const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
     }
   };
 
-  const handleUseAIData = () => {
+  const handleUseAIData = async () => {
     setSelectedOption('ai');
     setUseAIGenerated(true);
     setAnalyzing(true);
-    setTimeout(() => {
-      setExtractedData(generateAIData(project));
+    try {
+      const data = await generateSampleData(project);
+      setExtractedData(data);
+    } catch (error) {
+      console.error('Error generating sample data:', error);
+      if (onNotify) onNotify('Failed to generate sample data.', 'error');
+    } finally {
       setAnalyzing(false);
-    }, 2000);
+    }
   };
 
   const handleExtractData = async () => {
@@ -45,8 +51,27 @@ const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
     setAnalyzing(true);
     setUseAIGenerated(false);
     try {
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      setExtractedData(generateUploadData());
+      let combinedData = null;
+      for (const file of uploadedFiles) {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const text = await file.text();
+
+        if (ext === 'csv') {
+          const parsed = parseCSV(text);
+          if (parsed) combinedData = parsed;
+        } else if (ext === 'xlsx' || ext === 'xls') {
+          if (onNotify) onNotify('Excel files are not yet supported. Please use CSV format.', 'warning');
+        } else if (ext === 'txt' || ext === 'pdf') {
+          const analyzed = await analyzeTranscriptText(text, project);
+          if (analyzed) combinedData = analyzed;
+        }
+      }
+
+      if (!combinedData) {
+        if (onNotify) onNotify('Could not extract data from files. Try a different format.', 'error');
+        return;
+      }
+      setExtractedData(combinedData);
     } catch (error) {
       console.error('Error extracting data:', error);
       if (onNotify) onNotify('Error processing files. Please try again.', 'error');
@@ -69,8 +94,10 @@ const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
     setAnalyzing(true);
     setUseAIGenerated(false);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setExtractedData(parseManualData(manualData));
+      const data = await analyzeManualData(manualData, project, (text, proj) =>
+        analyzeTranscriptText(text, proj)
+      );
+      setExtractedData(data);
     } catch (error) {
       console.error('Error processing manual data:', error);
       if (onNotify) onNotify('Error processing data. Please try again.', 'error');
@@ -85,7 +112,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
       return;
     }
     if (useAIGenerated) {
-      onGenerateWithAI();
+      onGenerateWithAI(extractedData);
     } else {
       onUpload(extractedData);
     }

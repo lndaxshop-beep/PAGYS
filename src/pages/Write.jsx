@@ -295,7 +295,7 @@ const Write = () => {
       });
     } catch (error) {
       console.error('Generation failed:', error);
-      toastError('Failed to generate content. Please try again.');
+      toastError('Failed to generate content. ' + error.message);
     }
   };
 
@@ -328,26 +328,36 @@ const Write = () => {
   };
 
   const wrappedHumanise = async () => {
-    if (!currentContent) { toastError('No content to humanise.'); return; }
-    const result = await handleHumanise(currentContent);
-    if (!result || result.error) { toastError(result?.message || 'Humanise failed.'); return; }
-    const { humanisedText, humaniseKey } = result;
-    setCurrentContent(humanisedText);
-    if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: humanisedText } }));
-    setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
+    try {
+      if (!currentContent) { toastError('No content to humanise.'); return; }
+      const result = await handleHumanise(currentContent);
+      if (!result || result.error) { toastError(result?.message || 'Humanise failed.'); return; }
+      const { humanisedText, humaniseKey } = result;
+      setCurrentContent(humanisedText);
+      if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.title]: humanisedText } }));
+      setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
+    } catch (error) {
+      console.error('Humanise failed:', error);
+      toastError('Humanise failed: ' + error.message);
+    }
   };
 
   const wrappedApplyFeedback = async () => {
-    if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
-    const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.title] || '';
-    const result = await handleApplyFeedback(currentContentText, modals.feedbackText, modals.feedbackFiles, modals.currentFeedbackSubsection);
-    if (!result || result.error) { toastError(result?.message || 'Feedback application failed.'); return; }
-    const { modifiedContent, feedbackKey } = result;
-    setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.title]: modifiedContent } }));
-    if (currentSubsection?.title === modals.currentFeedbackSubsection.title) setCurrentContent(modifiedContent);
-    setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
-    toastSuccess('Feedback applied successfully!');
-    modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
+    try {
+      if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
+      const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.title] || '';
+      const result = await handleApplyFeedback(currentContentText, modals.feedbackText, modals.feedbackFiles, modals.currentFeedbackSubsection);
+      if (!result || result.error) { toastError(result?.message || 'Feedback application failed.'); return; }
+      const { modifiedContent, feedbackKey } = result;
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.title]: modifiedContent } }));
+      if (currentSubsection?.title === modals.currentFeedbackSubsection.title) setCurrentContent(modifiedContent);
+      setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
+      toastSuccess('Feedback applied successfully!');
+      modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
+    } catch (error) {
+      console.error('Feedback application failed:', error);
+      toastError('Feedback application failed: ' + error.message);
+    }
   };
 
   const handleEditWordCount = () => { modals.setShowWordCountModal(true); };
@@ -365,7 +375,7 @@ const Write = () => {
       const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.title !== 'References') || 0;
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
-  const handleGenerateWithAI = () => { modals.setShowUploadFindings(false); generateSubtopicsForChapter('chapter4');
+  const handleGenerateWithAI = (findingsData) => { setUploadedFindings(findingsData); modals.setShowUploadFindings(false); generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
       const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.title !== 'References') || 0;

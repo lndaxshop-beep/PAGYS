@@ -17,6 +17,7 @@ export const BANNED_PHRASES = [
   'furthermore',
   'moreover',
   'additionally',
+  'in addition',
   'consequently',
   'in conclusion',
   'this highlights the significance of',

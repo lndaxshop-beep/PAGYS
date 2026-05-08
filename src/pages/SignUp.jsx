@@ -77,6 +77,8 @@ const SignUp = () => {
         setError('Email already registered. Please login instead.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password is too weak. Use at least 8 characters.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many attempts. Please wait and try again.');
       } else if (err.code === 'auth/network-request-failed') {

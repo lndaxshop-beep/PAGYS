@@ -39,6 +39,7 @@ const Write = () => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
   const [currentContent, setCurrentContent] = useState('');
+  const [detectionScore, setDetectionScore] = useState(null);
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
   const [chapterCitations, setChapterCitations] = useState({});
@@ -279,7 +280,8 @@ const Write = () => {
       const result = await handleGenerateCurrent(activeSubsections);
       if (!result || result.error) { toastError(result?.message || 'Generation failed.'); return; }
       if (result.skipped) return;
-      const { content, citations, subsectionId, subsectionTitle } = result;
+      const { content, citations, subsectionId, subsectionTitle, burstiness } = result;
+      setDetectionScore(burstiness !== undefined ? burstiness : null);
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionTitle]: content } }));
       setCurrentContent(content);
@@ -472,6 +474,7 @@ const Write = () => {
                 onChange={setCurrentContent}
                 currentSubsection={currentSubsection}
                 showReferenceInTextarea={showReferenceInTextarea}
+                detectionScore={detectionScore}
               />
 
               <ContentButtons

@@ -3,13 +3,24 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, detectionScore
 }) => {
   const { colors } = useTheme();
   const isReferences = currentSubsection?.title === 'References' || currentSubsection?.type === 'references' || showReferenceInTextarea;
+  const detectionBadge = detectionScore !== undefined ? (
+    <span style={{
+      fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
+      backgroundColor: detectionScore > 0.75 ? '#05966920' : detectionScore > 0.6 ? '#d9770620' : '#dc262620',
+      color: detectionScore > 0.75 ? '#059669' : detectionScore > 0.6 ? '#d97706' : '#dc2626',
+      fontWeight: '500', marginLeft: '8px'
+    }}>
+      {detectionScore > 0.75 ? '🟢 Human-like' : detectionScore > 0.6 ? '🟡 Acceptable' : '🔴 AI-like'}
+    </span>
+  ) : null;
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', alignItems: 'center' }}>
+        {detectionBadge}
         <button
           onClick={() => isPreviewMode ? onTogglePreview(false) : onSaveEdit()}
           style={{

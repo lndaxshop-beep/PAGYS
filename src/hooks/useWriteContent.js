@@ -107,7 +107,9 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
     }
     const citations = extractCitations(generatedContent);
-    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle };
+    const { calculateBurstiness } = await import('../services/gemini/antiDetection');
+    const burstiness = calculateBurstiness(generatedContent);
+    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv };
   }, [project, chapters, uploadedFindings, literatureReviewType]);
 
   const handleGenerateCurrent = useCallback(async (activeSubsections) => {

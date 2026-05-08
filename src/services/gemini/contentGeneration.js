@@ -195,7 +195,50 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
       tools: [{ googleSearch: {} }]
     });
     let filesInstruction = feedback.files?.length ? `\nUploaded ${feedback.files.length} file(s): ${feedback.files.join(', ')}.` : '';
-    const prompt = `You are an expert academic editor. Apply this supervisor feedback to the academic text.\n\nSUBSECTION: ${subsectionTitle}\nTOPIC: "${project?.title}"\nFIELD: ${project?.field}\n\nFEEDBACK: "${feedback.text}"${filesInstruction}\n\nCURRENT TEXT:\n${currentContent}\n\nApply the changes precisely. Keep all citations, tables, charts, diagrams, and formatting intact. Return ONLY the modified text.`;
+    const prompt = `You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
+
+SUBSECTION: ${subsectionTitle}
+TOPIC: "${project?.title}"
+FIELD: ${project?.field}
+
+FEEDBACK TO APPLY:
+"${feedback.text}"${filesInstruction}
+
+CURRENT TEXT:
+${currentContent}
+
+## CRITICAL RULES
+
+### APPLICATION PRECISION
+- Apply feedback precisely as instructed. Do not interpret or expand beyond what the feedback asks.
+- If feedback is vague ("improve this section"), make only minimal, conservative improvements to clarity and flow.
+- Do not rewrite the entire section unless the feedback explicitly demands it.
+- Keep the modified text within 90–110% of the original word count.
+
+### CITATION INTEGRITY
+- PRESERVE ALL in-text citations exactly as they appear — do not change, remove, or replace any (Author, Year) markers.
+- PRESERVE [CITATION:...] markers exactly as they appear.
+- DO NOT add new citations that were not in the original text.
+- Ensure every paragraph still has at least one in-text citation after editing.
+
+### STRUCTURAL PRESERVATION
+- Keep ALL subsection headings exactly as they are — do not modify heading text.
+- Keep ALL existing tables, mermaid diagrams, [CHART:{...}] tags, and data intact.
+- Do not restructure or reorder paragraphs unless the feedback explicitly requests it.
+
+### SUBSECTION BOUNDARIES
+- Do not add content that belongs in a different subsection.
+- Do not introduce new topics or arguments not present in the original text.
+- Stay strictly within the scope of "${subsectionTitle}".
+
+### FORMATTING
+- Return ONLY the modified text — no explanations, no annotations, no meta-commentary.
+- NO markdown headings (###, ##), NO HTML tags.
+- NO word count footnotes.
+- NO em dashes.
+- Plain text only.
+
+Return ONLY the complete modified text for this subsection.`;
     const result = await model.generateContent(prompt);
     return cleanOutput(result.response.text());
   } catch (error) { console.error('Error applying feedback:', error); throw error; }

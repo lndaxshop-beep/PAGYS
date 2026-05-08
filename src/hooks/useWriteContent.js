@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { extractCitations, formatCitationEntry, formatGroundedReference, distributeWordCount } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount } from '../utils/writeHelpers.jsx';
 
 const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only') => {
   const [generating, setGenerating] = useState(false);
@@ -152,25 +152,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     finally { setGenerating(false); }
   }, [activeChapter, currentSubsectionIndex, generateSubsectionContent]);
 
-  const autoGenerateReferences = useCallback(async (chapterId) => {
-    const ch = chapters.find(c => c.id === chapterId);
-    if (!ch) return null;
-    const allSubsections = ch.subsections.filter(s => s.title !== 'References' && !s.deleted);
-    const allGenerated = allSubsections.every(s => s.generated);
-    if (!allGenerated || !allSubsections.length) return null;
-    try {
-      const existingRefs = generatedSubsections[chapterId]?.references;
-      if (existingRefs && existingRefs.length > 100) return null;
-      const result = await handleGenerateReferences(ch);
-      if (result && !result.error && result.content) {
-        return { chapterId, content: result.content };
-      }
-    } catch (e) {
-      console.warn('[useWriteContent] Auto-reference generation failed:', e.message);
-    }
-    return null;
-  }, [chapters, generatedSubsections, handleGenerateReferences]);
-
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
     const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.title !== 'References' && !s.deleted);
     if (allGeneratedSubsections.length === 0) return { error: true, message: 'Please generate some content first.' };
@@ -234,14 +215,58 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections, usedGrounding: groundingSources.length > 0 };
   }, [project, activeChapter, generatedSubsections]);
 
+  const autoGenerateReferences = useCallback(async (chapterId) => {
+    const ch = chapters.find(c => c.id === chapterId);
+    if (!ch) return null;
+    const allSubsections = ch.subsections.filter(s => s.title !== 'References' && !s.deleted);
+    const allGenerated = allSubsections.every(s => s.generated);
+    if (!allGenerated || !allSubsections.length) return null;
+    try {
+      const existingRefs = generatedSubsections[chapterId]?.references;
+      if (existingRefs && existingRefs.length > 100) return null;
+      const result = await handleGenerateReferences(ch);
+      if (result && !result.error && result.content) {
+        return { chapterId, content: result.content };
+      }
+    } catch (e) {
+      console.warn('[useWriteContent] Auto-reference generation failed:', e.message);
+    }
+    return null;
+  }, [chapters, generatedSubsections, handleGenerateReferences]);
+
   const handleHumanise = useCallback(async (content) => {
     if (!content) return { error: true, message: 'No content to humanise.' };
     const humaniseKey = `${activeChapter}_${currentSubsection?.id}`;
     if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) return { error: true, message: `Humanise limit reached (${humaniseLimit}/${humaniseLimit}) for this subsection.` };
     setHumanising(true);
     try {
+      const { calculateBurstiness, scanBannedPhrases, calculatePerplexityEstimate } = await import('../services/gemini/antiDetection');
+      const preBurstiness = calculateBurstiness(content);
+      const preBanned = scanBannedPhrases(content);
+      const prePerplexity = calculatePerplexityEstimate(content);
+      const diagnosticReport = `## PRE-HUMANISE DIAGNOSTICS
+- Burstiness coefficient of variation: ${preBurstiness.cv.toFixed(3)} (target: >0.40 for natural human writing)
+- Banned phrases detected: ${preBanned.length} (target: 0)
+- Estimated perplexity score: ${prePerplexity.score}/100 (target: >60)
+- Mean sentence length: ${preBurstiness.mean.toFixed(1)} words
+- Sentence length std dev: ${preBurstiness.stdDev.toFixed(1)}`;
+
+      const chapterTitle = activeChapter === 'proposal' ? 'Proposal' : activeChapter === 'chapter1' ? 'Chapter 1: Introduction' : activeChapter === 'chapter2' ? 'Chapter 2: Literature Review' : activeChapter === 'chapter3' ? 'Chapter 3: Methodology' : activeChapter === 'chapter4' ? 'Chapter 4: Results/Analysis' : 'Chapter 5: Discussion & Conclusion';
+
       const { humaniseContent } = await import('../services/geminiService');
-      const humanisedText = await humaniseContent(content);
+      const humanisedText = await humaniseContent(content, {
+        topic: project?.title,
+        field: project?.field,
+        chapter: chapterTitle,
+        subsection: currentSubsection?.title,
+        diagnosticReport
+      });
+
+      const postBurstiness = calculateBurstiness(humanisedText);
+      const postBanned = scanBannedPhrases(humanisedText);
+      const improvement = ((postBurstiness.cv - preBurstiness.cv) / (preBurstiness.cv || 0.01) * 100).toFixed(0);
+      console.log(`[Humanise] cv: ${preBurstiness.cv.toFixed(3)} → ${postBurstiness.cv.toFixed(3)} (${improvement}% change), banned: ${preBanned.length} → ${postBanned.length}`);
+
       return { humanisedText, humaniseKey };
     } catch (error) { throw error; }
     finally { setHumanising(false); }

@@ -373,48 +373,130 @@ Return ONLY the complete modified text for this subsection.`;
   } catch (error) { console.error('Error applying feedback:', error); throw error; }
 };
 
-export const humaniseContent = async (text) => {
+export const humaniseContent = async (text, promptData = null) => {
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: MODEL
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      tools: [{ googleSearch: {} }],
+      generationConfig: { temperature: 0.9, topP: 0.95 }
     });
-    const prompt = `You are an expert editor who transforms AI-generated academic text into writing that is COMPLETELY INDISTINGUISHABLE from human academic writing — while maintaining a PROFESSIONAL, FORMAL, SCHOLARLY tone.
+    const topic = promptData?.topic || 'thesis topic';
+    const field = promptData?.field || 'social sciences';
+    const chapter = promptData?.chapter || 'thesis chapter';
+    const subsection = promptData?.subsection || 'subsection';
+    const diagnosticReport = promptData?.diagnosticReport || '';
 
-TEXT TO HUMANISE:
+    const fieldVocabulary = {
+      'education': ['pedagogical', 'curricular', 'instructional strategies', 'learner outcomes', 'differentiated instruction', 'formative assessment', 'scaffolding', 'constructivist'],
+      'psychology': ['cognitive processes', 'behavioral patterns', 'psychological constructs', 'affective factors', 'neuropsychological', 'developmental trajectories', 'therapeutic interventions'],
+      'business': ['organizational performance', 'strategic alignment', 'stakeholder value', 'competitive advantage', 'operational efficiency', 'market dynamics', 'corporate governance'],
+      'computer science': ['computational efficiency', 'algorithmic complexity', 'system architecture', 'data structures', 'implementation details', 'performance benchmarks', 'software engineering practices'],
+      'engineering': ['design parameters', 'performance metrics', 'structural integrity', 'system optimization', 'engineering tolerances', 'failure modes', 'prototype evaluation'],
+      'medicine': ['clinical outcomes', 'diagnostic accuracy', 'therapeutic efficacy', 'patient prognosis', 'physiological mechanisms', 'treatment protocols', 'biomarker analysis'],
+      'sociology': ['social structures', 'cultural norms', 'institutional frameworks', 'demographic patterns', 'social stratification', 'community dynamics', 'collective behavior'],
+      'economics': ['market efficiency', 'resource allocation', 'economic indicators', 'welfare implications', 'distributional effects', 'incentive structures', 'equilibrium analysis'],
+    };
+    const fieldTerms = fieldVocabulary[field.toLowerCase()] || ['empirical evidence', 'theoretical foundations', 'analytical framework', 'research findings', 'methodological approach'];
+
+    const pass1Prompt = `You are Professor ${field.charAt(0).toUpperCase() + field.slice(1)} Studies, a renowned scholar with 25 years of published research. Rewrite the following thesis excerpt as YOU would write it — with genuine academic voice, ${field}-specific vocabulary, and the natural rhythm of someone who has written dozens of peer-reviewed articles.
+
+TEXT TO REWRITE:
 ${text}
 
-## CRITICAL RULES
+TOPIC: "${topic}"
+FIELD: ${field}
+CHAPTER: ${chapter}
+SUBSECTION: ${subsection}
+${diagnosticReport}
 
-### SENTENCE RHYTHM (BURSTINESS)
-1. DESTROY UNIFORMITY — dramatic sentence length variation. Mix 2–5 word sentences with 20–45 word sentences. No two consecutive sentences should have similar lengths.
-2. VARY PARAGRAPH LENGTHS drastically — alternate between 2-sentence paragraphs and 7–8 sentence paragraphs unpredictably.
-3. VARY SENTENCE STRUCTURE — alternate simple, compound, and complex sentences. No two consecutive sentences should start with the same word.
+## HUMAN WRITING FINGERPRINTS TO INJECT
 
-### TRANSITION ELIMINATION
-4. KILL ROBOTIC TRANSITIONS — do NOT use: "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion", "It is worth noting that", "This highlights".
-5. Where a transition is genuinely needed, use formal alternatives sparingly: "Similarly", "Conversely", "Nevertheless", "Accordingly", "Therefore", "Specifically".
+### CONFIDENCE VARIATION (CRITICAL)
+Vary your certainty level across the text, never within the same sentence:
+- Be ASSERTIVE about findings you can defend: "The data demonstrate a clear pattern."
+- Be TENTATIVE about interpretations: "This may suggest a relationship, though further research is needed."
+- Be NEUTRAL when describing methods: "Participants were asked to rate their agreement."
+The same author should sound confident about some claims and cautious about others — this is a hallmark of honest academic writing.
 
-### CITATION INTEGRITY
-6. PRESERVE ALL citation integrity — keep EVERY in-text citation exactly as written. Do not change, remove, or add any (Author, Year) markers.
-7. PRESERVE [CITATION:...] markers exactly as they appear — do not modify, remove, or replace them.
-8. ENSURE every paragraph has at least one in-text citation after rewriting — do not strip citations from any paragraph.
-9. ENSURE the total citation count stays the same or increases slightly — never reduce the number of citations.
+### SYNTAX VARIETY (CRITICAL)
+Mix these patterns unpredictably — never two sentences with the same structure in a row:
+- Fronted adverbial: "Unlike prior studies, this analysis focused on..."
+- Mid-sentence aside: "The results, it should be noted, were not uniform."
+- Inversion for emphasis: "Of greater significance is the finding that..."
+- Short punch: "This was not the case."
+- Long nested clause: "The extent to which these factors, when considered together, influence the outcome remains an open question."
+- Simple declarative: "Three themes emerged from the data."
 
-### STRUCTURAL PRESERVATION
-10. Keep ALL data, tables, [CHART:{...}] tags, and mermaid diagrams exactly as they are.
-11. Keep subsection headings unchanged — do not modify heading text.
-12. DO NOT add reference lists, bibliographies, or word count footnotes.
+### FIELD-SPECIFIC VOCABULARY
+Use vocabulary natural to ${field} scholars:
+${fieldTerms.map(t => `- "${t}"`).join('\n')}
+AVOID generic social-science filler: "explores", "delves into", "navigates", "investigates", "the realm of", "a myriad of".
 
-### FORMATTING
-13. NO markdown headings (###, ##), NO HTML tags.
-14. NO contractions — write out all words fully.
-15. NO em dashes (—) — use commas or parentheses instead.
-16. MAINTAIN FORMAL ACADEMIC THIRD-PERSON TONE throughout.
+### STRATEGIC REPETITION
+When a concept is central to the argument, repeat the exact term rather than substituting synonyms. Academic readers expect precise terminology. Only use a synonym when the meaning genuinely shifts.
+
+### PARAGRAPH-LEVEL THINKING
+Each paragraph should feel like a UNIT of thought, not a sequence of sentences:
+- Start with a claim or observation
+- Develop it with evidence or reasoning
+- Optionally acknowledge a nuance or counterpoint
+- End with a link to the next paragraph
+Not every paragraph needs all four steps, but readers should sense an intentional shape.
+
+### HEDGING PLACEMENT
+Use hedging language ONLY in interpretations, NEVER in descriptions of what was done:
+- Good: "The intervention appeared to improve outcomes, though the small sample size warrants caution."
+- Bad: "The study appeared to use a convenience sampling method." (This is a fact — don't hedge it)
+
+## STRUCTURAL PRESERVATION RULES
+- Keep ALL in-text citations (Author, Year) exactly as written.
+- Keep ALL data, tables, [CHART:{...}] tags, and mermaid diagrams unchanged.
+- Keep ALL subsection headings exactly as they appear.
+- KEEP the total word count within 85-115% of the original.
+- Do NOT add reference lists, bibliographies, or word count footnotes.
+- NO markdown headings, NO HTML tags, NO em dashes.
+- NO contractions — write out all words fully.
+- Maintain formal academic third-person tone throughout.
 
 Return ONLY the rewritten text. No explanations, no meta-commentary.`;
 
-    const result = await model.generateContent(prompt);
-    return cleanOutput(result.response.text());
+    // Pass 1: Humanise (high temp)
+    const result1 = await model.generateContent(pass1Prompt);
+    let humanised = cleanOutput(result1.response.text());
+    if (!humanised || humanised.trim().length < 50) return text;
+
+    // Pass 2: Polish (low temp) — ensure academic tone preserved, fix any errors from Pass 1
+    try {
+      const polishModel = genAI.getGenerativeModel({
+        model: MODEL,
+        generationConfig: { temperature: 0.4, topP: 0.85 }
+      });
+      const polishPrompt = `You are a meticulous academic copy-editor. Review the following text for any issues introduced during editing and polish it.
+
+TEXT TO POLISH:
+${humanised}
+
+## POLISH CHECKLIST
+1. Are all in-text citations still properly formatted as (Author, Year)? Fix any that got corrupted.
+2. Are there any grammatical errors, missing words, or broken sentences? Fix them.
+3. Is the academic tone consistent and formal? No contractions, no casual language.
+4. Are all data, tables, chart tags, and mermaid diagrams intact? Do not modify them.
+5. Are all subsection headings preserved exactly?
+6. Is the word count within 85-115% of the original?
+7. NO em dashes — use commas or parentheses instead.
+8. NO markdown headings, NO HTML tags.
+
+Return ONLY the polished text. No explanations, no annotations.`;
+      const result2 = await polishModel.generateContent(polishPrompt);
+      const polished = cleanOutput(result2.response.text());
+      if (polished && polished.trim().length > 50) {
+        humanised = polished;
+      }
+    } catch (e) {
+      console.warn('[humaniseContent] Polish pass failed, using humanised output:', e.message);
+    }
+
+    return humanised;
   } catch (error) { console.error('Error humanising:', error); throw error; }
 };
 

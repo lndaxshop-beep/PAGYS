@@ -1,7 +1,5 @@
 import { extractTextFromFile } from '../fileExtractors';
 
-let cachedStyles = null;
-
 export const parseTemplate = async (file) => {
   if (!file) return getDefaultFormatConfig();
   try {
@@ -94,11 +92,11 @@ const parsePdfTemplate = async (file) => {
     });
     if (analysis && Array.isArray(analysis)) {
       const config = getDefaultFormatConfig();
-      config.sectionOrder = analysis.map((h, i) => ({ level: '1', text: h }));
+      config.sectionOrder = analysis.map((h) => ({ level: '1', text: h }));
       config.source = 'pdf-ai-extracted';
       return config;
     }
-  } catch {}
+  } catch { /* pdf analysis failed */ }
   return getDefaultFormatConfig();
 };
 

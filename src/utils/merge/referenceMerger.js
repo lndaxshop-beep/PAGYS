@@ -1,6 +1,6 @@
 import { extractCitations, formatGroundedReference, formatSimpleReference } from '../writeHelpers.jsx';
 
-export const mergeReferences = async (selectedChapters, generatedSubsections, style, projectId) => {
+export const mergeReferences = async (selectedChapters, generatedSubsections, style) => {
   const allEntries = [];
   const seen = new Set();
 
@@ -75,7 +75,7 @@ export const mergeReferences = async (selectedChapters, generatedSubsections, st
           }
         });
       }
-    } catch {}
+    } catch { /* AI ref generation failed, will use simple formatting */ }
   }
 
   allEntries.forEach(e => {

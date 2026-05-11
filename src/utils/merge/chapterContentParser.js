@@ -15,7 +15,7 @@ const getHeadingLevel = (title, prevHeading) => {
   return HeadingLevel.HEADING_3;
 };
 
-export const parseChapterContent = (content, chapterId, format, projectId) => {
+export const parseChapterContent = (content, chapterId, format) => {
   const children = [];
   if (!content) return children;
 
@@ -105,7 +105,7 @@ export const buildChapterHeading = (chapter, format) => {
   ];
 };
 
-export const collectFiguresAndTables = (generatedSubsections, selectedChapters, projectId) => {
+export const collectFiguresAndTables = (generatedSubsections, selectedChapters) => {
   const figures = [];
   const tables = [];
 

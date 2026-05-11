@@ -3,7 +3,6 @@ import {
   HeadingLevel, PageBreak, Header, Footer, PageNumber,
   NumberFormat, SectionType
 } from 'docx';
-import { getChapterDisplayTitle } from '../writeHelpers.jsx';
 import parseTemplate from './templateParser.js';
 import mergeReferences from './referenceMerger.js';
 import {
@@ -49,7 +48,7 @@ export const generateMergedDocument = async (config) => {
   if (frontMatter.toc) frontMatterChildren.push(...buildTableOfContents());
 
   onProgress?.('Collecting figures and tables...');
-  const { figures, tables } = collectFiguresAndTables(generatedSubsections, selectedChapters, projectId);
+  const { figures, tables } = collectFiguresAndTables(generatedSubsections, selectedChapters);
 
   if (frontMatter.listOfFigures) frontMatterChildren.push(...buildListOfFigures(figures, formatConfig));
   if (frontMatter.listOfTables) frontMatterChildren.push(...buildListOfTables(tables, formatConfig));
@@ -65,7 +64,7 @@ export const generateMergedDocument = async (config) => {
     const ch = selectedChapters[ci];
     contentChildren.push(...buildChapterHeading(ch, formatConfig));
     const chapterContent = generatedSubsections[ch.id] || {};
-    contentChildren.push(...parseChapterContent(chapterContent, ch.id, formatConfig, projectId));
+    contentChildren.push(...parseChapterContent(chapterContent, ch.id, formatConfig));
     contentChildren.push(new Paragraph({ children: [new PageBreak()] }));
     onProgress?.(`Processing chapter ${ci + 1}/${selectedChapters.length}...`);
   }

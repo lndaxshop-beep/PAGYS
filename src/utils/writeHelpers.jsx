@@ -122,7 +122,9 @@ export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
     const newNumber = `${chapterNum}.${i + 1}`;
     const newTitle = sub.type === 'references'
       ? sub.title
-      : sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `);
+      : sub.title.match(/^[P\d]+(\.\d+)*\s+/)
+        ? sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `)
+        : `${newNumber} ${sub.title}`;
     return {
       ...sub,
       number: newNumber,

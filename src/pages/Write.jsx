@@ -406,7 +406,7 @@ const Write = () => {
     const subs = chapter.subsections.filter(s => !s.generated && s.type !== 'references' && !s.deleted);
     if (subs.length === 0) { toastError('All subsections already generated.'); return; }
     setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId });
-    const activeSubsList = chapter.subsections.filter(s => !s.deleted);
+    const activeSubsList = chapter.subsections.filter(s => !s.deleted && s.type !== 'references');
     let errorCount = 0;
     for (let i = 0; i < subs.length; i++) {
       const sub = subs[i];
@@ -449,8 +449,9 @@ const Write = () => {
   const feedbackLeft = feedbackLimit - (feedbackUsed[`${activeChapter}_${activeSubsections[currentSubsectionIndex]?.id}`] || 0);
 
   const handleSaveEdit = () => {
-    if (currentSubsection && currentSubsection.type !== 'references') {
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: currentContent } }));
+    if (currentSubsection) {
+      const key = currentSubsection.id || 'references';
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [key]: currentContent } }));
     }
     setIsPreviewMode(true);
   };

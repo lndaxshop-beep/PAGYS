@@ -137,8 +137,8 @@ METHODOLOGY: ${promptData.methodology || 'mixed methods'}
 ${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
 
-## CHAPTER 4 — RESULTS & ANALYSIS VISUAL INSTRUCTIONS (CRITICAL)
-You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above contains real survey responses, demographic data, and key findings. You MUST:
+## CHAPTER 4 — RESULTS & ANALYSIS INSTRUCTIONS
+You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above contains real survey responses, demographic data, and key findings.
 
 ### DATA ANALYSIS
 - Reference specific numbers, percentages, and statistics from the findings data.
@@ -146,35 +146,33 @@ You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above c
 - Connect findings to the research questions or objectives implied by the topic.
 - Use proper statistical language: "the mean score was", "a majority of respondents", "the distribution shows".
 
-### VISUAL EMBEDDING — EMBED CHARTS, TABLES, AND DIAGRAMS INLINE
-For every key quantitative finding, embed a visual using code fences at the natural point in the discussion:
-- Use \`\`\`chart blocks to visualize distributions and comparisons: followed by a JSON line with title, type (bar/pie/line), data (labels + values), and caption
-- Use \`\`\`table blocks for demographic profiles and detailed results: followed by a JSON line with title, headers, rows, and caption
-- Use \`\`\`mermaid blocks for flow diagrams or conceptual relationships
-
-Example of embedded chart:
-\`\`\`chart
-{"title":"Age Distribution of Respondents","type":"bar","data":{"labels":["18-25","26-35","36-45","46-55","55+"],"values":[15,22,10,4,1]},"caption":"Figure 4.1: Age distribution of survey participants (n=52)"}
-\`\`\`
-
-Example of embedded table:
-\`\`\`table
-{"title":"Demographic Profile of Respondents","headers":["Variable","Category","Frequency","Percentage"],"rows":[["Age","18-25","15","28.8%"],["Age","26-35","22","42.3%"],["Gender","Male","28","53.8%"],["Gender","Female","24","46.2%"]],"caption":"Table 4.1: Demographic characteristics of the sample"}
-\`\`\`
-
-Rules for visual embedding:
-- Embed at least 2-3 visuals per subsection where data supports them.
-- Place each visual block on its own line, between paragraphs.
-- Reference each visual in the surrounding text: "As shown in the chart below", "Table X presents".
-- For key findings with numerical data, include BOTH a table (exact values) AND a chart (pattern).
-- Charts, tables, and diagrams must contain REAL data from the findings — never fabricate numbers.
-- Do NOT put the chart/table JSON inside a sentence — put it on its own line between paragraphs.
-
 ### ACADEMIC RESULTS WRITING
 - Present findings objectively in past tense: "the data revealed", "respondents reported".
 - Describe what the data shows without interpreting causes in Chapter 4.
 - Follow proper academic structure: introduce the analysis, present the data, highlight key observations.
 - Every paragraph should connect to a specific finding from the data.` : ''}
+
+## VISUAL EMBEDDING — USE YOUR JUDGEMENT
+Throughout the thesis, embed a diagram, chart, or table wherever a visual element conveys information more effectively than text alone. Use your judgement — some chapters benefit from several visuals, others from few or none.
+
+- In the Literature Review: conceptual framework diagrams, theoretical framework diagrams, comparison tables of literature.
+- In the Methodology: research design flowcharts, sampling procedure diagrams, data collection process maps.
+- In the Results/Analysis: charts showing distributions, tables presenting demographic profiles, diagrams illustrating patterns.
+- In the Discussion: comparison tables or charts contrasting findings with prior research.
+- In any chapter: mermaid flowcharts, sequence diagrams, or relationship diagrams where they clarify complex concepts.
+
+Use code fences to embed visuals inline where they naturally fit:
+- \`\`\`chart blocks for charts: followed by a JSON line with title, type (bar/pie/line), data (labels + values), and caption
+- \`\`\`table blocks for tables: followed by a JSON line with title, headers, rows, and caption
+- \`\`\`mermaid blocks for diagrams: followed by mermaid code
+- Inline [CHART:{"title":"...","type":"bar","data":{"labels":[...],"values":[...]},"caption":"..."}] for simple single-value charts
+
+Rules:
+- Embed a visual only when it genuinely adds clarity — do not force visuals where text suffices.
+- Place each visual block on its own line between paragraphs.
+- Reference each visual in the surrounding text: "As Figure X shows", "Table Y presents", "The chart below illustrates".
+- Use accurate captions with chapter-scoped numbers: "Figure X.Y: Descriptive caption" or "Table X.Z: Descriptive caption".
+- Charts, tables, and diagrams must contain REAL data — never fabricate numbers.
 
 ${structureInstruction}
 

@@ -32,7 +32,7 @@ const HomePage = () => {
   };
 
   const features = [
-    { icon: '🚀', title: 'Write a Full Thesis in Days', description: 'From introduction to conclusion — we guide you chapter by chapter with properly structured academic content tailored to your field.' },
+    { icon: '🚀', title: 'Write a Full Thesis in Minutes', description: 'From introduction to conclusion — we guide you chapter by chapter with properly structured academic content tailored to your field.' },
     { icon: '📚', title: 'Citations That Impress', description: 'Real references from Crossref, auto-formatted in APA, MLA, Harvard & more. Your supervisor will love the bibliography.' },
     { icon: '✨', title: 'Sound Like Yourself', description: 'One click to humanise AI text into your natural academic voice. No robotic phrases, no awkward wording.' },
     { icon: '📄', title: 'Export-Ready, One Click Away', description: 'Professional .docx, .pdf, .tex & .md files — complete with title page, table of contents, figures, and references.' },

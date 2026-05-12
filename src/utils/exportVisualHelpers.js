@@ -2,6 +2,7 @@ import {
   Table, TableRow, TableCell, WidthType,
   Paragraph, TextRun, AlignmentType, ImageRun
 } from 'docx';
+import { sanitizeXmlText } from './sanitizeText.js';
 
 const CHART_WIDTH = 600;
 const CHART_HEIGHT = 400;
@@ -258,7 +259,7 @@ export const buildDocxTable = (tableData, format) => {
     children: [new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 60 },
-      children: [new TextRun({ text: String(h), bold: true, size: 24, font: fontFamily })]
+      children: [new TextRun({ text: sanitizeXmlText(String(h)), bold: true, size: 24, font: fontFamily })]
     })]
   }));
 
@@ -267,7 +268,7 @@ export const buildDocxTable = (tableData, format) => {
       shading: ri % 2 === 1 ? { type: 'clear', fill: 'FAFAFA' } : undefined,
       children: [new Paragraph({
         spacing: { after: 60 },
-        children: [new TextRun({ text: String(cell), size: 24, font: fontFamily })]
+        children: [new TextRun({ text: sanitizeXmlText(String(cell)), size: 24, font: fontFamily })]
       })]
     }))
   }));
@@ -310,7 +311,7 @@ export const buildImageParagraph = (pngBuffer, caption, format) => {
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: 240 },
-        children: [new TextRun({ text: caption, italics: true, size: 22, font: format.fontFamily })]
+        children: [new TextRun({ text: sanitizeXmlText(caption), italics: true, size: 22, font: format.fontFamily })]
       })
     );
   }

@@ -3,6 +3,7 @@ import {
   PageBreak, TableOfContents, Table, TableRow, TableCell,
   WidthType, BorderStyle, convertInchesToTwip
 } from 'docx';
+import { sanitizeXmlText } from '../sanitizeText.js';
 
 export const buildTitlePage = (project, placeholders, format) => {
   const twipMargin = (cm) => Math.round(cm * 567);
@@ -13,7 +14,7 @@ export const buildTitlePage = (project, placeholders, format) => {
       spacing: { after: twipMargin(spacing) },
       children: [
         new TextRun({
-          text, bold, size: Math.round(size * 2), font: format.fontFamily
+          text: sanitizeXmlText(text), bold, size: Math.round(size * 2), font: format.fontFamily
         })
       ]
     });
@@ -49,7 +50,7 @@ export const buildDeclaration = (placeholders, format) => {
       alignment: AlignmentType.JUSTIFIED,
       spacing: { line: Math.round(240 * 2), after: 200 },
       indent: indent ? { firstLine: convertInchesToTwip(0.5) } : undefined,
-      children: [new TextRun({ text, size: 24, font: format.fontFamily })]
+      children: [new TextRun({ text: sanitizeXmlText(text), size: 24, font: format.fontFamily })]
     });
   return [
     new Paragraph({
@@ -79,7 +80,7 @@ export const buildDedication = (placeholders, format) => {
       spacing: { line: Math.round(240 * 2), before: 600 },
       children: [
         new TextRun({
-          text: placeholders.dedicationText || '[Dedication Text]',
+          text: sanitizeXmlText(placeholders.dedicationText || '[Dedication Text]'),
           italics: true, size: 24, font: format.fontFamily
         })
       ]
@@ -101,7 +102,7 @@ export const buildAcknowledgements = (placeholders, format) => {
       indent: { firstLine: convertInchesToTwip(0.5) },
       children: [
         new TextRun({
-          text: placeholders.acknowledgementsText || '[Acknowledgements Text]',
+          text: sanitizeXmlText(placeholders.acknowledgementsText || '[Acknowledgements Text]'),
           size: 24, font: format.fontFamily
         })
       ]
@@ -123,7 +124,7 @@ export const buildAbstract = (abstractText, format) => {
       indent: { firstLine: convertInchesToTwip(0.5) },
       children: [
         new TextRun({
-          text: abstractText || 'Abstract will be generated from chapter content.',
+          text: sanitizeXmlText(abstractText || 'Abstract will be generated from chapter content.'),
           size: 24, font: format.fontFamily
         })
       ]
@@ -172,7 +173,7 @@ export const buildListOfFigures = (figures, format) => {
         spacing: { after: 100 },
         children: [
           new TextRun({ text: formatFigureNumber(fig), bold: true, size: 24, font: format.fontFamily }),
-          new TextRun({ text: fig.caption || fig.title || '', size: 24, font: format.fontFamily }),
+          new TextRun({ text: sanitizeXmlText(fig.caption || fig.title || ''), size: 24, font: format.fontFamily }),
         ]
       })
     );
@@ -196,7 +197,7 @@ export const buildListOfTables = (tables, format) => {
         spacing: { after: 100 },
         children: [
           new TextRun({ text: formatTableNumber(tbl), bold: true, size: 24, font: format.fontFamily }),
-          new TextRun({ text: tbl.caption || tbl.title || '', size: 24, font: format.fontFamily }),
+          new TextRun({ text: sanitizeXmlText(tbl.caption || tbl.title || ''), size: 24, font: format.fontFamily }),
         ]
       })
     );
@@ -233,10 +234,10 @@ export const buildAbbreviationsList = (abbreviations, format) => {
     new TableRow({
       children: [
         new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: abbr.abbr || '', size: 24, font: format.fontFamily })] })],
+          children: [new Paragraph({ children: [new TextRun({ text: sanitizeXmlText(abbr.abbr || ''), size: 24, font: format.fontFamily })] })],
         }),
         new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: abbr.meaning || '', size: 24, font: format.fontFamily })] })],
+          children: [new Paragraph({ children: [new TextRun({ text: sanitizeXmlText(abbr.meaning || ''), size: 24, font: format.fontFamily })] })],
         }),
       ]
     })

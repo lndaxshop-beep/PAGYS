@@ -3,6 +3,7 @@ import {
   Table, TableRow, TableCell, WidthType, PageBreak
 } from 'docx';
 import { renderChartToPng, renderMermaidToPng, buildDocxTable, buildImageParagraph } from '../exportVisualHelpers.js';
+import { sanitizeXmlText } from '../sanitizeText.js';
 
 const getHeadingLevel = (title, prevHeading) => {
   const match = title.trim().match(/^(\d+)\.(\d+)(\.(\d+))?\s+/);
@@ -20,13 +21,13 @@ const CHART_INLINE_RE = /\[CHART:\{(.*?)\}\]/;
 
 const makeFallbackCodeBlock = (raw, fontFamily) => new Paragraph({
   spacing: { before: 120, after: 120 },
-  children: [new TextRun({ text: raw, font: 'Courier New', size: 18 })]
+  children: [new TextRun({ text: sanitizeXmlText(raw), font: 'Courier New', size: 18 })]
 });
 
 const makeCaption = (text, fontFamily) => new Paragraph({
   alignment: AlignmentType.CENTER,
   spacing: { after: 240 },
-  children: [new TextRun({ text, italics: true, size: 22, font: fontFamily })]
+  children: [new TextRun({ text: sanitizeXmlText(text), italics: true, size: 22, font: fontFamily })]
 });
 
 export const parseChapterContent = async (content, chapterId, format) => {
@@ -131,7 +132,7 @@ export const parseChapterContent = async (content, chapterId, format) => {
         children.push(new Paragraph({
           heading: level,
           spacing: { before: 240, after: 120 },
-          children: [new TextRun({ text: trimmed, bold: true, size: level === HeadingLevel.HEADING_1 ? 28 : level === HeadingLevel.HEADING_2 ? 26 : 24, font: fontFamily })]
+          children: [new TextRun({ text: sanitizeXmlText(trimmed), bold: true, size: level === HeadingLevel.HEADING_1 ? 28 : level === HeadingLevel.HEADING_2 ? 26 : 24, font: fontFamily })]
         }));
         continue;
       }
@@ -145,7 +146,7 @@ export const parseChapterContent = async (content, chapterId, format) => {
         children.push(new Paragraph({
           spacing: { after: 60 },
           indent: { left: 400 },
-          children: [new TextRun({ text: trimmed.replace(/^[-•]\s*/, '• '), size: 24, font: fontFamily })]
+          children: [new TextRun({ text: sanitizeXmlText(trimmed.replace(/^[-•]\s*/, '• ')), size: 24, font: fontFamily })]
         }));
         continue;
       }
@@ -154,7 +155,7 @@ export const parseChapterContent = async (content, chapterId, format) => {
         children.push(new Paragraph({
           spacing: { after: 60 },
           indent: { left: 400, hanging: 200 },
-          children: [new TextRun({ text: trimmed, size: 24, font: fontFamily })]
+          children: [new TextRun({ text: sanitizeXmlText(trimmed), size: 24, font: fontFamily })]
         }));
         continue;
       }
@@ -163,7 +164,7 @@ export const parseChapterContent = async (content, chapterId, format) => {
         alignment: AlignmentType.JUSTIFIED,
         spacing: { line: Math.round(240 * (format.lineSpacing || 2)), after: 120 },
         indent: { firstLine: 360 },
-        children: [new TextRun({ text: trimmed, size: Math.round((format.bodyFontSize || 12) * 2), font: fontFamily })]
+        children: [new TextRun({ text: sanitizeXmlText(trimmed), size: Math.round((format.bodyFontSize || 12) * 2), font: fontFamily })]
       }));
     }
 

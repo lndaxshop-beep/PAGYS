@@ -3,6 +3,7 @@ import {
   HeadingLevel, Header, PageNumber, NumberFormat
 } from 'docx';
 import { parseChapterContent } from './chapterContentParser.js';
+import { sanitizeXmlText } from '../sanitizeText.js';
 
 const DEFAULT_FORMAT = {
   fontFamily: 'Times New Roman',
@@ -35,7 +36,7 @@ export const generateChapterDocument = async ({ chapter, content, formatConfig }
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
       spacing: { before: 480, after: 240 },
-      children: [new TextRun({ text: displayTitle, bold: true, size: 28, font: fontFamily })]
+      children: [new TextRun({ text: sanitizeXmlText(displayTitle), bold: true, size: 28, font: fontFamily })]
     })
   );
 
@@ -57,7 +58,7 @@ export const generateChapterDocument = async ({ chapter, content, formatConfig }
         new Paragraph({
           spacing: { after: 120 },
           indent: { left: 360, hanging: 360 },
-          children: [new TextRun({ text: line.trim(), size: 24, font: fontFamily })]
+          children: [new TextRun({ text: sanitizeXmlText(line.trim()), size: 24, font: fontFamily })]
         })
       );
     });

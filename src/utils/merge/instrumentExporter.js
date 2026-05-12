@@ -3,6 +3,7 @@ import {
   Paragraph, TextRun, AlignmentType, HeadingLevel,
   Table, TableRow, TableCell, WidthType, PageBreak
 } from 'docx';
+import { sanitizeXmlText } from '../sanitizeText.js';
 
 const formatQuestionType = (type) => {
   const labels = {
@@ -54,7 +55,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
         new Paragraph({
           spacing: { before: 400, after: 200 },
           children: [new TextRun({
-            text: section.sectionName || section.title || '',
+            text: sanitizeXmlText(section.sectionName || section.title || ''),
             bold: true, size: 26, font: format.fontFamily
           })]
         })
@@ -65,7 +66,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
           new Paragraph({
             spacing: { after: 200 },
             children: [new TextRun({
-              text: section.description, size: 24, font: format.fontFamily, italics: true
+              text: sanitizeXmlText(section.description), size: 24, font: format.fontFamily, italics: true
             })]
           })
         );
@@ -78,7 +79,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
               spacing: { before: 200, after: 60 },
               children: [
                 new TextRun({ text: `${qi + 1}. `, bold: true, size: 24, font: format.fontFamily }),
-                new TextRun({ text: q.text, size: 24, font: format.fontFamily }),
+                new TextRun({ text: sanitizeXmlText(q.text), size: 24, font: format.fontFamily }),
               ]
             })
           );
@@ -97,7 +98,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
                 new Paragraph({
                   indent: { left: 400 },
                   spacing: { after: 40 },
-                  children: [new TextRun({ text: `☐ ${opt}`, size: 22, font: format.fontFamily })]
+                  children: [new TextRun({ text: sanitizeXmlText(`☐ ${opt}`), size: 22, font: format.fontFamily })]
                 })
               );
             });
@@ -125,7 +126,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
                 indent: { left: 200 },
                 spacing: { before: 100, after: 100 },
                 children: [new TextRun({
-                  text: `"${item.content}"`,
+                  text: sanitizeXmlText(`"${item.content}"`),
                   italics: true, size: 22, font: format.fontFamily, color: '555555'
                 })]
               })
@@ -136,7 +137,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
                 spacing: { before: 150, after: 60 },
                 children: [
                   new TextRun({ text: `${ii + 1}. `, bold: true, size: 24, font: format.fontFamily }),
-                  new TextRun({ text: item.text, size: 24, font: format.fontFamily }),
+                  new TextRun({ text: sanitizeXmlText(item.text), size: 24, font: format.fontFamily }),
                 ]
               })
             );
@@ -147,7 +148,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
                     indent: { left: 400 },
                     spacing: { after: 40 },
                     children: [new TextRun({
-                      text: `→ ${probe}`, size: 22, font: format.fontFamily, italics: true, color: '666666'
+                      text: sanitizeXmlText(`→ ${probe}`), size: 22, font: format.fontFamily, italics: true, color: '666666'
                     })]
                   })
                 );
@@ -170,7 +171,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
               new Paragraph({
                 spacing: { before: 60, after: 60 },
                 children: [new TextRun({
-                  text: `Note: ${item.content}`,
+                  text: sanitizeXmlText(`Note: ${item.content}`),
                   size: 22, font: format.fontFamily, italics: true, color: 'd97706'
                 })]
               })
@@ -192,7 +193,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
         });
         const dataRows = fieldList.map((fld, fi) =>
           new TableRow({
-            children: [fi + 1, fld.label || '', formatFieldType(fld.type), ''].map(val =>
+            children: [fi + 1, sanitizeXmlText(fld.label || ''), formatFieldType(fld.type), ''].map(val =>
               new TableCell({
                 children: [new Paragraph({ children: [new TextRun({ text: String(val), size: 22, font: format.fontFamily })] })]
               })
@@ -215,7 +216,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
         });
         const dRows = section.codes.map(c =>
           new TableRow({
-            children: [c.code, c.label, c.description || ''].map(val =>
+            children: [c.code, sanitizeXmlText(c.label), sanitizeXmlText(c.description || '')].map(val =>
               new TableCell({
                 children: [new Paragraph({ children: [new TextRun({ text: val, size: 22, font: format.fontFamily })] })]
               })
@@ -234,7 +235,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
               spacing: { before: 100 },
               children: [
                 new TextRun({ text: `${ci + 1}. `, bold: true, size: 24, font: format.fontFamily }),
-                new TextRun({ text: c.criterion, size: 24, font: format.fontFamily }),
+                new TextRun({ text: sanitizeXmlText(c.criterion), size: 24, font: format.fontFamily }),
               ]
             })
           );
@@ -243,7 +244,7 @@ export const buildInstrumentAppendix = (instrumentId, content, project, index, f
               new Paragraph({
                 indent: { left: 300 },
                 spacing: { after: 100 },
-                children: [new TextRun({ text: c.description, size: 22, font: format.fontFamily, italics: true })]
+                children: [new TextRun({ text: sanitizeXmlText(c.description), size: 22, font: format.fontFamily, italics: true })]
               })
             );
           }

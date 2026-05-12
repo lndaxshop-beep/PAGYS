@@ -12,6 +12,7 @@ import {
 } from './frontMatterGenerator.js';
 import { parseChapterContent, buildChapterHeading, collectFiguresAndTables } from './chapterContentParser.js';
 import { buildInstrumentAppendix, loadInstruments } from './instrumentExporter.js';
+import { sanitizeXmlText } from '../sanitizeText.js';
 
 const loadAbbreviations = (projectId) => {
   try {
@@ -86,7 +87,7 @@ export const generateMergedDocument = async (config) => {
       new Paragraph({
         spacing: { after: 120 },
         indent: { left: 360, hanging: 360 },
-        children: [new TextRun({ text: entry, size: 24, font: formatConfig.fontFamily })]
+        children: [new TextRun({ text: sanitizeXmlText(entry), size: 24, font: formatConfig.fontFamily })]
       })
     );
   });

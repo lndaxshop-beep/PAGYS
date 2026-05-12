@@ -147,6 +147,16 @@ export const buildTableOfContents = () => {
   ];
 };
 
+const formatFigureNumber = (fig) => {
+  const num = fig.chapterNum && fig.seq ? `${fig.chapterNum}.${fig.seq}` : `${fig.seq || 0}`;
+  return `Figure ${num}: `;
+};
+
+const formatTableNumber = (tbl) => {
+  const num = tbl.chapterNum && tbl.seq ? `${tbl.chapterNum}.${tbl.seq}` : `${tbl.seq || 0}`;
+  return `Table ${num}: `;
+};
+
 export const buildListOfFigures = (figures, format) => {
   if (!figures || figures.length === 0) return [];
   const children = [
@@ -156,12 +166,12 @@ export const buildListOfFigures = (figures, format) => {
       children: [new TextRun({ text: 'LIST OF FIGURES', bold: true, size: 28, font: format.fontFamily })]
     }),
   ];
-  figures.forEach((fig, i) => {
+  figures.forEach((fig) => {
     children.push(
       new Paragraph({
         spacing: { after: 100 },
         children: [
-          new TextRun({ text: `Figure ${i + 1}: `, bold: true, size: 24, font: format.fontFamily }),
+          new TextRun({ text: formatFigureNumber(fig), bold: true, size: 24, font: format.fontFamily }),
           new TextRun({ text: fig.caption || fig.title || '', size: 24, font: format.fontFamily }),
         ]
       })
@@ -180,12 +190,12 @@ export const buildListOfTables = (tables, format) => {
       children: [new TextRun({ text: 'LIST OF TABLES', bold: true, size: 28, font: format.fontFamily })]
     }),
   ];
-  tables.forEach((tbl, i) => {
+  tables.forEach((tbl) => {
     children.push(
       new Paragraph({
         spacing: { after: 100 },
         children: [
-          new TextRun({ text: `Table ${i + 1}: `, bold: true, size: 24, font: format.fontFamily }),
+          new TextRun({ text: formatTableNumber(tbl), bold: true, size: 24, font: format.fontFamily }),
           new TextRun({ text: tbl.caption || tbl.title || '', size: 24, font: format.fontFamily }),
         ]
       })

@@ -188,8 +188,11 @@ export const buildChapterHeading = (chapter, format) => {
 export const collectFiguresAndTables = (generatedSubsections, selectedChapters) => {
   const figures = [];
   const tables = [];
+  let figSeq = 0;
+  let tblSeq = 0;
 
-  selectedChapters.forEach(chapter => {
+  selectedChapters.forEach((chapter, ci) => {
+    const chapterNum = ci + 1;
     const content = generatedSubsections[chapter.id] || {};
     Object.values(content).forEach(text => {
       if (!text || typeof text !== 'string') return;
@@ -198,31 +201,40 @@ export const collectFiguresAndTables = (generatedSubsections, selectedChapters) 
       const fencedChartRe = /```(?:chart|diagram|graph)\s*\n?\s*\{[^}]*"title"\s*:\s*"([^"]*)/gi;
       let m;
       while ((m = fencedChartRe.exec(text)) !== null) {
-        figures.push({ title: m[1], caption: m[1] });
+        figSeq++;
+        figures.push({ chapterNum, seq: figSeq, title: m[1], caption: m[1] });
       }
 
       // Inline [CHART:{...}]
       const inlineChartRe = /\[CHART:\{(?:[^}]*"title"\s*:\s*"([^"]*))?/g;
       while ((m = inlineChartRe.exec(text)) !== null) {
-        if (m[1]) figures.push({ title: m[1], caption: m[1] });
+        if (m[1]) {
+          figSeq++;
+          figures.push({ chapterNum, seq: figSeq, title: m[1], caption: m[1] });
+        }
       }
 
       // Fenced table
       const fencedTableRe = /```table\s*\n?\s*\{[^}]*"title"\s*:\s*"([^"]*)/gi;
       while ((m = fencedTableRe.exec(text)) !== null) {
-        if (m[1]) tables.push({ title: m[1], caption: m[1] });
+        if (m[1]) {
+          tblSeq++;
+          tables.push({ chapterNum, seq: tblSeq, title: m[1], caption: m[1] });
+        }
       }
 
       // Figure N: caption patterns
       const figureRe = /Figure\s+(\d+)[:\s]+([^\n]+)/g;
       while ((m = figureRe.exec(text)) !== null) {
-        figures.push({ title: m[2].trim(), caption: m[2].trim() });
+        figSeq++;
+        figures.push({ chapterNum, seq: figSeq, title: m[2].trim(), caption: m[2].trim() });
       }
 
       // Mermaid figure detection (title from %% comment)
       const mermaidTitleRe = /```mermaid[\s\S]*?%%\s*title:\s*(.+)/gi;
       while ((m = mermaidTitleRe.exec(text)) !== null) {
-        figures.push({ title: m[1].trim(), caption: m[1].trim() });
+        figSeq++;
+        figures.push({ chapterNum, seq: figSeq, title: m[1].trim(), caption: m[1].trim() });
       }
     });
   });

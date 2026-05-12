@@ -6,7 +6,7 @@ import { sanitizeXmlText } from './sanitizeText.js';
 
 const CHART_WIDTH = 600;
 const CHART_HEIGHT = 400;
-const EMUS_PER_INCH = 914400;
+const PIXELS_PER_INCH = 96;
 const TARGET_IMAGE_WIDTH_INCHES = 5.5;
 
 const BAR_COLORS = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
@@ -287,8 +287,8 @@ export const buildDocxTable = (tableData, format) => {
 
 export const buildImageParagraph = (pngBuffer, caption, format) => {
   const aspectRatio = CHART_HEIGHT / CHART_WIDTH;
-  const targetWidthEmu = Math.round(TARGET_IMAGE_WIDTH_INCHES * EMUS_PER_INCH);
-  const targetHeightEmu = Math.round(targetWidthEmu * aspectRatio);
+  const targetWidthPx = Math.round(TARGET_IMAGE_WIDTH_INCHES * PIXELS_PER_INCH);
+  const targetHeightPx = Math.round(targetWidthPx * aspectRatio);
 
   const children = [];
 
@@ -299,7 +299,7 @@ export const buildImageParagraph = (pngBuffer, caption, format) => {
       children: [
         new ImageRun({
           data: pngBuffer,
-          transformation: { width: targetWidthEmu, height: targetHeightEmu },
+          transformation: { width: targetWidthPx, height: targetHeightPx },
           type: 'png'
         })
       ]

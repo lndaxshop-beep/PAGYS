@@ -3,7 +3,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences
 }) => {
   const { colors } = useTheme();
   const isReferences = currentSubsection?.type === 'references' || showReferenceInTextarea;

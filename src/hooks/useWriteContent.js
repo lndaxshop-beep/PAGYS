@@ -169,53 +169,42 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       allCitations = [...allCitations, ...currentCitations];
     }
     const uniqueCitations = [...new Set(allCitations)];
+    if (uniqueCitations.length === 0) return { error: true, message: 'No in-text citations found. Try regenerating the chapter content.' };
     const style = project?.referenceStyle || 'apa';
-    const storedSources = localStorage.getItem(`groundingSources_${activeChapter}`);
-    const groundingSources = storedSources ? JSON.parse(storedSources) : [];
-    const referenceEntries = [];
-    const seenUrls = new Set();
-    const coveredCitations = new Set();
-    groundingSources.forEach(source => {
-      if (source.uri && !seenUrls.has(source.uri)) {
-        seenUrls.add(source.uri);
-        const formatted = formatGroundedReference(source, style);
-        if (formatted) {
-          referenceEntries.push(formatted);
-          uniqueCitations.forEach(citation => {
-            const parts = citation.split(/[, ]+/);
-            const author = parts[0]?.toLowerCase();
-            const year = parts[1]?.replace(/[a-z]?\)$/, '');
-            if (author && year && formatted.toLowerCase().includes(author) && formatted.includes(year)) {
-              coveredCitations.add(citation);
-            }
-          });
-        }
+    let referenceEntries = [];
+    let usedGrounding = false;
+    try {
+      const { generateReferences } = await import('../services/geminiService');
+      const aiResult = await generateReferences(uniqueCitations, style);
+      if (aiResult) {
+        referenceEntries = aiResult.split('\n').filter(line => line.trim());
+        usedGrounding = true;
       }
-    });
-    const uncoveredCitations = uniqueCitations.filter(c => !coveredCitations.has(c));
-    if (uncoveredCitations.length > 0) {
-      try {
-        const { generateReferences } = await import('../services/geminiService');
-        const aiReferences = await generateReferences(uncoveredCitations, style);
-        if (aiReferences) {
-          aiReferences.split('\n').filter(line => line.trim()).forEach(line => {
-            referenceEntries.push(line.trim());
-          });
+    } catch (error) {
+      console.error('AI reference generation failed:', error);
+    }
+    if (referenceEntries.length === 0) {
+      const storedSources = localStorage.getItem(`groundingSources_${activeChapter}`);
+      const groundingSources = storedSources ? JSON.parse(storedSources) : [];
+      const seenUrls = new Set();
+      groundingSources.forEach(source => {
+        if (source.uri && !seenUrls.has(source.uri)) {
+          seenUrls.add(source.uri);
+          const formatted = formatGroundedReference(source, style);
+          if (formatted) referenceEntries.push(formatted);
         }
-      } catch (error) {
-        console.error('AI reference fallback failed:', error);
-        uncoveredCitations.forEach(citation => {
+      });
+      if (referenceEntries.length === 0) {
+        uniqueCitations.forEach(citation => {
           const parts = citation.split(/[, ]+/);
           const author = parts[0] || 'Unknown Author';
           const year = parts[1]?.replace(/[a-z]?\)$/, '') || 'n.d.';
-          const formatted = formatSimpleReference(author, year, style);
-          referenceEntries.push(`${formatted} ⚠️ Verify this reference`);
+          referenceEntries.push(`${formatSimpleReference(author, year, style)} ⚠️ Verify this reference`);
         });
       }
     }
-    if (referenceEntries.length === 0) return { error: true, message: 'No in-text citations found. Try regenerating the content.' };
     referenceEntries.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections, usedGrounding: groundingSources.length > 0 };
+    return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections, usedGrounding };
   }, [project, activeChapter, generatedSubsections]);
 
   const autoGenerateReferences = useCallback(async (chapterId) => {

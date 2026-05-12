@@ -39,6 +39,7 @@ const Write = () => {
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(null);
+  const [generatingReferences, setGeneratingReferences] = useState(false);
   const [humaniseUsed, setHumaniseUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`humaniseUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
@@ -334,13 +335,18 @@ const Write = () => {
     if (currentSubsection && currentSubsection.type !== 'references') {
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: currentContent } }));
     }
-    const result = await handleGenerateReferences(currentChapter, currentContent);
-    if (!result || result.error) { toastError(result?.message || 'References writing failed.'); return; }
-    const { content, usedGrounding } = result;
-    setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
-    setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.type === 'references' ? { ...s, generated: true } : s) } : ch));
-    setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
-    toastSuccess(usedGrounding ? 'References written from real sources!' : 'References written from your citations. Verify entries before submitting.');
+    setGeneratingReferences(true);
+    try {
+      const result = await handleGenerateReferences(currentChapter, currentContent);
+      if (!result || result.error) { toastError(result?.message || 'References writing failed.'); return; }
+      const { content, usedGrounding } = result;
+      setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
+      setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.type === 'references' ? { ...s, generated: true } : s) } : ch));
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
+      toastSuccess(usedGrounding ? 'References written from real sources!' : 'References written from your citations. Verify entries before submitting.');
+    } finally {
+      setGeneratingReferences(false);
+    }
   };
 
   const wrappedHandleSubsectionClick = (subsectionId) => {
@@ -349,6 +355,12 @@ const Write = () => {
     if (sub?.type === 'references') {
       const allOthersGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
       if (!allOthersGenerated) { toastError('Please write all other subsections first.'); return; }
+      const existingRefs = generatedSubsections[activeChapter]?.references;
+      if (existingRefs && existingRefs.length > 0) {
+        setCurrentContent(existingRefs); setShowReferenceInTextarea(true);
+        setIsViewingReferences(true); setIsPreviewMode(true); setCurrentSubsection(sub);
+        return;
+      }
       wrappedGenerateReferences(); return;
     }
     const index = activeSubs.findIndex(s => s.id === subsectionId);
@@ -557,6 +569,12 @@ const Write = () => {
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '32px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
               <p style={{ color: colors.primary }}>We're preparing appropriate subtopics for this chapter...</p>
             </div>
+          ) : generatingReferences ? (
+            <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '40px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'inline-block', width: '32px', height: '32px', border: '3px solid #e5e7eb', borderTopColor: colors.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '16px' }} />
+              <p style={{ color: colors.text, fontWeight: '500', marginBottom: '4px' }}>Generating reference list...</p>
+              <p style={{ color: colors.textSecondary, fontSize: '13px' }}>Searching sources and formatting citations in {project?.referenceStyle?.toUpperCase() || 'APA'} style</p>
+            </div>
           ) : (
             <>
               <CurrentSubsectionBanner subsection={currentSubsection} currentIndex={currentSubsectionIndex} totalCount={activeSubsections.length} isViewingReferences={isViewingReferences} />
@@ -569,6 +587,7 @@ const Write = () => {
                 onChange={setCurrentContent}
                 currentSubsection={currentSubsection}
                 showReferenceInTextarea={showReferenceInTextarea}
+                generatingReferences={generatingReferences}
               />
 
               <ContentButtons

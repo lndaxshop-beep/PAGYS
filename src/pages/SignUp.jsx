@@ -21,6 +21,8 @@ const SignUp = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -91,8 +93,9 @@ const SignUp = () => {
     setLoading(false);
   };
 
-  const inputStyle = { width: '100%', padding: '14px 14px 14px 42px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text, transition: 'border-color 0.2s' };
+  const inputStyle = { width: '100%', padding: '14px 42px 14px 42px', border: `2px solid ${colors.inputBorder}`, borderRadius: '12px', fontSize: '15px', backgroundColor: colors.input, color: colors.text, transition: 'border-color 0.2s' };
   const iconStyle = { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: colors.textSecondary, fontSize: '18px', zIndex: 1, pointerEvents: 'none' };
+  const eyeBtnStyle = { position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textSecondary, fontSize: '18px', zIndex: 1, padding: '4px', lineHeight: 1 };
   const fieldContainerStyle = { position: 'relative' };
   const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text, fontSize: '14px' };
   const helperStyle = { fontSize: '12px', color: colors.textSecondary, marginTop: '4px', marginLeft: '4px' };
@@ -163,14 +166,16 @@ const SignUp = () => {
             <div style={fieldContainerStyle}>
               <label htmlFor="password" style={labelStyle}>Password *</label>
               <span style={iconStyle}>🔒</span>
-              <input id="password" type="password" name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <input id="password" type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={eyeBtnStyle} tabIndex={-1} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? '👁‍🗨' : '👁'}</button>
               <p style={helperStyle}>Minimum 8 characters</p>
             </div>
 
             <div style={fieldContainerStyle}>
               <label htmlFor="confirmPassword" style={labelStyle}>Confirm Password *</label>
               <span style={iconStyle}>✓</span>
-              <input id="confirmPassword" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={eyeBtnStyle} tabIndex={-1} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>{showConfirmPassword ? '👁‍🗨' : '👁'}</button>
             </div>
 
             <div style={fieldContainerStyle}>

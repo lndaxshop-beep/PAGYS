@@ -126,8 +126,7 @@ const HomePage = () => {
 
       <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '80px 20px', borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>What Our Users Say</h2>
-          <p style={{ fontSize: '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '600px', margin: '0 auto 48px', lineHeight: '1.6' }}>From KNUST to University of Lagos — trusted by students across Africa.</p>
+          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '48px' }}>What Our Users Say</h2>
           <div style={{ overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)' }}
             onMouseEnter={(e) => { e.currentTarget.firstChild.style.animationPlayState = 'paused'; }}
             onMouseLeave={(e) => { e.currentTarget.firstChild.style.animationPlayState = 'running'; }}

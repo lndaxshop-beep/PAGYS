@@ -218,10 +218,9 @@ export const generateMergedDocument = async (config) => {
 
   onProgress?.('Packaging for download...');
   try {
-    const buffer = await Packer.toBuffer(doc);
-    return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    return await Packer.toBlob(doc);
   } catch (err) {
-    console.error('Packer.toBuffer failed:', err);
+    console.error('Packer.toBlob failed:', err);
     throw new Error('Failed to generate .docx file: ' + (err.message || 'Unknown error'));
   }
 };

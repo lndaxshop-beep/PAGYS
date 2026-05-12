@@ -18,6 +18,7 @@ const LeftPane = ({
   generatingAll, onGenerateAll,
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
   onUpdateGuidelines,
+  onGenerateFullOutline, generatingFullOutline,
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
@@ -108,6 +109,22 @@ const LeftPane = ({
           {allExpanded ? '📁 Collapse all' : '📂 Expand all'}
         </button>
       </div>
+
+      {onGenerateFullOutline && (
+        <button
+          onClick={onGenerateFullOutline}
+          disabled={generatingFullOutline}
+          style={{
+            width: '100%', padding: '10px', fontSize: '13px', fontWeight: '600',
+            backgroundColor: generatingFullOutline ? colors.textSecondary : colors.primary,
+            color: 'white', border: 'none', borderRadius: '8px',
+            cursor: generatingFullOutline ? 'not-allowed' : 'pointer',
+            marginBottom: '12px', opacity: generatingFullOutline ? 0.6 : 1,
+          }}
+        >
+          {generatingFullOutline ? '⏳ Generating Full Outline...' : '📋 Generate Full Thesis Outline'}
+        </button>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {chapters?.length > 0 ? chapters.map((chapter, chIndex) => {

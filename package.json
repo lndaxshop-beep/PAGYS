@@ -13,7 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "@makozi/paystack-react-pay": "^1.0.5",
     "country-flag-icons": "^1.6.15",
-    "docx": "^9.6.1",
+    "docx": "^8.6.0",
     "file-saver": "^2.0.5",
     "firebase": "^12.12.1",
     "jszip": "^3.10.1",

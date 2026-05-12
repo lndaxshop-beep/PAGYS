@@ -10,7 +10,7 @@ export const extractTextFromPDF = async (file) => {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
 
-    for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
+    for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const pageText = content.items.map(item => item.str).join(' ');
@@ -18,7 +18,7 @@ export const extractTextFromPDF = async (file) => {
     }
 
     if (!fullText.trim()) return null;
-    return fullText.substring(0, 25000);
+    return fullText.substring(0, 50000);
   } catch (error) {
     console.error('PDF extraction error:', error);
     return null;
@@ -32,7 +32,7 @@ export const extractTextFromDocx = async (file) => {
     const result = await mammoth.extractRawText({ arrayBuffer });
     const text = result.value;
     if (!text.trim()) return null;
-    return text.substring(0, 25000);
+    return text.substring(0, 50000);
   } catch (error) {
     console.error('DOCX extraction error:', error);
     return null;

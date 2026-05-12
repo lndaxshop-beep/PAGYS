@@ -523,7 +523,7 @@ Return ONLY the polished text. No explanations, no annotations.`;
   } catch (error) { console.error('Error humanising:', error); throw error; }
 };
 
-export const generateReferences = async (citations, style) => {
+export const generateReferences = async (citations, style, userSources = null, sourceMode = 'ai-only') => {
   try {
     const model = genAI.getGenerativeModel({ 
       model: MODEL,
@@ -534,6 +534,25 @@ export const generateReferences = async (citations, style) => {
       : style === 'mla'
       ? 'MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.'
       : 'Chicago: Author Last, First. Year. Title of Work. Publisher.';
+
+    let userSourcesSection = '';
+    if (userSources?.length > 0 && (sourceMode === 'user-only' || sourceMode === 'combine')) {
+      userSourcesSection = `
+## USER-PROVIDED SOURCES (VERIFIED)
+The student has uploaded the following papers. These are REAL, VERIFIABLE sources. Use them to create reference entries when the in-text citations match.
+
+${JSON.stringify(userSources.map(s => ({
+  title: s.title, authors: s.authors, year: s.year,
+  methodology: s.methodology, keyFindings: s.keyFindings,
+  theoreticalFramework: s.theoreticalFramework
+})), null, 2)}
+
+### USER SOURCE RULES
+- If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
+- These sources may not have DOI/URL — format them as "Author, A. A. (Year). Title. [Unpublished source]" if no publication venue is known.
+- Prioritize Google Search Grounding for complete reference details, but fall back to user-provided metadata when search fails.`;
+    }
+
     const prompt = `You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
 
 IN-TEXT CITATIONS (extracted from thesis content):
@@ -541,6 +560,7 @@ ${citations.map(c => `- ${c}`).join('\n')}
 
 REFERENCE STYLE: ${style.toUpperCase()}
 STYLE GUIDE: ${styleGuide}
+${userSourcesSection}
 
 ## CRITICAL RULES
 

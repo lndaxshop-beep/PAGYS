@@ -53,12 +53,27 @@ const WordCount = ({ count }) => {
   );
 };
 
-const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, projectId, saveStatus, lastSaved, onSaveNow, wordCount }) => {
+const SourceModeBadge = ({ sourceMode, sourceCount }) => {
+  const config = {
+    'user-only': { icon: '📚', label: 'My Sources', bg: '#f5f3ff', color: '#7c3aed' },
+    'ai-only': { icon: '🤖', label: 'AI Sources', bg: '#f0fdf4', color: '#16a34a' },
+    'combine': { icon: '🔗', label: 'Combined', bg: '#fff7ed', color: '#ea580c' },
+  };
+  const c = config[sourceMode] || config['ai-only'];
+  return (
+    <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '12px', backgroundColor: c.bg, color: c.color, fontWeight: '500', whiteSpace: 'nowrap' }}>
+      {c.icon} {c.label}{sourceCount > 0 ? ` (${sourceCount})` : ''}
+    </span>
+  );
+};
+
+const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, projectId, saveStatus, lastSaved, onSaveNow, wordCount, sourceMode, sourceCount }) => {
   const { colors } = useTheme();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <button onClick={onBack} style={{ color: colors.primary, background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>← Back to Dashboard</button>
+        {sourceMode && <SourceModeBadge sourceMode={sourceMode} sourceCount={sourceCount || 0} />}
         <SaveIndicator saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={onSaveNow} />
         <WordCount count={wordCount} />
       </div>

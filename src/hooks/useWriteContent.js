@@ -173,9 +173,10 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const style = project?.referenceStyle || 'apa';
     let referenceEntries = [];
     let usedGrounding = false;
+
     try {
       const { generateReferences } = await import('../services/geminiService');
-      const aiResult = await generateReferences(uniqueCitations, style);
+      const aiResult = await generateReferences(uniqueCitations, style, userSources, sourceMode);
       if (aiResult) {
         referenceEntries = aiResult.split('\n').filter(line => line.trim());
         usedGrounding = true;
@@ -183,6 +184,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (error) {
       console.error('AI reference generation failed:', error);
     }
+
     if (referenceEntries.length === 0) {
       const storedSources = localStorage.getItem(`groundingSources_${activeChapter}`);
       const groundingSources = storedSources ? JSON.parse(storedSources) : [];
@@ -194,18 +196,30 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
           if (formatted) referenceEntries.push(formatted);
         }
       });
-      if (referenceEntries.length === 0) {
-        uniqueCitations.forEach(citation => {
-          const parts = citation.split(/[, ]+/);
-          const author = parts[0] || 'Unknown Author';
-          const year = parts[1]?.replace(/[a-z]?\)$/, '') || 'n.d.';
-          referenceEntries.push(`${formatSimpleReference(author, year, style)} ⚠️ Verify this reference`);
-        });
-      }
     }
+
+    if (referenceEntries.length === 0 && userSources?.length > 0) {
+      userSources.forEach(source => {
+        if (source.title && source.title !== 'Unknown') {
+          const author = source.authors || 'Unknown Author';
+          const year = source.year || 'n.d.';
+          referenceEntries.push(`${formatSimpleReference(author, year, style).replace(' ⚠️ Verify this reference', '')} — ${source.title}`);
+        }
+      });
+    }
+
+    if (referenceEntries.length === 0) {
+      uniqueCitations.forEach(citation => {
+        const parts = citation.split(/[, ]+/);
+        const author = parts[0] || 'Unknown Author';
+        const year = parts[1]?.replace(/[a-z]?\)$/, '') || 'n.d.';
+        referenceEntries.push(`${formatSimpleReference(author, year, style)} ⚠️ Verify this reference`);
+      });
+    }
+
     referenceEntries.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections, usedGrounding };
-  }, [project, activeChapter, generatedSubsections]);
+  }, [project, activeChapter, generatedSubsections, userSources, sourceMode]);
 
   const autoGenerateReferences = useCallback(async (chapterId) => {
     const ch = chapters.find(c => c.id === chapterId);

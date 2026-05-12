@@ -25,7 +25,6 @@ import ShortcutsModal from '../components/ShortcutsModal';
 import LiteratureSearchModal from '../components/LiteratureSearchModal';
 import AIDetectionDashboard from '../components/AIDetectionDashboard';
 import DiffModal from '../components/DiffModal';
-import SourceModeSelector from '../components/writing/SourceModeSelector';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -66,7 +65,6 @@ const Write = () => {
   const [isViewingReferences, setIsViewingReferences] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
-  const [showSourceModeModal, setShowSourceModeModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [showLitSearchModal, setShowLitSearchModal] = useState(false);
   const [showAIDetection, setShowAIDetection] = useState(false);
@@ -439,15 +437,6 @@ const Write = () => {
   const handleLiteratureTypeSubmit = (type) => {
     modals.setLiteratureReviewType(type);
     modals.setShowLiteratureTypeModal(false);
-    if (modals.pendingChapterForStructure === 'chapter2') {
-      setShowSourceModeModal(true);
-    } else if (modals.pendingChapterForStructure) {
-      modals.setShowChapterStructureModal(true);
-    }
-  };
-
-  const handleSourceModeClose = () => {
-    setShowSourceModeModal(false);
     if (modals.pendingChapterForStructure) {
       modals.setShowChapterStructureModal(true);
     }
@@ -545,7 +534,7 @@ const Write = () => {
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
-          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} />
+          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} />
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
@@ -624,27 +613,6 @@ const Write = () => {
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
       {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} stepIndicator={modals.pendingChapterAfterWordCount === 'chapter2' && modals.literatureReviewType ? 'Step 3 of 3: Word Count' : undefined} />}
       {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} project={project} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterForStructure(null); }} />}
-
-      {showSourceModeModal && (
-        <SourceModeSelector
-          sourceMode={sourceLibrary.sourceMode}
-          onModeChange={sourceLibrary.setSourceMode}
-          sources={sourceLibrary.sources}
-          extracting={sourceLibrary.extracting}
-          onAddFile={async (e) => {
-            const files = e.target.files;
-            for (let i = 0; i < files.length; i++) {
-              await sourceLibrary.addSource(files[i]);
-            }
-            e.target.value = '';
-          }}
-          onRemoveSource={sourceLibrary.removeSource}
-          onGenerateMatrix={() => sourceLibrary.generateMatrix(project)}
-          generatingMatrix={sourceLibrary.generatingMatrix}
-          matrix={sourceLibrary.matrix}
-          onClose={handleSourceModeClose}
-        />
-      )}
 
       <ChapterStructureModal
         isOpen={modals.showChapterStructureModal}

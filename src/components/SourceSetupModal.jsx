@@ -1,10 +1,11 @@
 import React, { useRef } from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
-const SourceModeSelector = ({
+const SourceSetupModal = ({
   sourceMode, onModeChange, sources, extracting,
   onAddFile, onRemoveSource, onGenerateMatrix,
-  generatingMatrix, matrix, onClose
+  generatingMatrix, matrix, onClose, onContinue,
+  title = 'Set Up Your Sources'
 }) => {
   const { colors, isDarkMode } = useTheme();
   const fileInputRef = useRef(null);
@@ -22,7 +23,7 @@ const SourceModeSelector = ({
       icon: '🤖',
       title: 'We Find Sources',
       description: 'We search for relevant sources automatically. No upload needed.',
-      longDesc: 'We use Google Search Grounding to find and cite real academic sources relevant to your topic. This is the current default behavior.'
+      longDesc: 'We use Google Search Grounding to find and cite real academic sources relevant to your topic. This is the default behavior.'
     },
     {
       id: 'combine',
@@ -85,7 +86,7 @@ const SourceModeSelector = ({
         <div style={{ padding: '24px', borderBottom: `1px solid ${colors.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: colors.text, margin: 0 }}>
-              Source Selection for Chapter 2
+              {title}
             </h2>
             <button onClick={onClose} style={{
               background: 'none', border: 'none', fontSize: '24px',
@@ -152,7 +153,7 @@ const SourceModeSelector = ({
                   Drop your files here or click to upload
                 </p>
                 <p style={{ color: colors.textSecondary, fontSize: '13px', marginBottom: '16px' }}>
-                  PDF, Word (.docx), or screenshots — up to 20MB each
+                  PDF, Word (.docx), or screenshots
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -226,7 +227,7 @@ const SourceModeSelector = ({
 
         <div style={{ padding: '16px 24px', borderTop: `1px solid ${colors.border}`, textAlign: 'right' }}>
           <button
-            onClick={onClose}
+            onClick={onContinue || onClose}
             style={{
               backgroundColor: colors.primary, color: 'white',
               padding: '10px 24px', border: 'none', borderRadius: '8px',
@@ -243,4 +244,4 @@ const SourceModeSelector = ({
   );
 };
 
-export default SourceModeSelector;
+export default SourceSetupModal;

@@ -13,6 +13,8 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
 import OnboardingWizard from '../components/OnboardingWizard';
+import useSourceLibrary from '../hooks/useSourceLibrary';
+import SourceSetupModal from '../components/SourceSetupModal';
 
 const Dashboard = ({ onPremiumClick, isPremium }) => {
   const { colors } = useTheme();
@@ -24,6 +26,8 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
   const [hoveredProject, setHoveredProject] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState(null);
   const [toast, setToast] = useState(null);
+  const [showSourceSetup, setShowSourceSetup] = useState(false);
+  const [createdProjectId, setCreatedProjectId] = useState(null);
 
   const confirmAction = useCallback((config) => {
     return new Promise((resolve) => {
@@ -52,6 +56,8 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
     notify(`Project created successfully!${useOrganization && organizationName ? ` Organization "${organizationName}" will be used as case study.` : ''}`, 'success');
     setShowNewProjectForm(false);
     loadProjects();
+    setCreatedProjectId(project.id);
+    setShowSourceSetup(true);
   }, { onNotify: notify });
 
   useEffect(() => {
@@ -185,6 +191,14 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
 
       {showOnboarding && <OnboardingWizard onDismiss={handleDismissOnboarding} />}
 
+      {showSourceSetup && createdProjectId && (
+        <SourceSetupModalWrapper
+          projectId={createdProjectId}
+          onClose={() => { setShowSourceSetup(false); setCreatedProjectId(null); }}
+          onContinue={() => { setShowSourceSetup(false); setCreatedProjectId(null); }}
+        />
+      )}
+
       {loadingQuestions && (
         <div style={{
           position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
@@ -198,6 +212,34 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
       )}
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+};
+
+const SourceSetupModalWrapper = ({ projectId, onClose, onContinue }) => {
+  const sourceLibrary = useSourceLibrary(projectId);
+
+  const handleAddFile = async (e) => {
+    const files = e.target.files;
+    for (let i = 0; i < files.length; i++) {
+      await sourceLibrary.addSource(files[i]);
+    }
+    e.target.value = '';
+  };
+
+  return (
+    <SourceSetupModal
+      sourceMode={sourceLibrary.sourceMode}
+      onModeChange={sourceLibrary.setSourceMode}
+      sources={sourceLibrary.sources}
+      extracting={sourceLibrary.extracting}
+      onAddFile={handleAddFile}
+      onRemoveSource={sourceLibrary.removeSource}
+      onGenerateMatrix={() => sourceLibrary.generateMatrix({ title: '' })}
+      generatingMatrix={sourceLibrary.generatingMatrix}
+      matrix={sourceLibrary.matrix}
+      onClose={onClose}
+      onContinue={onContinue}
+    />
   );
 };
 

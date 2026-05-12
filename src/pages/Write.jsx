@@ -8,7 +8,7 @@ import WordCountModal from '../components/WordCountModal';
 import LiteratureReviewTypeModal from '../components/LiteratureReviewTypeModal';
 import { useToast, ToastContainer } from '../hooks/useToast.jsx';
 import ConfirmModal from '../components/ConfirmModal';
-import { useUndoRedo } from '../hooks/useAutoSave';
+import { useAutoSave, useUndoRedo } from '../hooks/useAutoSave';
 import useWriteChapter from '../hooks/useWriteChapter';
 import useWriteContent from '../hooks/useWriteContent';
 import useWriteNavigation from '../hooks/useWriteNavigation';
@@ -66,6 +66,12 @@ const Write = () => {
   const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
   const { state: editorContent, set: setEditorContent, undo, redo, canUndo, canRedo } = useUndoRedo('');
+
+  const { saveStatus, lastSaved, saveNow } = useAutoSave({
+    saveFn: (data) => saveGeneratedContent(projectId, data),
+    data: generatedSubsections,
+    delay: 30000,
+  });
 
   const { chapters, setChapters, activeChapter, setActiveChapter, chapterWordCounts, setChapterWordCounts, chapterWordCountSet, setChapterWordCountSet, initializeEmptyChapters, handleDeleteSubsection, handleRestoreSubsection, handleDrop, generateSubtopicsForChapter, buildSubsectionsFromHeadings, previewSubtopics, addChapter, removeChapter, renameChapter, handleChapterDrop } = useWriteChapter(project, projectId, { saveChapters, saveGeneratedContent, saveCitations, saveVisualData });
 
@@ -142,7 +148,6 @@ const Write = () => {
     loadProject();
   }, [projectId, navigate]);
 
-  useEffect(() => { if (projectId && Object.keys(generatedSubsections).length) saveGeneratedContent(projectId, generatedSubsections).catch(e => console.error('Auto-save generated content failed:', e)); }, [generatedSubsections, projectId]);
   useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations).catch(e => console.error('Auto-save citations failed:', e)); }, [chapterCitations, projectId]);
   useEffect(() => { if (projectId && Object.keys(diagramData).length) saveVisualData(projectId, 'diagrams', diagramData).catch(e => console.error('Auto-save diagrams failed:', e)); }, [diagramData, projectId]);
   useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData).catch(e => console.error('Auto-save charts failed:', e)); }, [chartData, projectId]);
@@ -473,7 +478,7 @@ const Write = () => {
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
-          <WriteHeader onBack={() => navigate('/dashboard')} onEditWordCount={handleEditWordCount} projectId={projectId} />
+          <WriteHeader onBack={() => navigate('/dashboard')} onEditWordCount={handleEditWordCount} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} />
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>

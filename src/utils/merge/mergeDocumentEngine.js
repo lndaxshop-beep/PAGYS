@@ -1,7 +1,6 @@
 import {
   Document, Packer, Paragraph, TextRun, AlignmentType,
-  HeadingLevel, PageBreak, Header, Footer, PageNumber,
-  NumberFormat, SectionType
+  HeadingLevel, PageBreak, NumberFormat
 } from 'docx';
 import parseTemplate from './templateParser.js';
 import mergeReferences from './referenceMerger.js';
@@ -127,7 +126,6 @@ export const generateMergedDocument = async (config) => {
       page: { margin: marginProps },
       titlePage: true,
     },
-    headers: { default: new Header({ children: [] }) },
     children: [...titlePageChildren, new Paragraph({ children: [new PageBreak()] })],
   } : null;
 
@@ -138,21 +136,12 @@ export const generateMergedDocument = async (config) => {
         pageNumbers: { formatType: NumberFormat.UPPER_ROMAN },
       },
     },
-    headers: {
-      default: new Header({
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.RIGHT,
-            children: [
-              new TextRun({ text: '', size: 20, font: formatConfig.fontFamily }),
-              new TextRun({ children: [PageNumber.CURRENT], size: 20, font: formatConfig.fontFamily }),
-            ]
-          })
-        ]
-      })
-    },
     children: frontMatterChildren,
   } : null;
+
+  if (contentChildren.length === 0) {
+    contentChildren.push(new Paragraph({ children: [new TextRun({ text: 'No content available.', size: 24, font: formatConfig.fontFamily })] }));
+  }
 
   const contentSection = {
     properties: {
@@ -161,21 +150,12 @@ export const generateMergedDocument = async (config) => {
         pageNumbers: { formatType: NumberFormat.DECIMAL, start: 1 },
       },
     },
-    headers: {
-      default: new Header({
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.RIGHT,
-            children: [
-              new TextRun({ text: '', size: 20, font: formatConfig.fontFamily }),
-              new TextRun({ children: [PageNumber.CURRENT], size: 20, font: formatConfig.fontFamily }),
-            ]
-          })
-        ]
-      })
-    },
     children: contentChildren,
   };
+
+  if (referencesChildren.length === 0) {
+    referencesChildren.push(new Paragraph({ children: [new TextRun({ text: 'No references.', size: 24, font: formatConfig.fontFamily })] }));
+  }
 
   const referencesSection = {
     properties: {
@@ -183,19 +163,6 @@ export const generateMergedDocument = async (config) => {
         margin: marginProps,
         pageNumbers: { formatType: NumberFormat.DECIMAL },
       },
-    },
-    headers: {
-      default: new Header({
-        children: [
-          new Paragraph({
-            alignment: AlignmentType.RIGHT,
-            children: [
-              new TextRun({ text: '', size: 20, font: formatConfig.fontFamily }),
-              new TextRun({ children: [PageNumber.CURRENT], size: 20, font: formatConfig.fontFamily }),
-            ]
-          })
-        ]
-      })
     },
     children: referencesChildren,
   };
@@ -214,19 +181,6 @@ export const generateMergedDocument = async (config) => {
           margin: marginProps,
           pageNumbers: { formatType: NumberFormat.DECIMAL },
         },
-      },
-      headers: {
-        default: new Header({
-          children: [
-            new Paragraph({
-              alignment: AlignmentType.RIGHT,
-              children: [
-                new TextRun({ text: '', size: 20, font: formatConfig.fontFamily }),
-                new TextRun({ children: [PageNumber.CURRENT], size: 20, font: formatConfig.fontFamily }),
-              ]
-            })
-          ]
-        })
       },
       children: appendixChildren,
     });
@@ -263,8 +217,13 @@ export const generateMergedDocument = async (config) => {
   });
 
   onProgress?.('Packaging for download...');
-  const blob = await Packer.toBlob(doc);
-  return blob;
+  try {
+    const buffer = await Packer.toBuffer(doc);
+    return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  } catch (err) {
+    console.error('Packer.toBuffer failed:', err);
+    throw new Error('Failed to generate .docx file: ' + (err.message || 'Unknown error'));
+  }
 };
 
 export default generateMergedDocument;

@@ -1,6 +1,6 @@
 import {
   Document, Packer, Paragraph, TextRun, AlignmentType,
-  HeadingLevel, Header, PageNumber, NumberFormat
+  HeadingLevel
 } from 'docx';
 import { parseChapterContent } from './chapterContentParser.js';
 import { sanitizeXmlText } from '../sanitizeText.js';
@@ -89,24 +89,26 @@ export const generateChapterDocument = async ({ chapter, content, formatConfig }
       properties: {
         page: {
           margin: marginProps,
-          pageNumbers: { formatType: NumberFormat.DECIMAL, start: 1 },
         },
-      },
-      headers: {
-        default: new Header({
-          children: [
-            new Paragraph({
-              alignment: AlignmentType.RIGHT,
-              children: [new TextRun({ children: [PageNumber.CURRENT], size: 20, font: fontFamily })],
-            }),
-          ],
-        }),
       },
       children,
     }],
   });
 
-  return await Packer.toBlob(doc);
+  let buffer;
+  try {
+    buffer = await Packer.toBuffer(doc);
+  } catch (err) {
+    console.error('Packer.toBuffer failed:', err);
+    throw new Error('Failed to generate .docx file: ' + (err.message || 'Unknown error'));
+  }
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+};
+
+export const generateChapterBuffer = async (params) => {
+  const blob = await generateChapterDocument(params);
+  const buffer = await blob.arrayBuffer();
+  return buffer;
 };
 
 export default generateChapterDocument;

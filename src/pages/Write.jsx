@@ -39,7 +39,6 @@ const Write = () => {
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(null);
-  const [generatingFullOutline, setGeneratingFullOutline] = useState(false);
   const [humaniseUsed, setHumaniseUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`humaniseUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
@@ -458,22 +457,6 @@ const Write = () => {
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
 
-  const handleGenerateFullOutline = async () => {
-    setGeneratingFullOutline(true);
-    const contentChapters = chapters.filter(ch => ch.id !== 'proposal');
-    let completed = 0;
-    for (const ch of contentChapters) {
-      try {
-        await generateSubtopicsForChapter(ch.id);
-        completed++;
-      } catch (e) {
-        console.error(`Failed to generate outline for ${ch.id}:`, e);
-      }
-    }
-    setGeneratingFullOutline(false);
-    toastSuccess(`Full outline created for ${completed}/${contentChapters.length} chapters!`);
-  };
-
   const handleGenerateAll = async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (!chapter) return;
@@ -546,7 +529,7 @@ const Write = () => {
           generatingAll={generatingAll} onGenerateAll={handleGenerateAll}
           onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
           onUpdateGuidelines={handleUpdateGuidelines}
-          onGenerateFullOutline={handleGenerateFullOutline} generatingFullOutline={generatingFullOutline} />
+          />
       </div>
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>

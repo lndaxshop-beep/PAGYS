@@ -64,7 +64,7 @@ export const generateMergedDocument = async (config) => {
     const ch = selectedChapters[ci];
     contentChildren.push(...buildChapterHeading(ch, formatConfig));
     const chapterContent = generatedSubsections[ch.id] || {};
-    contentChildren.push(...parseChapterContent(chapterContent, ch.id, formatConfig));
+    contentChildren.push(...await parseChapterContent(chapterContent, ch.id, formatConfig));
     contentChildren.push(new Paragraph({ children: [new PageBreak()] }));
     onProgress?.(`Processing chapter ${ci + 1}/${selectedChapters.length}...`);
   }

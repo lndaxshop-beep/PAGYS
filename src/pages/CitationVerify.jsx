@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { extractCitations, formatGroundedReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { getGeneratedContent, getChapters } from '../services/firestoreService';
 import { PageSkeleton } from '../components/Skeleton';
+import { parseRefFile, refEntryToText } from '../utils/refImportParser';
 
 const CitationVerify = () => {
   const { projectId } = useParams();
@@ -18,6 +19,9 @@ const CitationVerify = () => {
   const [loading, setLoading] = useState(true);
   const [expandedChapters, setExpandedChapters] = useState({});
   const [verifiedCitations, setVerifiedCitations] = useState({});
+  const [importedRefs, setImportedRefs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`importedRefs_${projectId}`) || '[]'); } catch { return []; }
+  });
 
   useEffect(() => {
     const loadProject = async () => {
@@ -61,6 +65,27 @@ const CitationVerify = () => {
     setVerifiedCitations(updated);
     localStorage.setItem(`verifiedCitations_${projectId}`, JSON.stringify(updated));
   }, [verifiedCitations, projectId]);
+
+  const handleImportRefs = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target.result;
+      const parsed = parseRefFile(content, file.name);
+      if (parsed.length === 0) return;
+      const updated = [...importedRefs, ...parsed];
+      setImportedRefs(updated);
+      localStorage.setItem(`importedRefs_${projectId}`, JSON.stringify(updated));
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const clearImportedRefs = () => {
+    setImportedRefs([]);
+    localStorage.removeItem(`importedRefs_${projectId}`);
+  };
 
   const toggleChapter = (chapterId) => {
     setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] }));
@@ -166,6 +191,30 @@ const CitationVerify = () => {
               <div style={{ width: `${verificationPercent}%`, height: '100%', backgroundColor: verificationPercent >= 80 ? '#10B981' : verificationPercent >= 50 ? '#F59E0B' : '#EF4444', borderRadius: '4px', transition: 'width 0.3s' }} />
             </div>
           </div>
+        </div>
+
+        <div style={{ marginBottom: '24px', padding: '16px 20px', backgroundColor: colors.cardBg, borderRadius: '12px', border: `1px solid ${colors.text}15` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: colors.text }}>Import References (RIS / BibTeX)</h3>
+            {importedRefs.length > 0 && (
+              <button onClick={clearImportedRefs} style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer' }}>
+                Clear All ({importedRefs.length})
+              </button>
+            )}
+          </div>
+          <input type="file" id="ref-import" accept=".ris,.bib" style={{ display: 'none' }} onChange={handleImportRefs} />
+          <label htmlFor="ref-import" style={{ display: 'inline-block', padding: '8px 16px', backgroundColor: '#4F46E5', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+            📎 Upload .ris or .bib file
+          </label>
+          {importedRefs.length > 0 && (
+            <div style={{ marginTop: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+              {importedRefs.map((ref, i) => (
+                <div key={i} style={{ fontSize: '12px', color: colors.text, padding: '6px 0', borderBottom: `1px solid ${colors.text}10` }}>
+                  {refEntryToText(ref, style)}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {chapterData.length === 0 ? (

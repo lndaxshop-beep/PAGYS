@@ -102,6 +102,12 @@ const useSourceLibrary = (projectId, userId) => {
     return sources.filter(s => s.title && s.title !== 'Unknown');
   }, [sources]);
 
+  const addSources = useCallback((newSources) => {
+    if (!newSources?.length) return;
+    const updated = [...sources, ...newSources];
+    persistSources(updated);
+  }, [sources, projectId, userId]);
+
   return {
     sources,
     sourceMode,
@@ -110,6 +116,7 @@ const useSourceLibrary = (projectId, userId) => {
     matrix,
     generatingMatrix,
     addSource,
+    addSources,
     removeSource,
     generateMatrix,
     clearSources,

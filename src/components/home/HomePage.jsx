@@ -32,11 +32,12 @@ const HomePage = () => {
   };
 
   const features = [
-    { icon: '🤖', title: 'Guided Writing', description: 'We help you craft well-researched, properly structured academic content tailored to your topic and field.' },
-    { icon: '📚', title: 'Real Citations', description: 'We automatically format your references in APA, MLA, Harvard, and more.' },
-    { icon: '✏️', title: 'Humanise & Edit', description: 'Refine your content to match your unique voice and academic style.' },
-    { icon: '📊', title: 'Progress Tracking', description: 'Track your writing progress and stay motivated with visual progress indicators.' },
-    { icon: '🔒', title: 'Secure & Private', description: 'Your research and content are private and secure. You own everything you create.' }
+    { icon: '🚀', title: 'Write a Full Thesis in Days', description: 'From introduction to conclusion — we guide you chapter by chapter with properly structured academic content tailored to your field.' },
+    { icon: '📚', title: 'Citations That Impress', description: 'Real references from Crossref, auto-formatted in APA, MLA, Harvard & more. Your supervisor will love the bibliography.' },
+    { icon: '✨', title: 'Sound Like Yourself', description: 'One click to humanise AI text into your natural academic voice. No robotic phrases, no awkward wording.' },
+    { icon: '📄', title: 'Export-Ready, One Click Away', description: 'Professional .docx, .pdf, .tex & .md files — complete with title page, table of contents, figures, and references.' },
+    { icon: '🔍', title: 'Your Research Command Center', description: 'Search literature, upload papers, verify citations, and build a source library — all in one place.' },
+    { icon: '🎯', title: 'Graduate on Time', description: 'Progress tracking, smart outlines, structured workflow — we keep you moving so you cross that finish line.' },
   ];
 
   const testimonials = [
@@ -104,10 +105,11 @@ const HomePage = () => {
 
       <div id="features" style={{ padding: '80px 20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '48px' }}>Everything You Need to Write Your Thesis</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>Everything You Need to Write Your Thesis</h2>
+          <p style={{ fontSize: '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '600px', margin: '0 auto 48px', lineHeight: '1.6' }}>No fluff, no clutter — just the tools that actually get your thesis done.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '28px' }}>
             {features.map((feature, index) => (
-              <FeatureCard key={index} icon={feature.icon} title={feature.title} description={feature.description} colors={colors} isDarkMode={isDarkMode} />
+              <FeatureCard key={index} icon={feature.icon} title={feature.title} description={feature.description} colors={colors} isDarkMode={isDarkMode} index={index} />
             ))}
           </div>
         </div>
@@ -137,6 +139,18 @@ const HomePage = () => {
         </div>
       </div>
 
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(24px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
       <Footer />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

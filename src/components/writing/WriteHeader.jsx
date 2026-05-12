@@ -54,7 +54,7 @@ const WordCount = ({ count }) => {
   );
 };
 
-const WriteHeader = ({ onBack, onEditWordCount, onToggleShortcuts, onToggleLitSearch, projectId, saveStatus, lastSaved, onSaveNow, wordCount }) => {
+const WriteHeader = ({ onBack, onEditWordCount, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, projectId, saveStatus, lastSaved, onSaveNow, wordCount }) => {
   const { colors } = useTheme();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -66,6 +66,7 @@ const WriteHeader = ({ onBack, onEditWordCount, onToggleShortcuts, onToggleLitSe
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <button onClick={onToggleShortcuts} title="Keyboard Shortcuts" style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 8px', fontSize: '14px', cursor: 'pointer', lineHeight: '1' }}>⌨</button>
         <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>📚 Search Literature</button>
+        <button onClick={onToggleAIDetection} title="AI Detection Score" style={{ backgroundColor: 'transparent', color: '#dc2626', border: `1px solid #dc262660`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>🤖 AI Score</button>
         <button onClick={() => navigate(`/citations/${projectId}`)} style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer' }}>Review Citations</button>
         <button onClick={onEditWordCount} style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}`, borderRadius: '6px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer' }}>✎ Edit Word Count</button>
       </div>

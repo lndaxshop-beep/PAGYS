@@ -12,6 +12,7 @@ import ProjectsList from '../components/dashboard/ProjectsList';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
+import OnboardingWizard from '../components/OnboardingWizard';
 
 const Dashboard = ({ onPremiumClick, isPremium }) => {
   const { colors } = useTheme();
@@ -19,6 +20,7 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
   const [user, setUser] = useState(null);
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [hoveredProject, setHoveredProject] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState(null);
   const [toast, setToast] = useState(null);
@@ -58,7 +60,23 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
     else navigate('/login');
   }, [navigate]);
 
-  useEffect(() => { if (user) { loadProjects(); loadDeletedProjects(); } }, [user]);
+  useEffect(() => {
+    if (user) {
+      const onboarded = localStorage.getItem('onboardingComplete_' + user.uid);
+      if (!onboarded) setShowOnboarding(true);
+      loadProjects();
+      loadDeletedProjects();
+    }
+  }, [user]);
+
+  const handleDismissOnboarding = () => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      const u = JSON.parse(savedUser);
+      localStorage.setItem('onboardingComplete_' + u.uid, 'true');
+    }
+    setShowOnboarding(false);
+  };
 
   const handleConfirm = () => {
     if (confirmConfig) {
@@ -164,6 +182,8 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {showOnboarding && <OnboardingWizard onDismiss={handleDismissOnboarding} />}
 
       {loadingQuestions && (
         <div style={{

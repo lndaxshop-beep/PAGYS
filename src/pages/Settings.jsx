@@ -7,6 +7,7 @@ import { db, auth } from '../firebase';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
 import useAppAuth from '../hooks/useAppAuth';
+import { clearAllProjectCache } from '../utils/cacheUtils';
 
 const Settings = () => {
   const { colors, isDarkMode } = useTheme();
@@ -64,11 +65,7 @@ const Settings = () => {
       const deletePromises = projectsSnapshot.docs.map(d => deleteDoc(doc(db, 'projects', d.id)));
       await Promise.all(deletePromises);
 
-      projectsSnapshot.docs.forEach(d => {
-        ['generatedContent', 'chapters', 'citations', 'diagrams', 'charts', 'tables', 'diagramSVGs', 'defence', 'abbreviations', 'realReferences', 'instrument_content'].forEach(prefix => {
-          localStorage.removeItem(`${prefix}_${d.id}`);
-        });
-      });
+      projectsSnapshot.docs.forEach(d => clearAllProjectCache(d.id));
 
       const allProjects = JSON.parse(localStorage.getItem('thesisProjects') || '[]');
       localStorage.setItem('thesisProjects', JSON.stringify(allProjects.filter(p => p.userId !== user?.uid)));

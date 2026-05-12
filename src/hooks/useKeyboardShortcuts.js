@@ -48,6 +48,11 @@ export const useKeyboardShortcuts = (handlers) => {
       if (handlers.escape && key === 'escape') {
         handlers.escape();
       }
+
+      if (handlers.toggleShortcuts && e.shiftKey && key === '/') {
+        e.preventDefault();
+        handlers.toggleShortcuts();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);

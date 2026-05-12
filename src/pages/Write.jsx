@@ -21,6 +21,7 @@ import ContentArea from '../components/writing/ContentArea';
 import ContentButtons from '../components/writing/ContentButtons';
 import ChapterStructureModal from '../components/writing/ChapterStructureModal';
 import FeedbackModal from '../components/writing/FeedbackModal';
+import ShortcutsModal from '../components/ShortcutsModal';
 import SourceModeSelector from '../components/writing/SourceModeSelector';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
@@ -62,6 +63,7 @@ const Write = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
   const [showSourceModeModal, setShowSourceModeModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -97,7 +99,9 @@ const Write = () => {
       undo: canUndo ? undo : null,
       redo: canRedo ? redo : null,
       toggleEdit: () => setIsPreviewMode(prev => !prev),
+      toggleShortcuts: () => setShowShortcutsModal(prev => !prev),
       escape: () => {
+        setShowShortcutsModal(false);
         modals.setShowFeedbackModal(false);
         modals.setShowWordCountModal(false);
         modals.setShowLiteratureTypeModal(false);
@@ -462,6 +466,8 @@ const Write = () => {
     setIsPreviewMode(true);
   };
 
+  const currentWordCount = currentContent ? currentContent.split(/\s+/).filter(Boolean).length : 0;
+
   if (loading) return <PageSkeleton />;
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;
 
@@ -479,7 +485,7 @@ const Write = () => {
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
-          <WriteHeader onBack={() => navigate('/dashboard')} onEditWordCount={handleEditWordCount} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} />
+          <WriteHeader onBack={() => navigate('/dashboard')} onEditWordCount={handleEditWordCount} onToggleShortcuts={() => setShowShortcutsModal(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} />
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
@@ -597,6 +603,8 @@ const Write = () => {
         onApply={wrappedApplyFeedback}
         applying={modals.applyingSubFeedback}
       />
+
+      <ShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
 
       {confirmModal && (
         <ConfirmModal

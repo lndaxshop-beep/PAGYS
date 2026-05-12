@@ -90,6 +90,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       hideOrganization: project?.hideOrganization || false, findings: chapterId === 'chapter4' ? uploadedFindings : null,
       wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
       userSources, sourceMode,
+      guidelines: ch.guidelines || '',
     });
     let generatedContent = typeof result === 'object' ? result.text : result;
     try {

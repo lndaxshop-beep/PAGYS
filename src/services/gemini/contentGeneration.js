@@ -175,6 +175,13 @@ Rules:
 - Charts, tables, and diagrams must contain REAL data — never fabricate numbers.
 
 ${structureInstruction}
+${promptData.guidelines ? `
+
+## CHAPTER-SPECIFIC GUIDELINES
+The student has provided the following custom instructions specific to this chapter. These take priority over general rules where they conflict:
+
+${promptData.guidelines}
+` : ''}
 
 ---
 

@@ -83,8 +83,12 @@ export const getChapterDisplayTitle = (chapter) => {
 };
 
 export const getChapterOrdinal = (chapter, chapters) => {
-  const idx = chapters.findIndex(c => c.id === chapter?.id);
-  return idx >= 0 ? idx : -1;
+  const contentChapters = chapters.filter(ch => ch.id !== 'proposal');
+  return contentChapters.findIndex(ch => ch.id === chapter.id) + 1;
+};
+
+export const getChapterGuidelines = (chapter) => {
+  return chapter?.guidelines || '';
 };
 
 export const getWordCountPresets = (level) => {

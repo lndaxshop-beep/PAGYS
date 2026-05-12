@@ -197,6 +197,10 @@ const Write = () => {
     setDragOverItem(null);
   };
 
+  const handleUpdateGuidelines = (chapterId, guidelines) => {
+    setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, guidelines } : ch));
+  };
+
   const handleWrappedGenerateSubtopics = async (chapterId, referenceData = null) => {
     setGeneratingSubtopics(true);
     try {
@@ -480,7 +484,8 @@ const Write = () => {
           generatedSubsections={generatedSubsections} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleWrappedDrop}
           onDragEnd={handleDragEnd} draggedItem={draggedItem} dragOverItem={dragOverItem} chapterWordCounts={chapterWordCounts}
           generatingAll={generatingAll} onGenerateAll={handleGenerateAll}
-          onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop} />
+          onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
+          onUpdateGuidelines={handleUpdateGuidelines} />
       </div>
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>

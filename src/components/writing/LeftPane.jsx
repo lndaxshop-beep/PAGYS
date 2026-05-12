@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import AddSubsection from './AddSubsection';
 import ChapterHeader from './ChapterHeader';
+import ChapterGuidelines from './ChapterGuidelines';
 import SubsectionItem from './SubsectionItem';
 import DeletedSubsections from './DeletedSubsections';
 import { getActiveSubsections, isReferencesClickable, validateReferencesClick } from '../../utils/leftPaneHelpers';
@@ -15,7 +16,8 @@ const LeftPane = ({
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
   draggedItem, dragOverItem, chapterWordCounts,
   generatingAll, onGenerateAll,
-  onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder
+  onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
+  onUpdateGuidelines,
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
@@ -217,6 +219,7 @@ const LeftPane = ({
                       </button>
                     )
                   )}
+                  <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />
                   <DeletedSubsections
                     chapterId={chapter.id}
                     deletedSubsections={chapter.deletedSubsections || []}

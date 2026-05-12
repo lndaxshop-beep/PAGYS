@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { saveAs } from 'file-saver';
@@ -6,6 +6,7 @@ import { getProjects, getGeneratedContent, getChapters } from '../services/fires
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { loadInstruments } from '../utils/merge/instrumentExporter.js';
 import generateMergedDocument from '../utils/merge/mergeDocumentEngine.js';
+import generatePdfDocument from '../utils/merge/pdfExportEngine.js';
 import { PageSkeleton } from '../components/Skeleton';
 
 const PLACEHOLDER_FIELDS = [
@@ -125,6 +126,38 @@ const MergeDocument = () => {
       setTemplateFile(file);
       setTemplateFileName(file.name);
     }
+  };
+
+  const handleGeneratePdf = async () => {
+    if (selectedChapterIds.length === 0) {
+      setError('Please select at least one chapter to include.');
+      return;
+    }
+    setError('');
+    setGenerating(true);
+    setProgress('Preparing PDF...');
+
+    try {
+      const style = project?.referenceStyle || 'apa';
+      await generatePdfDocument({
+        project,
+        chapters,
+        generatedSubsections,
+        selectedChapterIds,
+        frontMatter,
+        placeholders,
+        templateFile,
+        selectedInstrumentIds,
+        projectId,
+        style,
+        onProgress: setProgress,
+      });
+      setProgress('PDF ready!');
+    } catch (e) {
+      console.error('PDF generation failed:', e);
+      setError('Failed to generate PDF: ' + (e.message || 'Unknown error'));
+    }
+    setGenerating(false);
   };
 
   const handleGenerate = async () => {
@@ -348,22 +381,37 @@ const MergeDocument = () => {
             </div>
           )}
 
-          {/* Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={generating || selectedChapterIds.length === 0}
-            style={{
-              width: '100%', padding: '16px', fontSize: '16px', fontWeight: '700',
-              backgroundColor: generating ? colors.textSecondary : '#059669',
-              color: 'white', border: 'none', borderRadius: '10px',
-              cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: generating ? 0.6 : 1,
-              transition: 'all 0.2s',
-              marginBottom: '40px',
-            }}
-          >
-            {generating ? 'Generating...' : '⚡ Generate & Download .docx'}
-          </button>
+          {/* Generate Buttons */}
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '40px' }}>
+            <button
+              onClick={handleGenerate}
+              disabled={generating || selectedChapterIds.length === 0}
+              style={{
+                flex: 1, padding: '16px', fontSize: '16px', fontWeight: '700',
+                backgroundColor: generating ? colors.textSecondary : '#059669',
+                color: 'white', border: 'none', borderRadius: '10px',
+                cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {generating ? 'Generating...' : '⚡ Download .docx'}
+            </button>
+            <button
+              onClick={handleGeneratePdf}
+              disabled={generating || selectedChapterIds.length === 0}
+              style={{
+                flex: 1, padding: '16px', fontSize: '16px', fontWeight: '700',
+                backgroundColor: generating ? colors.textSecondary : colors.primary,
+                color: 'white', border: 'none', borderRadius: '10px',
+                cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {generating ? 'Generating...' : '🖨️ Save as PDF'}
+            </button>
+          </div>
         </div>
       </div>
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>

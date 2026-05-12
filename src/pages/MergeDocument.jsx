@@ -7,6 +7,8 @@ import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { loadInstruments } from '../utils/merge/instrumentExporter.js';
 import generateMergedDocument from '../utils/merge/mergeDocumentEngine.js';
 import generatePdfDocument from '../utils/merge/pdfExportEngine.js';
+import generateLatexDocument from '../utils/merge/latexExportEngine.js';
+import generateMarkdownDocument from '../utils/merge/markdownExportEngine.js';
 import { PageSkeleton } from '../components/Skeleton';
 
 const PLACEHOLDER_FIELDS = [
@@ -126,6 +128,54 @@ const MergeDocument = () => {
       setTemplateFile(file);
       setTemplateFileName(file.name);
     }
+  };
+
+  const handleGenerateLatex = async () => {
+    if (selectedChapterIds.length === 0) {
+      setError('Please select at least one chapter to include.');
+      return;
+    }
+    setError('');
+    setGenerating(true);
+    setProgress('Preparing LaTeX...');
+
+    try {
+      const style = project?.referenceStyle || 'apa';
+      await generateLatexDocument({
+        project, chapters, generatedSubsections, selectedChapterIds,
+        frontMatter, placeholders, templateFile, selectedInstrumentIds,
+        projectId, style, onProgress: setProgress,
+      });
+      setProgress('LaTeX ready!');
+    } catch (e) {
+      console.error('LaTeX generation failed:', e);
+      setError('Failed to generate LaTeX: ' + (e.message || 'Unknown error'));
+    }
+    setGenerating(false);
+  };
+
+  const handleGenerateMarkdown = async () => {
+    if (selectedChapterIds.length === 0) {
+      setError('Please select at least one chapter to include.');
+      return;
+    }
+    setError('');
+    setGenerating(true);
+    setProgress('Preparing Markdown...');
+
+    try {
+      const style = project?.referenceStyle || 'apa';
+      await generateMarkdownDocument({
+        project, chapters, generatedSubsections, selectedChapterIds,
+        frontMatter, placeholders, templateFile, selectedInstrumentIds,
+        projectId, style, onProgress: setProgress,
+      });
+      setProgress('Markdown ready!');
+    } catch (e) {
+      console.error('Markdown generation failed:', e);
+      setError('Failed to generate Markdown: ' + (e.message || 'Unknown error'));
+    }
+    setGenerating(false);
   };
 
   const handleGeneratePdf = async () => {
@@ -382,12 +432,12 @@ const MergeDocument = () => {
           )}
 
           {/* Generate Buttons */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '40px' }}>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '40px', flexWrap: 'wrap' }}>
             <button
               onClick={handleGenerate}
               disabled={generating || selectedChapterIds.length === 0}
               style={{
-                flex: 1, padding: '16px', fontSize: '16px', fontWeight: '700',
+                flex: '1 1 180px', padding: '14px 12px', fontSize: '14px', fontWeight: '700',
                 backgroundColor: generating ? colors.textSecondary : '#059669',
                 color: 'white', border: 'none', borderRadius: '10px',
                 cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
@@ -401,7 +451,7 @@ const MergeDocument = () => {
               onClick={handleGeneratePdf}
               disabled={generating || selectedChapterIds.length === 0}
               style={{
-                flex: 1, padding: '16px', fontSize: '16px', fontWeight: '700',
+                flex: '1 1 180px', padding: '14px 12px', fontSize: '14px', fontWeight: '700',
                 backgroundColor: generating ? colors.textSecondary : colors.primary,
                 color: 'white', border: 'none', borderRadius: '10px',
                 cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
@@ -410,6 +460,34 @@ const MergeDocument = () => {
               }}
             >
               {generating ? 'Generating...' : '🖨️ Save as PDF'}
+            </button>
+            <button
+              onClick={handleGenerateLatex}
+              disabled={generating || selectedChapterIds.length === 0}
+              style={{
+                flex: '1 1 180px', padding: '14px 12px', fontSize: '14px', fontWeight: '700',
+                backgroundColor: generating ? colors.textSecondary : '#dc2626',
+                color: 'white', border: 'none', borderRadius: '10px',
+                cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {generating ? 'Generating...' : '📄 Download .tex'}
+            </button>
+            <button
+              onClick={handleGenerateMarkdown}
+              disabled={generating || selectedChapterIds.length === 0}
+              style={{
+                flex: '1 1 180px', padding: '14px 12px', fontSize: '14px', fontWeight: '700',
+                backgroundColor: generating ? colors.textSecondary : '#2563eb',
+                color: 'white', border: 'none', borderRadius: '10px',
+                cursor: generating || selectedChapterIds.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {generating ? 'Generating...' : '📝 Download .md'}
             </button>
           </div>
         </div>

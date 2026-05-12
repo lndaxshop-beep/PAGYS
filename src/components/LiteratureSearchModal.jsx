@@ -121,7 +121,7 @@ CRITICAL:
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Search for literature (e.g., 'AI in education 2023')"
+            placeholder="Search for literature (e.g., 'climate change education 2023')"
             style={{
               flex: 1, padding: '10px 14px', fontSize: '14px', borderRadius: '8px',
               border: `1px solid ${colors.border}`, backgroundColor: colors.input, color: colors.text,

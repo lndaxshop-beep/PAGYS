@@ -8,11 +8,11 @@ const HelpSupport = () => {
 
   const faqs = [
     { q: 'How do I start a new thesis project?', a: 'Log into your dashboard and click "+ Create New Project". Fill in your thesis title, field of study, level, and methodology. Your project will be created instantly.' },
-    { q: 'How does the AI generate my thesis?', a: 'PAGYS uses Google Gemini AI to generate academic content based on your topic, field, and methodology. You can guide the AI by uploading reference structures or pasting sample work.' },
+    { q: 'How does PAGYS write my thesis?', a: 'PAGYS helps you write academic content based on your topic, field, and methodology. You can guide the process by uploading reference structures or pasting sample work.' },
     { q: 'Are the references real?', a: 'Yes! PAGYS fetches real academic references from Crossref, a database of over 150 million scholarly articles. References include real authors, titles, journals, and DOIs.' },
     { q: 'Can I edit the generated content?', a: 'Absolutely. Click "✏️ Edit" to switch to editing mode. Make changes, then click "Save & Preview" to see the rendered version.' },
     { q: 'What citation styles are supported?', a: 'APA 7th Edition, MLA 9th Edition, Chicago/Turabian, Harvard, and IEEE.' },
-    { q: 'How do I upload my own chapter structure?', a: 'When you click a new chapter, a popup appears. Upload a screenshot, document, or paste formatted text showing your desired structure. The AI will follow it.' },
+    { q: 'How do I upload my own chapter structure?', a: 'When you click a new chapter, a popup appears. Upload a screenshot, document, or paste formatted text showing your desired structure. We will follow it.' },
     { q: 'What is Premium?', a: 'Premium gives you extended use of Humanise and Feedback features — up to 4 times per subsection instead of 1.' },
     { q: 'Do you offer refunds?', a: 'No. All purchases are final. If you experience issues, contact beaty.rice.7@gmail.com.' },
   ];

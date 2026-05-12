@@ -14,22 +14,22 @@ const SourceModeSelector = ({
       id: 'user-only',
       icon: '📚',
       title: 'Use My Sources',
-      description: 'Upload your own papers, articles, and screenshots. AI writes using ONLY your sources.',
-      longDesc: 'You provide the papers. AI extracts key information and writes your literature review based solely on what you upload. Recommended when you have specific sources you want to include.'
+      description: 'Upload your own papers, articles, and screenshots. We write using ONLY your sources.',
+      longDesc: 'You provide the papers. We extract key information and write your literature review based solely on what you upload. Recommended when you have specific sources you want to include.'
     },
     {
       id: 'ai-only',
       icon: '🤖',
-      title: 'AI Find Sources',
-      description: 'Let AI search for relevant sources automatically. No upload needed.',
-      longDesc: 'AI uses Google Search Grounding to find and cite real academic sources relevant to your topic. This is the current default behavior.'
+      title: 'We Find Sources',
+      description: 'We search for relevant sources automatically. No upload needed.',
+      longDesc: 'We use Google Search Grounding to find and cite real academic sources relevant to your topic. This is the current default behavior.'
     },
     {
       id: 'combine',
       icon: '🔗',
       title: 'Combine Both',
-      description: 'Your papers plus AI search. AI prioritizes your sources and supplements with its own.',
-      longDesc: 'Upload your own papers as primary sources. AI will prioritize those while also finding additional supporting sources through Google Search. Best of both worlds.'
+      description: 'Your papers plus our search. We prioritize your sources and supplement with ours.',
+      longDesc: 'Upload your own papers as primary sources. We will prioritize those while also finding additional supporting sources through Google Search. Best of both worlds.'
     }
   ];
 
@@ -215,7 +215,7 @@ const SourceModeSelector = ({
                         fontSize: '14px', opacity: generatingMatrix ? 0.7 : 1
                       }}
                     >
-                      {generatingMatrix ? 'Generating Literature Matrix...' : '📊 Generate Literature Matrix'}
+                      {generatingMatrix ? 'Creating Literature Matrix...' : '📊 Create Literature Matrix'}
                     </button>
                   )}
                 </div>
@@ -235,7 +235,7 @@ const SourceModeSelector = ({
           >
             {sourceMode === 'user-only' || sourceMode === 'combine'
               ? `Continue with ${sources.length} source(s)`
-              : 'Continue with AI Sources'}
+              : 'Continue with Our Search'}
           </button>
         </div>
       </div>

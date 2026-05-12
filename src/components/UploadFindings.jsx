@@ -69,7 +69,7 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
               Chapter 4: Results & Analysis
             </h2>
             <p style={{ color: colors.textSecondary, marginTop: '4px' }}>
-              Upload your findings or let AI generate sample data
+               Upload your findings or use sample data
             </p>
           </div>
           <button
@@ -149,10 +149,10 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
             </div>
             <div style={{ flex: 1 }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>
-                Let AI Generate Sample Data
+                Use Sample Data
               </h3>
               <p style={{ color: colors.textSecondary, fontSize: '14px' }}>
-                Don't have real data yet? AI can generate realistic sample findings based on your research topic and methodology.
+                Don't have real data yet? We can create realistic sample findings based on your research topic and methodology.
               </p>
             </div>
             {selectedOption === 'ai' && (
@@ -324,7 +324,7 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
                 e.target.style.boxShadow = 'none';
               }}
             >
-              {useAIGenerated ? 'Generate Chapter 4 with AI Data →' : 'Generate Chapter 4 with Uploaded Data →'}
+              {useAIGenerated ? 'Write Chapter 4 with Sample Data →' : 'Write Chapter 4 with Uploaded Data →'}
             </button>
           </div>
         )}

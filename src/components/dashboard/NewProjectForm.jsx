@@ -20,7 +20,7 @@ const NewProjectForm = ({
         <div style={{ display: 'grid', gap: '20px' }}>
           <div>
             <label htmlFor="projectTitle" style={labelStyle}>Thesis Title *</label>
-            <input id="projectTitle" type="text" name="title" value={form.title} onChange={onChange} required style={inputStyle} placeholder="e.g., Impact of AI on Healthcare" />
+            <input id="projectTitle" type="text" name="title" value={form.title} onChange={onChange} required style={inputStyle} placeholder="e.g., Impact of Technology on Healthcare" />
           </div>
           <div>
             <label htmlFor="projectLevel" style={labelStyle}>Level of Study *</label>

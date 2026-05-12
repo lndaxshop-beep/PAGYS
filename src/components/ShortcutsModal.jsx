@@ -6,7 +6,7 @@ const SHORTCUTS = [
   { keys: 'Ctrl + Z', action: 'Undo last change' },
   { keys: 'Ctrl + Y / Ctrl + Shift + Z', action: 'Redo last change' },
   { keys: 'Ctrl + E', action: 'Toggle Edit / Preview mode' },
-  { keys: 'Ctrl + G', action: 'Generate AI content for current subsection' },
+  { keys: 'Ctrl + G', action: 'Write content for current subsection' },
   { keys: 'Alt + 1–6', action: 'Jump to subsection by index' },
   { keys: 'Escape', action: 'Close any open modal' },
 ];

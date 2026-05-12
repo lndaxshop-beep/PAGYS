@@ -31,7 +31,7 @@ const ContentButtons = ({
           {!isViewingReferences ? (
             <>
               <button onClick={onGenerate} disabled={!canGenerate} style={btnStyle(!canGenerate)}>
-                {generating ? 'Generating...' : currentSubsection?.generated ? 'Already Generated' : `Generate ${currentSubsection?.title || 'Current'}`}
+                {generating ? 'Writing...' : currentSubsection?.generated ? 'Written' : `Write ${currentSubsection?.title || 'Current'}`}
               </button>
               <button onClick={onHumanise} disabled={!canHumanise} style={{
                 ...btnStyle(!canHumanise),
@@ -71,7 +71,7 @@ const ContentButtons = ({
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
         <span style={{ color: colors.textSecondary, fontWeight: '500' }}>
-          Overall Progress: {overallProgress.percentage}% • {generatedActive} of {totalActive} subsections generated
+          Overall Progress: {overallProgress.percentage}% • {generatedActive} of {totalActive} subsections written
           {referencesSub && ` • References: ${referencesGenerated ? '✓' : 'pending'}`}
         </span>
         <button onClick={onComplete} disabled={!chapterComplete} style={{

@@ -306,7 +306,7 @@ const Write = () => {
   const wrappedGenerateCurrent = async () => {
     try {
       const result = await handleGenerateCurrent(activeSubsections);
-      if (!result || result.error) { toastError(result?.message || 'Generation failed.'); return; }
+      if (!result || result.error) { toastError(result?.message || 'Writing failed.'); return; }
       if (result.skipped) return;
       const { content, citations, subsectionId } = result;
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
@@ -327,7 +327,7 @@ const Write = () => {
       });
     } catch (error) {
       console.error('Generation failed:', error);
-      toastError('Failed to generate content. ' + error.message);
+      toastError('Failed to write content. ' + error.message);
     }
   };
 
@@ -336,12 +336,12 @@ const Write = () => {
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: currentContent } }));
     }
     const result = await handleGenerateReferences(currentChapter, currentContent);
-    if (!result || result.error) { toastError(result?.message || 'References generation failed.'); return; }
+    if (!result || result.error) { toastError(result?.message || 'References writing failed.'); return; }
     const { content, usedGrounding } = result;
     setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.type === 'references' ? { ...s, generated: true } : s) } : ch));
     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
-    toastSuccess(usedGrounding ? 'References generated from real sources!' : 'References generated from citations. Verify entries before submitting.');
+    toastSuccess(usedGrounding ? 'References written from real sources!' : 'References written from your citations. Verify entries before submitting.');
   };
 
   const wrappedHandleSubsectionClick = (subsectionId) => {
@@ -349,7 +349,7 @@ const Write = () => {
     const sub = currentChapter?.subsections.find(s => s.id === subsectionId);
     if (sub?.type === 'references') {
       const allOthersGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
-      if (!allOthersGenerated) { toastError('Please generate all other subsections first.'); return; }
+      if (!allOthersGenerated) { toastError('Please write all other subsections first.'); return; }
       wrappedGenerateReferences(); return;
     }
     const index = activeSubs.findIndex(s => s.id === subsectionId);
@@ -471,14 +471,14 @@ const Write = () => {
       }
     }
     setGeneratingFullOutline(false);
-    toastSuccess(`Full outline generated for ${completed}/${contentChapters.length} chapters!`);
+    toastSuccess(`Full outline created for ${completed}/${contentChapters.length} chapters!`);
   };
 
   const handleGenerateAll = async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (!chapter) return;
     const subs = chapter.subsections.filter(s => !s.generated && s.type !== 'references' && !s.deleted);
-    if (subs.length === 0) { toastError('All subsections already generated.'); return; }
+    if (subs.length === 0) { toastError('All subsections already written.'); return; }
     setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId });
     const activeSubsList = chapter.subsections.filter(s => !s.deleted && s.type !== 'references');
     let errorCount = 0;
@@ -495,8 +495,8 @@ const Write = () => {
       setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null);
     }
     setGeneratingAll(null);
-    if (errorCount > 0) toastError(`${errorCount} subsection(s) failed to generate.`);
-    else toastSuccess(`All ${subs.length} subsection(s) generated successfully!`);
+    if (errorCount > 0) toastError(`${errorCount} subsection(s) failed to write.`);
+    else toastSuccess(`All ${subs.length} subsection(s) written successfully!`);
   };
 
   const handleInstrumentsDownload = (downloadedTypes) => {
@@ -573,7 +573,7 @@ const Write = () => {
 
           {generatingSubtopics ? (
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '32px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
-              <p style={{ color: colors.primary }}>AI is generating appropriate subtopics for this chapter...</p>
+              <p style={{ color: colors.primary }}>We're preparing appropriate subtopics for this chapter...</p>
             </div>
           ) : (
             <>

@@ -32,16 +32,15 @@ const HomePage = () => {
   };
 
   const features = [
-    { icon: '🤖', title: 'AI-Powered Writing', description: 'Generate well-researched, properly structured academic content tailored to your topic and field.' },
-    { icon: '📚', title: 'Real Citations', description: 'Automatically generate properly formatted references in APA, MLA, Harvard, and more.' },
-    { icon: '🎯', title: 'Chapter by Chapter', description: 'Work through your thesis systematically with our guided chapter structure.' },
-    { icon: '✏️', title: 'Humanise & Edit', description: 'Refine AI-generated content to match your unique voice and academic style.' },
+    { icon: '🤖', title: 'Guided Writing', description: 'We help you craft well-researched, properly structured academic content tailored to your topic and field.' },
+    { icon: '📚', title: 'Real Citations', description: 'We automatically format your references in APA, MLA, Harvard, and more.' },
+    { icon: '✏️', title: 'Humanise & Edit', description: 'Refine your content to match your unique voice and academic style.' },
     { icon: '📊', title: 'Progress Tracking', description: 'Track your writing progress and stay motivated with visual progress indicators.' },
     { icon: '🔒', title: 'Secure & Private', description: 'Your research and content are private and secure. You own everything you create.' }
   ];
 
   const testimonials = [
-    { name: 'Sarah Johnson', role: 'PhD Candidate, Stanford', content: 'PAGYS saved me months of work. The AI understood my research topic perfectly and generated content that was actually useful.' },
+    { name: 'Sarah Johnson', role: 'PhD Candidate, Stanford', content: 'PAGYS saved me months of work. The team understood my research topic perfectly and the content was actually useful.' },
     { name: 'Michael Chen', role: 'Master\'s Student, MIT', content: 'The chapter structure feature is brilliant. It kept me organized and the citations were formatted perfectly in APA style.' },
     { name: 'Dr. Emily Rodriguez', role: 'Research Fellow, Oxford', content: 'As a supervisor, I recommend PAGYS to my students. It helps them structure their thoughts and focus on the actual research.' }
   ];
@@ -78,7 +77,7 @@ const HomePage = () => {
             <span key={isDarkMode ? 'dark' : 'light'} style={{ background: `linear-gradient(135deg, ${colors.primary}, #9583b988)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>Like A Pro</span>
           </h1>
           <p style={{ fontSize: '18px', color: colors.textSecondary, maxWidth: '700px', margin: '0 auto 32px', lineHeight: '1.6' }}>
-            Generate complete, well-structured thesis drafts tailored to your topic, field, and academic level. Save months of research and writing time.
+            We help you write complete, well-structured thesis drafts tailored to your topic, field, and academic level. Save months of research and writing time.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={handleGetStarted} style={heroButtonStyle}

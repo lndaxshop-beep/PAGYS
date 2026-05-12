@@ -122,7 +122,7 @@ const LeftPane = ({
             marginBottom: '12px', opacity: generatingFullOutline ? 0.6 : 1,
           }}
         >
-          {generatingFullOutline ? '⏳ Generating Full Outline...' : '📋 Generate Full Thesis Outline'}
+          {generatingFullOutline ? '⏳ Creating Full Outline...' : '📋 Create Full Thesis Outline'}
         </button>
       )}
 
@@ -172,7 +172,7 @@ const LeftPane = ({
                 }}>
                   {generatingSubtopics && chapter.id === activeChapter && (
                     <div style={{ textAlign: 'center', padding: '16px' }}>
-                      <p style={{ color: colors.primary, fontSize: '13px' }}>Generating subtopics...</p>
+                      <p style={{ color: colors.primary, fontSize: '13px' }}>Creating subtopics...</p>
                     </div>
                   )}
 
@@ -217,7 +217,7 @@ const LeftPane = ({
                   {onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
                     generatingAll && generatingAll.chapterId === chapter.id ? (
                       <div style={{ marginTop: '12px', padding: '8px', fontSize: '12px', color: colors.primary, textAlign: 'center', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
-                        Generating {generatingAll.completed}/{generatingAll.total}...
+                        Writing {generatingAll.completed}/{generatingAll.total}...
                       </div>
                     ) : (
                       <button
@@ -232,7 +232,7 @@ const LeftPane = ({
                         onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; }}
                       >
-                        ⚡ Generate All Remaining ({activeSubsections.filter(s => !s.generated && s.type !== 'references').length})
+                        ⚡ Write All Remaining ({activeSubsections.filter(s => !s.generated && s.type !== 'references').length})
                       </button>
                     )
                   )}

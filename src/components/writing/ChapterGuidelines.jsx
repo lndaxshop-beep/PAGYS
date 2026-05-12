@@ -32,7 +32,7 @@ const ChapterGuidelines = ({ chapter, onUpdate }) => {
             transition: 'all 0.2s',
           }}
         >
-          {hasGuidelines ? '📋 AI Guidelines Set' : '✏️ Set AI Writing Guidelines'}
+          {hasGuidelines ? '📋 Custom Guidelines Set' : '✏️ Set Custom Guidelines'}
         </button>
       ) : (
         <div style={{
@@ -40,7 +40,7 @@ const ChapterGuidelines = ({ chapter, onUpdate }) => {
           borderRadius: '6px', border: `1px solid ${colors.border}`,
         }}>
           <p style={{ fontSize: '11px', color: colors.textSecondary, margin: '0 0 6px', fontWeight: '500' }}>
-            Custom AI instructions for this chapter:
+            Custom instructions for this chapter:
           </p>
           <textarea
             value={text}

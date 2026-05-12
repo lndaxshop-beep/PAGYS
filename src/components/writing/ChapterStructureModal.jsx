@@ -89,7 +89,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
         setEditHeadings(result.map(h => ({ id: nextId(), text: h })));
         setStep('preview');
       } else {
-        onError?.('AI could not extract a valid structure. You can try again or use Skip.');
+        onError?.('Could not extract a valid structure. You can try again or use Skip.');
         setStep('input');
       }
     } catch {
@@ -139,11 +139,11 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
         </div>
       )}
       <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Upload Chapter Structure</h2>
-      <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>Upload screenshots or paste text showing how you want this chapter structured. The AI will follow the exact structure, numbering, and visual placements.</p>
+      <p style={{ color: colors.textSecondary, marginBottom: '24px' }}>Upload screenshots or paste text showing how you want this chapter structured. We will follow the exact structure, numbering, and visual placements.</p>
 
       {pendingChapter && (
         <div style={{ padding: '12px 16px', marginBottom: '16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f7ff', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#3d3d3d' : '#bfdbfe'}` }}>
-          <p style={{ fontSize: '12px', color: colors.textSecondary, lineHeight: '1.5' }}>💡 <strong>Tip:</strong> {CHAPTER_HINTS[pendingChapter] || 'Upload screenshots or paste your chapter structure. The AI will extract headings, numbering, and hierarchy.'}</p>
+          <p style={{ fontSize: '12px', color: colors.textSecondary, lineHeight: '1.5' }}>💡 <strong>Tip:</strong> {CHAPTER_HINTS[pendingChapter] || 'Upload screenshots or paste your chapter structure. We will extract headings, numbering, and hierarchy.'}</p>
         </div>
       )}
 
@@ -188,7 +188,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
         </button>
       </div>
 
-      <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Paste your chapter structure here...&#10;&#10;Example:&#10;2.0 Introduction&#10;2.1 Theoretical Framework [with diagram]&#10;2.2 Conceptual Framework&#10;2.3 Empirical Review&#10;2.4 Research Gaps&#10;2.5 Summary&#10;&#10;You can paste an ENTIRE chapter or document. The AI will extract ONLY the structure (headings, numbering, hierarchy, diagram placements, table positions) and adapt it to your topic." rows="15" style={{ width: '100%', padding: '14px', marginBottom: '8px', border: `1px solid ${colors.border}`, borderRadius: '8px', backgroundColor: colors.input, color: colors.text, fontSize: '14px', resize: 'vertical', fontFamily: 'monospace', lineHeight: '1.6', minHeight: '250px' }} />
+      <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} placeholder="Paste your chapter structure here...&#10;&#10;Example:&#10;2.0 Introduction&#10;2.1 Theoretical Framework [with diagram]&#10;2.2 Conceptual Framework&#10;2.3 Empirical Review&#10;2.4 Research Gaps&#10;2.5 Summary&#10;&#10;You can paste an ENTIRE chapter or document. We will extract ONLY the structure (headings, numbering, hierarchy, diagram placements, table positions) and adapt it to your topic." rows="15" style={{ width: '100%', padding: '14px', marginBottom: '8px', border: `1px solid ${colors.border}`, borderRadius: '8px', backgroundColor: colors.input, color: colors.text, fontSize: '14px', resize: 'vertical', fontFamily: 'monospace', lineHeight: '1.6', minHeight: '250px' }} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <button onClick={() => setTextValue(normalizeNumbering(textValue))}
@@ -200,7 +200,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
 
       <div style={{ display: 'flex', gap: '12px' }}>
         <button onClick={handleUseStructure} style={{ flex: 1, backgroundColor: '#059669', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>✅ Use This Structure</button>
-        <button onClick={() => onSubmit(null)} style={{ flex: 1, backgroundColor: colors.primary, color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Skip (Use AI Default)</button>
+        <button onClick={() => onSubmit(null)} style={{ flex: 1, backgroundColor: colors.primary, color: 'white', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Use Default Structure</button>
         <button onClick={onClose} style={{ flex: 1, backgroundColor: 'transparent', color: colors.text, padding: '12px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
       </div>
     </>
@@ -209,7 +209,7 @@ const ChapterStructureModal = ({ isOpen, onClose, onSubmit, onPreview, uploadedF
   const renderSubmittingStep = () => (
     <div style={{ padding: '40px 20px', textAlign: 'center' }}>
       <div style={{ fontSize: '36px', marginBottom: '16px' }}>⏳</div>
-      <p style={{ color: colors.primary, fontWeight: '500', fontSize: '16px' }}>AI is extracting your structure...</p>
+      <p style={{ color: colors.primary, fontWeight: '500', fontSize: '16px' }}>Extracting your structure...</p>
       <p style={{ color: colors.textSecondary, fontSize: '13px', marginTop: '8px' }}>Analyzing headings, numbering, and hierarchy</p>
     </div>
   );

@@ -4,22 +4,22 @@ import { useTheme } from '../contexts/ThemeContext';
 const STEPS = [
   {
     title: 'Welcome to PAGYS',
-    subtitle: 'Your AI-Powered Academic Writing Assistant',
-    content: 'PAGYS helps you write your thesis from start to finish. Generate academic content chapter by chapter, verify citations, manage references, and export your completed document in multiple formats.',
+    subtitle: 'Your Personal Academic Writing Assistant',
+    content: 'PAGYS helps you write your thesis from start to finish. Write academic content chapter by chapter, verify citations, manage references, and export your completed document in multiple formats.',
     icon: '🎓',
     action: null,
   },
   {
     title: 'Create Your First Project',
     subtitle: 'Start with a clear research direction',
-    content: 'Click "New Project" to begin. Enter your thesis title, academic level, field of study, and research methodology. PAGYS will generate a structured outline with all chapters and subsections tailored to your topic.',
+    content: 'Click "New Project" to begin. Enter your thesis title, academic level, field of study, and research methodology. PAGYS creates a structured outline with all chapters and subsections tailored to your topic.',
     icon: '📂',
     action: null,
   },
   {
     title: 'Write, Review & Export',
-    subtitle: 'Let AI handle the heavy lifting',
-    content: 'Navigate through each subsection in the sidebar. Click "Generate" to write content with AI, automatically grounded in real sources. Humanise the text, apply feedback, and verify citations. When ready, merge everything into a .docx, .pdf, .tex, or .md file.',
+    subtitle: 'We handle the heavy lifting',
+    content: 'Navigate through each subsection in the sidebar. Click "Write" to create content grounded in real sources. Humanise the text, apply feedback, and verify citations. When ready, merge everything into a .docx, .pdf, .tex, or .md file.',
     icon: '🚀',
     action: 'Get Started',
   },

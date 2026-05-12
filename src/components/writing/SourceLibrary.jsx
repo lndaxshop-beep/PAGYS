@@ -179,7 +179,7 @@ const SourceLibrary = ({
             borderTopColor: 'transparent', borderRadius: '50%',
             margin: '0 auto 12px', animation: 'spin 0.8s linear infinite'
           }} />
-          <p style={{ color: colors.textSecondary }}>AI is synthesizing your sources into a literature matrix...</p>
+          <p style={{ color: colors.textSecondary }}>Synthesizing your sources into a literature matrix...</p>
         </div>
       )}
 

@@ -1,6 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
+const OUTLINE_INDENT = 16;
+const OUTLINE_COLORS = ['#7c3aed', '#8b5cf6', '#a78bfa'];
+
+const OutlineTree = ({ outline, isDarkMode, colors }) => {
+  if (!outline || outline.length === 0) return null;
+  return (
+    <div style={{ marginTop: '6px', paddingLeft: '8px', borderLeft: `2px solid ${colors.border}`, fontSize: '11px' }}>
+      {outline.map((item, i) => (
+        <div key={i} style={{ paddingLeft: (item.depth - 1) * OUTLINE_INDENT, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ color: OUTLINE_COLORS[(item.depth - 1) % OUTLINE_COLORS.length], fontWeight: '500', whiteSpace: 'nowrap' }}>{item.number}</span>
+          <span style={{ color: colors.textSecondary }}>{item.title}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const SubsectionItem = ({
   subsection,
   chapterId,
@@ -11,6 +28,7 @@ const SubsectionItem = ({
   isDragged,
   isDragOver,
   wordCount,
+  outline,
   onDragStart,
   onDragOver,
   onDrop,
@@ -146,6 +164,9 @@ const SubsectionItem = ({
             <div style={{ fontSize: '10px', color: colors.textSecondary, marginTop: '2px' }}>
               {wordCount.min}–{wordCount.max} words
             </div>
+          )}
+          {outline && outline.length > 0 && (
+            <OutlineTree outline={outline} isDarkMode={isDarkMode} colors={colors} />
           )}
         </div>
         {!isReferences && onDelete && (

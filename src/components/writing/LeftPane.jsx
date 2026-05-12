@@ -6,6 +6,7 @@ import SubsectionItem from './SubsectionItem';
 import DeletedSubsections from './DeletedSubsections';
 import { getActiveSubsections, isReferencesClickable, validateReferencesClick } from '../../utils/leftPaneHelpers';
 import { distributeWordCount } from '../../utils/writeHelpers.jsx';
+import { extractOutline } from '../../utils/outlineHelpers';
 
 const LeftPane = ({
   chapters, activeChapter, onChapterClick, progress,
@@ -165,27 +166,30 @@ const LeftPane = ({
                         const totalWC = chapterWordCounts?.[chapter.id] || { min: 1000, max: 2000 };
                         const subWC = distributeWordCount(totalWC.min, totalWC.max, activeSubsections, sub.title);
 
+                        const subContent = generatedSubsections[chapter.id]?.[sub.id] || '';
+                        const subOutline = extractOutline(subContent);
+
                         return (
-                          <SubsectionItem
-                            key={sub.id}
-                            subsection={sub}
-                            chapterId={chapter.id}
-                            index={idx}
-                            isActiveChapter={activeChapter === chapter.id}
-                            isDraggable={draggable}
-                            isClickable={clickable}
-                            isDragged={draggedItem === idx}
-                            isDragOver={dragOverItem === idx && draggedItem !== idx}
-                            wordCount={isRefs ? null : subWC}
-                            onDragStart={onDragStart}
-                            onDragOver={onDragOver}
-                            onDrop={onDrop}
-                            onDragEnd={onDragEnd}
-                            onClick={() => handleSubsectionClick(sub, activeSubsections)}
-                            onDelete={(id) => onDeleteSubsection(id, chapter.id)}
-                            onRename={(id, newTitle) => onRenameSubsection?.(id, newTitle)}
-                          />
-                        );
+                        <SubsectionItem
+                          key={sub.id}
+                          subsection={sub}
+                          chapterId={chapter.id}
+                          index={idx}
+                          isActiveChapter={activeChapter === chapter.id}
+                          isDraggable={draggable}
+                          isClickable={clickable}
+                          isDragged={draggedItem === idx}
+                          isDragOver={dragOverItem === idx && draggedItem !== idx}
+                          wordCount={isRefs ? null : subWC}
+                          outline={subOutline}
+                          onDragStart={onDragStart}
+                          onDragOver={onDragOver}
+                          onDrop={onDrop}
+                          onDragEnd={onDragEnd}
+                          onClick={() => handleSubsectionClick(sub, activeSubsections)}
+                          onDelete={(id) => onDeleteSubsection(id, chapter.id)}
+                          onRename={(id, newTitle) => onRenameSubsection?.(id, newTitle)}
+                        />);
                       })}
                     </div>
                   )}

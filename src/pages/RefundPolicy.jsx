@@ -9,7 +9,7 @@ const RefundPolicy = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
       <button onClick={() => navigate(-1)} style={{
-        position: 'fixed', top: '20px', left: '20px', zIndex: 100,
+        position: 'fixed', top: '20px', right: '20px', zIndex: 100,
         backgroundColor: colors.surface, color: colors.text,
         border: `1px solid ${colors.border}`, borderRadius: '10px',
         padding: '10px 18px', fontSize: '14px', fontWeight: '500',
@@ -17,8 +17,8 @@ const RefundPolicy = () => {
         boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)',
         transition: 'all 0.2s',
       }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.hover; e.currentTarget.style.transform = 'translateX(-3px)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.transform = 'translateX(0)'; }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 6px 16px rgba(0,0,0,0.5)' : '0 6px 16px rgba(0,0,0,0.15)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)'; }}
       >← Back</button>
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>

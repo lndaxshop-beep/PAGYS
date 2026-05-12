@@ -19,12 +19,18 @@ const HelpSupport = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-      <header style={{ backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}`, padding: '20px 32px', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '32px' }}>
-          <h1 onClick={() => navigate('/')} style={{ fontSize: '28px', fontWeight: 'bold', color: colors.primary, margin: 0, cursor: 'pointer' }}>PAGYS</h1>
-          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: colors.textSecondary, fontSize: '14px', cursor: 'pointer' }}>← Back</button>
-        </div>
-      </header>
+      <button onClick={() => navigate(-1)} style={{
+        position: 'fixed', top: '20px', left: '20px', zIndex: 100,
+        backgroundColor: colors.surface, color: colors.text,
+        border: `1px solid ${colors.border}`, borderRadius: '10px',
+        padding: '10px 18px', fontSize: '14px', fontWeight: '500',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+        boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s',
+      }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.hover; e.currentTarget.style.transform = 'translateX(-3px)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.transform = 'translateX(0)'; }}
+      >← Back</button>
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
         <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', border: `1px solid ${colors.border}`, marginBottom: '32px' }}>

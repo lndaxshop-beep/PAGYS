@@ -210,11 +210,11 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
             }
           }
         } else if (type === 'mermaid') {
-          const pngBuf = await renderMermaidToPng(raw);
-          if (pngBuf) {
+          const result = await renderMermaidToPng(raw);
+          if (result && result.pngBuffer) {
             const titleMatch = raw.match(/%%\s*title:\s*(.+)/i);
             const caption = titleMatch ? titleMatch[1].trim() : null;
-            htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="Diagram" />`);
+            htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(result.pngBuffer)}" alt="Diagram" />`);
             if (caption) {
               htmlParts.push(`<p class="caption">${escapeHtml(caption)}</p>`);
             }

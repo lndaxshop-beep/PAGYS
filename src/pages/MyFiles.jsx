@@ -85,10 +85,12 @@ const MyFiles = () => {
     try {
       const content = await getGeneratedContent(selectedProject);
       const chapterContent = content?.[chapter.id] || {};
+      const chapterIndex = chapters.findIndex(ch => ch.id === chapter.id) + 1;
       const blob = await generateChapterDocument({
         chapter,
         content: chapterContent,
         formatConfig: null,
+        chapterIndex,
       });
       saveAs(blob, generateCleanFilename(chapter));
     } catch (e) {

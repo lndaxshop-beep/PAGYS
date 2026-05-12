@@ -30,12 +30,40 @@ const makeCaption = (text, fontFamily) => new Paragraph({
   children: [new TextRun({ text: sanitizeXmlText(text), italics: true, size: 22, font: fontFamily })]
 });
 
-export const parseChapterContent = async (content, chapterId, format) => {
+export const parseChapterContent = async (content, chapterId, format, chapterIndex = 1) => {
   const children = [];
   if (!content) return children;
 
   const fontFamily = format.fontFamily || 'Times New Roman';
   let prevHeading = HeadingLevel.HEADING_2;
+  let tableCounter = 0;
+  let figureCounter = 0;
+
+  const makeTableLabel = (title) => {
+    tableCounter++;
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 240, after: 60 },
+      children: [new TextRun({ text: `Table ${chapterIndex}.${tableCounter}: ${sanitizeXmlText(title)}`, bold: true, size: 24, font: fontFamily })]
+    });
+  };
+
+  const makeFigureLabel = (title) => {
+    figureCounter++;
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 240, after: 60 },
+      children: [new TextRun({ text: `Figure ${chapterIndex}.${figureCounter}: ${sanitizeXmlText(title)}`, bold: false, italics: true, size: 24, font: fontFamily })]
+    });
+  };
+
+  const makeChartDataTable = (parsed) => {
+    const data = parsed.data || parsed;
+    const labels = data.labels || [];
+    const values = data.values || [];
+    const rows = labels.map((label, i) => [String(label || ''), String(values[i] != null ? values[i] : '')]);
+    return buildDocxTable({ headers: ['Category', 'Value'], rows }, format);
+  };
 
   const subsectionEntries = Object.entries(content)
     .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
@@ -49,22 +77,29 @@ export const parseChapterContent = async (content, chapterId, format) => {
     try {
       if (type === 'table') {
         const parsed = JSON.parse(raw);
-        const docxTable = buildDocxTable(parsed, format);
-        children.push(docxTable);
+        const title = parsed.caption || parsed.title || 'Table';
+        children.push(makeTableLabel(title));
+        children.push(buildDocxTable(parsed, format));
         if (parsed.caption) children.push(makeCaption(parsed.caption, fontFamily));
       } else if (type === 'chart' || type === 'diagram' || type === 'graph') {
         const parsed = JSON.parse(raw);
         const pngBuffer = renderChartToPng(parsed);
         if (pngBuffer) {
+          const title = parsed.title || parsed.caption || 'Chart';
+          children.push(makeTableLabel('Data for ' + title));
+          children.push(makeChartDataTable(parsed));
           const caption = parsed.caption || parsed.title || null;
+          children.push(makeFigureLabel(caption || title));
           children.push(...buildImageParagraph(pngBuffer, caption, format));
         }
       } else if (type === 'mermaid') {
-        const pngBuffer = await renderMermaidToPng(raw);
-        if (pngBuffer) {
+        const result = await renderMermaidToPng(raw);
+        if (result && result.pngBuffer) {
           const titleMatch = raw.match(/%%\s*title:\s*(.+)/i);
-          const caption = titleMatch ? titleMatch[1].trim() : null;
-          children.push(...buildImageParagraph(pngBuffer, caption, format));
+          const title = titleMatch ? titleMatch[1].trim() : 'Diagram';
+          const caption = title;
+          children.push(makeFigureLabel(title));
+          children.push(...buildImageParagraph(result.pngBuffer, caption, format, result.height / result.width));
         }
       }
     } catch (e) {
@@ -116,8 +151,9 @@ export const parseChapterContent = async (content, chapterId, format) => {
           const parsed = JSON.parse(`{${chartInline[1]}}`);
           const pngBuffer = renderChartToPng(parsed);
           if (pngBuffer) {
-            const caption = parsed.caption || parsed.title || null;
-            children.push(...buildImageParagraph(pngBuffer, caption, format));
+            const title = parsed.title || parsed.caption || 'Chart';
+            children.push(makeFigureLabel(title));
+            children.push(...buildImageParagraph(pngBuffer, null, format));
           }
         } catch (e) {
           console.warn('Inline chart render failed:', e);

@@ -4,12 +4,12 @@ import {
 } from 'docx';
 import { sanitizeXmlText } from './sanitizeText.js';
 
-const CHART_WIDTH = 600;
-const CHART_HEIGHT = 400;
+const CHART_WIDTH = 1200;
+const CHART_HEIGHT = 800;
 const PIXELS_PER_INCH = 96;
 const TARGET_IMAGE_WIDTH_INCHES = 5.5;
 
-const BAR_COLORS = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
+const CHART_COLORS = ['#4F81BD', '#C0504D', '#9BBB59', '#8064A2', '#F79646', '#4BACC6', '#1F497D', '#953735', '#6B8F37', '#57398D'];
 
 const drawBarChart = (ctx, width, height, padding, data, textColor, gridColor) => {
   const chartWidth = width - 2 * padding;
@@ -21,7 +21,7 @@ const drawBarChart = (ctx, width, height, padding, data, textColor, gridColor) =
   const barSpacing = (chartWidth / values.length) * 0.3;
 
   ctx.beginPath();
-  ctx.strokeStyle = textColor;
+  ctx.strokeStyle = '#333333';
   ctx.lineWidth = 2;
   ctx.moveTo(padding, padding);
   ctx.lineTo(padding, height - padding);
@@ -31,32 +31,34 @@ const drawBarChart = (ctx, width, height, padding, data, textColor, gridColor) =
 
   ctx.textAlign = 'right';
   ctx.fillStyle = textColor;
-  ctx.font = '12px Inter, sans-serif';
+  ctx.font = '22px Times New Roman, serif';
   for (let i = 0; i <= 5; i++) {
     const y = height - padding - (i / 5) * chartHeight;
     const value = (i / 5) * maxValue;
     ctx.beginPath();
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
+    ctx.setLineDash([4, 4]);
     ctx.moveTo(padding, y);
     ctx.lineTo(width - padding, y);
     ctx.stroke();
-    ctx.fillText(value.toFixed(0), padding - 10, y + 4);
+    ctx.setLineDash([]);
+    ctx.fillText(Number.isInteger(value) ? value.toString() : value.toFixed(1), padding - 12, y + 7);
   }
 
   values.forEach((value, index) => {
     const x = padding + index * (barWidth + barSpacing) + barSpacing / 2;
     const barHeight = (value / maxValue) * chartHeight;
     const y = height - padding - barHeight;
-    ctx.fillStyle = BAR_COLORS[index % BAR_COLORS.length];
+    ctx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
     ctx.fillRect(x, y, barWidth, barHeight);
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.fillText(value, x + barWidth / 2, y - 5);
+    ctx.font = 'bold 22px Times New Roman, serif';
+    ctx.fillText(value.toString(), x + barWidth / 2, y - 8);
     ctx.fillStyle = textColor;
-    ctx.font = '11px Inter, sans-serif';
-    ctx.fillText(labels[index] || `Item ${index + 1}`, x + barWidth / 2, height - padding + 20);
+    ctx.font = '20px Times New Roman, serif';
+    ctx.fillText(labels[index] || `Item ${index + 1}`, x + barWidth / 2, height - padding + 35);
   });
 };
 
@@ -69,7 +71,7 @@ const drawLineChart = (ctx, width, height, padding, data, textColor, gridColor) 
   const xStep = chartWidth / Math.max(values.length - 1, 1);
 
   ctx.beginPath();
-  ctx.strokeStyle = textColor;
+  ctx.strokeStyle = '#333333';
   ctx.lineWidth = 2;
   ctx.moveTo(padding, padding);
   ctx.lineTo(padding, height - padding);
@@ -77,19 +79,26 @@ const drawLineChart = (ctx, width, height, padding, data, textColor, gridColor) 
   ctx.lineTo(width - padding, height - padding);
   ctx.stroke();
 
+  ctx.textAlign = 'right';
+  ctx.fillStyle = textColor;
+  ctx.font = '22px Times New Roman, serif';
   for (let i = 0; i <= 5; i++) {
     const y = height - padding - (i / 5) * chartHeight;
+    const value = (i / 5) * maxValue;
     ctx.beginPath();
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
+    ctx.setLineDash([4, 4]);
     ctx.moveTo(padding, y);
     ctx.lineTo(width - padding, y);
     ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillText(Number.isInteger(value) ? value.toString() : value.toFixed(1), padding - 12, y + 7);
   }
 
   ctx.beginPath();
-  ctx.strokeStyle = '#7c3aed';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#4F81BD';
+  ctx.lineWidth = 4;
   values.forEach((value, index) => {
     const x = padding + index * xStep;
     const y = height - padding - (value / maxValue) * chartHeight;
@@ -102,60 +111,79 @@ const drawLineChart = (ctx, width, height, padding, data, textColor, gridColor) 
     const x = padding + index * xStep;
     const y = height - padding - (value / maxValue) * chartHeight;
     ctx.beginPath();
-    ctx.fillStyle = '#7c3aed';
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = '#4F81BD';
+    ctx.arc(x, y, 8, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
     ctx.stroke();
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.fillText(value, x, y - 12);
+    ctx.font = 'bold 20px Times New Roman, serif';
+    ctx.fillText(value.toString(), x, y - 18);
+  });
+
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'center';
+  ctx.font = '20px Times New Roman, serif';
+  labels.forEach((label, index) => {
+    const x = padding + index * xStep;
+    ctx.fillText(label, x, height - padding + 35);
   });
 };
 
 const drawPieChart = (ctx, width, height, data) => {
   const centerX = width / 2;
   const centerY = height / 2;
-  const radius = Math.min(width, height) / 2 - 60;
+  const radius = Math.min(width, height) / 2 - 120;
   const labels = data.labels || [];
   const values = data.values || [];
   const total = values.reduce((sum, val) => sum + val, 0);
   let startAngle = 0;
 
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
   values.forEach((value, index) => {
     const sliceAngle = (value / total) * 2 * Math.PI;
     ctx.beginPath();
-    ctx.fillStyle = BAR_COLORS[index % BAR_COLORS.length];
+    ctx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
     ctx.moveTo(centerX, centerY);
     ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
 
     const percentage = ((value / total) * 100).toFixed(1);
     const labelAngle = startAngle + sliceAngle / 2;
-    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
-    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.65);
+    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.65);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Inter, sans-serif';
+    ctx.font = 'bold 22px Times New Roman, serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${percentage}%`, labelX, labelY);
     startAngle += sliceAngle;
   });
 
-  const legendX = width - 150;
-  let legendY = 40;
+  const legendX = width - 300;
+  let legendY = 60;
+  ctx.fillStyle = '#333333';
+  ctx.font = 'bold 22px Times New Roman, serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Legend', legendX, legendY - 30);
   labels.forEach((label, index) => {
-    ctx.fillStyle = BAR_COLORS[index % BAR_COLORS.length];
-    ctx.fillRect(legendX, legendY, 15, 15);
-    ctx.fillStyle = '#1f2937';
-    ctx.font = '12px Inter, sans-serif';
+    ctx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
+    ctx.fillRect(legendX, legendY, 22, 22);
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(legendX, legendY, 22, 22);
+    ctx.fillStyle = '#333333';
+    ctx.font = '20px Times New Roman, serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${label} (${values[index]})`, legendX + 25, legendY + 7);
-    legendY += 25;
+    ctx.fillText(`${label} (${values[index]})`, legendX + 32, legendY + 11);
+    legendY += 36;
   });
 };
 
@@ -177,17 +205,20 @@ export const renderChartToPng = (chartData) => {
     canvas.height = CHART_HEIGHT;
     const ctx = canvas.getContext('2d');
 
-    const padding = 60;
-    const textColor = '#1f2937';
-    const gridColor = '#e5e7eb';
+    const padding = 120;
+    const textColor = '#333333';
+    const gridColor = '#d9d9d9';
 
     ctx.clearRect(0, 0, CHART_WIDTH, CHART_HEIGHT);
 
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, CHART_WIDTH, CHART_HEIGHT);
+
     if (chartData.title) {
       ctx.fillStyle = textColor;
-      ctx.font = 'bold 16px Inter, sans-serif';
+      ctx.font = 'bold 32px Times New Roman, serif';
       ctx.textAlign = 'center';
-      ctx.fillText(chartData.title, CHART_WIDTH / 2, 25);
+      ctx.fillText(chartData.title, CHART_WIDTH / 2, 45);
     }
 
     const type = (chartData.type || 'bar').toLowerCase();
@@ -214,14 +245,15 @@ export const renderMermaidToPng = async (code) => {
       startOnLoad: false,
       theme: 'base',
       securityLevel: 'loose',
-      fontFamily: 'Inter, sans-serif',
+      fontFamily: 'Times New Roman, serif',
       themeVariables: {
-        primaryColor: '#7c3aed',
-        primaryTextColor: '#1f2937',
-        primaryBorderColor: '#7c3aed',
-        lineColor: '#6b7280',
+        primaryColor: '#4F81BD',
+        primaryTextColor: '#333333',
+        primaryBorderColor: '#4F81BD',
+        lineColor: '#666666',
         secondaryColor: '#f3f4f6',
-        tertiaryColor: '#f9fafb'
+        tertiaryColor: '#f9fafb',
+        fontSize: '14px'
       }
     });
     const { svg } = await mermaid.render('export-diagram', code);
@@ -235,14 +267,15 @@ export const renderMermaidToPng = async (code) => {
       image.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     });
 
-    canvas.width = img.width * 2;
-    canvas.height = img.height * 2;
-    ctx.scale(2, 2);
+    const scale = 3;
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    ctx.scale(scale, scale);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, img.width, img.height);
     ctx.drawImage(img, 0, 0);
 
-    return canvasToPngBuffer(canvas);
+    return { pngBuffer: canvasToPngBuffer(canvas), width: img.width, height: img.height };
   } catch (err) {
     console.error('Mermaid render failed for export:', err);
     return null;
@@ -285,8 +318,8 @@ export const buildDocxTable = (tableData, format) => {
   });
 };
 
-export const buildImageParagraph = (pngBuffer, caption, format) => {
-  const aspectRatio = CHART_HEIGHT / CHART_WIDTH;
+export const buildImageParagraph = (pngBuffer, caption, format, customAspectRatio) => {
+  const aspectRatio = customAspectRatio || (CHART_HEIGHT / CHART_WIDTH);
   const targetWidthPx = Math.round(TARGET_IMAGE_WIDTH_INCHES * PIXELS_PER_INCH);
   const targetHeightPx = Math.round(targetWidthPx * aspectRatio);
 

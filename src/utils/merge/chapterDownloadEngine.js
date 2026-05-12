@@ -14,7 +14,7 @@ const DEFAULT_FORMAT = {
 
 const twipsFromCm = (cm) => Math.round(cm * 1440 / 2.54);
 
-export const generateChapterDocument = async ({ chapter, content, formatConfig }) => {
+export const generateChapterDocument = async ({ chapter, content, formatConfig, chapterIndex }) => {
   const fmt = formatConfig || DEFAULT_FORMAT;
   const fontFamily = fmt.fontFamily || DEFAULT_FORMAT.fontFamily;
   const bodyFontSize = Math.round((fmt.bodyFontSize || 12) * 2);
@@ -40,7 +40,7 @@ export const generateChapterDocument = async ({ chapter, content, formatConfig }
     })
   );
 
-  const parsedChildren = await parseChapterContent(content || {}, chapter.id, fmt);
+  const parsedChildren = await parseChapterContent(content || {}, chapter.id, fmt, chapterIndex);
   children.push(...parsedChildren);
 
   if (content?.references) {

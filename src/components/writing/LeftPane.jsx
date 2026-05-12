@@ -196,7 +196,7 @@ const LeftPane = ({
                     </div>
                   )}
 
-                  <AddSubsection onAdd={onAddSubsection} />
+                  <AddSubsection onAdd={(title) => onAddSubsection(title, chapter.id)} />
                   {onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
                     generatingAll && generatingAll.chapterId === chapter.id ? (
                       <div style={{ marginTop: '12px', padding: '8px', fontSize: '12px', color: colors.primary, textAlign: 'center', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', borderRadius: '6px', border: `1px solid ${colors.border}` }}>

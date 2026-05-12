@@ -79,16 +79,17 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     } : ch));
   }, [activeChapter, setChapters]);
 
-  const handleAddSubsection = useCallback((title) => {
+  const handleAddSubsection = useCallback((title, chapterId) => {
+    const targetChapter = chapterId || activeChapter;
     setChapters(prev => prev.map(ch => {
-      if (ch.id === activeChapter) {
-        const newSubsection = { id: `${activeChapter}_custom_${Date.now()}`, title, type: 'subsection', hasPlaceholder: false, generated: false, deleted: false };
+      if (ch.id === targetChapter) {
+        const newSubsection = { id: `${targetChapter}_custom_${Date.now()}`, title, type: 'subsection', hasPlaceholder: false, generated: false, deleted: false };
         const referencesIndex = ch.subsections.findIndex(s => s.type === 'references');
         let newSubsections;
         if (referencesIndex !== -1) { newSubsections = [...ch.subsections]; newSubsections.splice(referencesIndex, 0, newSubsection); }
         else { newSubsections = [...ch.subsections, newSubsection]; }
         const ord = getChapterOrdinal(ch, prev);
-        return { ...ch, subsections: renumberSubsections(newSubsections, activeChapter, ord > 0 ? String(ord) : undefined) };
+        return { ...ch, subsections: renumberSubsections(newSubsections, targetChapter, ord >= 0 ? String(ord) : undefined) };
       }
       return ch;
     }));

@@ -42,7 +42,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
           const updatedDeleted = [...(ch.deletedSubsections || []), markedDeleted];
           const updatedSubsections = ch.subsections.filter(s => s.id !== subsectionId);
           const ord = getChapterOrdinal(ch, prev);
-          const renumbered = renumberSubsections(updatedSubsections, ch.id, ord > 0 ? String(ord) : undefined);
+          const renumbered = renumberSubsections(updatedSubsections, ch.id, ord >= 0 ? String(ord) : undefined);
           return { ...ch, subsections: renumbered, deletedSubsections: updatedDeleted };
         }
       }
@@ -62,7 +62,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
           if (referencesIndex !== -1) updatedSubsections.splice(referencesIndex, 0, restored);
           else updatedSubsections.push(restored);
           const ord = getChapterOrdinal(ch, prev);
-          return { ...ch, subsections: renumberSubsections(updatedSubsections, ch.id, ord > 0 ? String(ord) : undefined), deletedSubsections: updatedDeleted };
+          return { ...ch, subsections: renumberSubsections(updatedSubsections, ch.id, ord >= 0 ? String(ord) : undefined), deletedSubsections: updatedDeleted };
         }
       }
       return ch;
@@ -78,7 +78,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
         const [movedItem] = subsections.splice(draggedItem, 1);
         subsections.splice(dropIndex, 0, movedItem);
         const ord = getChapterOrdinal(ch, prev);
-        return { ...ch, subsections: renumberSubsections(subsections, ch.id, ord > 0 ? String(ord) : undefined) };
+        return { ...ch, subsections: renumberSubsections(subsections, ch.id, ord >= 0 ? String(ord) : undefined) };
       }
       return ch;
     }));
@@ -87,7 +87,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
   const buildSubsectionsFromHeadings = useCallback((chapterId, headings) => {
     const chapter = chapters.find(c => c.id === chapterId);
     const ordinal = chapter ? getChapterOrdinal(chapter, chapters) : -1;
-    const chapterNum = chapterId === 'proposal' ? 'P' : ordinal > 0 ? String(ordinal) : chapterId.replace('chapter', '');
+    const chapterNum = ordinal >= 0 ? String(ordinal) : chapterId.replace('chapter', '');
     const filtered = headings.filter(t => !t.toLowerCase().includes('reference'));
     const clean = filtered.map((title, i) => {
       let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');

@@ -83,8 +83,7 @@ export const getChapterDisplayTitle = (chapter) => {
 };
 
 export const getChapterOrdinal = (chapter, chapters) => {
-  const contentChapters = chapters.filter(ch => ch.id !== 'proposal');
-  return contentChapters.findIndex(ch => ch.id === chapter.id) + 1;
+  return chapters.findIndex(ch => ch.id === chapter.id);
 };
 
 export const getChapterGuidelines = (chapter) => {
@@ -121,7 +120,7 @@ export const getFallbackSubtopics = (chapterId, chapterTitle) => {
 };
 
 export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
-  const chapterNum = chapterNumber || (chapterId === 'proposal' ? 'P' : chapterId.replace('chapter', ''));
+  const chapterNum = chapterNumber || chapterId.replace('chapter', '');
   return subsections.map((sub, i) => {
     const newNumber = `${chapterNum}.${i + 1}`;
     const newTitle = sub.type === 'references'

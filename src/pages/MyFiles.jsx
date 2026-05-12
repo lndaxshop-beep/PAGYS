@@ -276,13 +276,6 @@ const MyFiles = () => {
               <div style={{ width: `${chapters.length > 0 ? (chapters.filter(ch => ch.generated).length / chapters.length) * 100 : 0}%`, height: '100%', backgroundColor: '#4F46E5', borderRadius: '999px', transition: 'width 0.3s' }} />
             </div>
           </div>
-          <div style={{ flex: 1, minWidth: '200px', backgroundColor: colors.cardBg || colors.surface, borderRadius: '10px', padding: '16px 20px', border: `1px solid ${colors.border}`, cursor: selectedProject ? 'pointer' : 'default' }} onClick={() => { if (selectedProject) navigate(`/citations/${selectedProject}`); }}>
-            <div style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: '500', marginBottom: '4px' }}>Citations</div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: colors.text }}>
-              {(() => { try { const vc = JSON.parse(localStorage.getItem(`verifiedCitations_${selectedProject}`) || '{}'); return `${Object.keys(vc).length} verified`; } catch { return '0 verified'; }})()}
-            </div>
-            <div style={{ fontSize: '11px', color: '#4F46E5', marginTop: '4px' }}>Click to verify →</div>
-          </div>
         </div>
         <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
           {['chapters','lists','defence','instruments','sources'].map(tab => (

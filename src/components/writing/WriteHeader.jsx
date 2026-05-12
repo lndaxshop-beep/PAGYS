@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const formatRelativeTime = (date) => {
@@ -67,7 +66,6 @@ const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAID
         <button onClick={onToggleShortcuts} title="Keyboard Shortcuts" style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 8px', fontSize: '14px', cursor: 'pointer', lineHeight: '1' }}>⌨</button>
         <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>📚 Search Literature</button>
         <button onClick={onToggleAIDetection} title="Check content originality" style={{ backgroundColor: 'transparent', color: '#dc2626', border: `1px solid #dc262660`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>🤖 AI Score</button>
-        <button onClick={() => navigate(`/citations/${projectId}`)} style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer' }}>Review Citations</button>
       </div>
     </div>
   );

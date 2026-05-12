@@ -1,10 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete }) => {
   const { colors, isDarkMode } = useTheme();
-  const navigate = useNavigate();
   const progress = project.progress || 0;
   const isComplete = progress === 100 && project.status === 'complete';
 
@@ -62,16 +60,6 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete }) => {
         fontWeight: '500', cursor: 'pointer'
       }}>
         {isComplete ? 'View / Edit Thesis' : 'Continue Writing'}
-      </button>
-      <button
-        onClick={() => navigate(`/citations/${project.id}`)}
-        style={{
-          width: '100%', marginTop: '8px', backgroundColor: 'transparent',
-          color: colors.primary, padding: '8px', border: `1px solid ${colors.primary}40`,
-          borderRadius: '6px', fontWeight: '500', cursor: 'pointer', fontSize: '13px'
-        }}
-      >
-        Review Citations
       </button>
     </div>
   );

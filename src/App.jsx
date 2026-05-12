@@ -22,7 +22,6 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
 const HelpSupport = lazy(() => import('./pages/HelpSupport'));
 const Settings = lazy(() => import('./pages/Settings'));
-const CitationVerify = lazy(() => import('./pages/CitationVerify'));
 const MergeDocument = lazy(() => import('./pages/MergeDocument'));
 
 const Page = ({ children }) => (
@@ -63,7 +62,6 @@ function AppContent() {
             <Route path="/write/:projectId" element={<Page><ProtectedRoute><Write /></ProtectedRoute></Page>} />
             <Route path="/myfiles" element={<Page><ProtectedRoute><MyFiles /></ProtectedRoute></Page>} />
             <Route path="/settings" element={<Page><ProtectedRoute><Settings /></ProtectedRoute></Page>} />
-            <Route path="/citations/:projectId" element={<Page><ProtectedRoute><CitationVerify /></ProtectedRoute></Page>} />
             <Route path="/privacy" element={<Page><PrivacyPolicy /></Page>} />
             <Route path="/terms" element={<Page><TermsOfService /></Page>} />
             <Route path="/refund" element={<Page><RefundPolicy /></Page>} />

@@ -52,7 +52,6 @@ export const CACHE_KEYS = {
   INSTRUMENTS: (pid) => `instruments_${pid}`,
   INSTRUMENT_CONTENT: (pid, iid) => `instrument_content_${pid}_${iid}`,
   DIAGRAM_SVGS: (pid) => `diagramSVGs_${pid}`,
-  VERIFIED_CITATIONS: (pid) => `verifiedCitations_${pid}`,
   CHAPTERS: (pid) => `chapters_${pid}`,
   GENERATED: (pid) => `generated_${pid}`,
   CITATIONS: (pid) => `citations_${pid}`,
@@ -67,7 +66,7 @@ export const CACHE_KEYS = {
 export const ALL_CACHE_PREFIXES = [
   'generatedContent', 'chapters', 'citations', 'diagrams', 'charts', 'tables',
   'diagramSVGs', 'defence', 'abbreviations', 'realReferences', 'instrument_content',
-  'groundingSources', 'humaniseUsed', 'feedbackUsed', 'verifiedCitations',
+  'groundingSources', 'humaniseUsed', 'feedbackUsed',
   'instruments', 'instrument_downloads', 'userSources', 'visual', 'project',
 ];
 

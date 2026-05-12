@@ -22,6 +22,7 @@ import ContentButtons from '../components/writing/ContentButtons';
 import ChapterStructureModal from '../components/writing/ChapterStructureModal';
 import FeedbackModal from '../components/writing/FeedbackModal';
 import ShortcutsModal from '../components/ShortcutsModal';
+import DiffModal from '../components/DiffModal';
 import SourceModeSelector from '../components/writing/SourceModeSelector';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
@@ -64,6 +65,7 @@ const Write = () => {
   const [confirmModal, setConfirmModal] = useState(null);
   const [showSourceModeModal, setShowSourceModeModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [diffModal, setDiffModal] = useState({ show: false, oldText: '', newText: '', onAccept: null, title: '' });
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -102,6 +104,7 @@ const Write = () => {
       toggleShortcuts: () => setShowShortcutsModal(prev => !prev),
       escape: () => {
         setShowShortcutsModal(false);
+        setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
         modals.setShowFeedbackModal(false);
         modals.setShowWordCountModal(false);
         modals.setShowLiteratureTypeModal(false);
@@ -349,32 +352,59 @@ const Write = () => {
       const result = await handleHumanise(currentContent);
       if (!result || result.error) { toastError(result?.message || 'Humanise failed.'); return; }
       const { humanisedText, humaniseKey } = result;
-      setCurrentContent(humanisedText);
-      if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: humanisedText } }));
-      setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
+      setDiffModal({
+        show: true,
+        oldText: currentContent,
+        newText: humanisedText,
+        title: 'Humanise Changes',
+        onAccept: () => {
+          setCurrentContent(humanisedText);
+          if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: humanisedText } }));
+          setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
+          setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
+        },
+      });
     } catch (error) {
       console.error('Humanise failed:', error);
       toastError('Humanise failed: ' + error.message);
     }
   };
 
-  const wrappedApplyFeedback = async () => {
+  const wrappedApplyFeedback = async (skipDiff) => {
     try {
       if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
       const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.id] || '';
       const result = await handleApplyFeedback(currentContentText, modals.feedbackText, modals.feedbackFiles, modals.currentFeedbackSubsection);
       if (!result || result.error) { toastError(result?.message || 'Feedback application failed.'); return; }
       const { modifiedContent, feedbackKey } = result;
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
-      if (currentSubsection?.id === modals.currentFeedbackSubsection.id) setCurrentContent(modifiedContent);
-      setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
-      autoGenerateReferences(activeChapter).then(refResult => {
-        if (refResult && refResult.content) {
-          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
-        }
-      });
-      toastSuccess('Feedback applied successfully!');
-      modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
+
+      const applyChanges = () => {
+        setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
+        if (currentSubsection?.id === modals.currentFeedbackSubsection.id) setCurrentContent(modifiedContent);
+        setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
+        autoGenerateReferences(activeChapter).then(refResult => {
+          if (refResult && refResult.content) {
+            setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+          }
+        });
+        toastSuccess('Feedback applied successfully!');
+        modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
+      };
+
+      if (skipDiff) {
+        applyChanges();
+      } else {
+        setDiffModal({
+          show: true,
+          oldText: currentContentText,
+          newText: modifiedContent,
+          title: 'Feedback Changes',
+          onAccept: () => {
+            applyChanges();
+            setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
+          },
+        });
+      }
     } catch (error) {
       console.error('Feedback application failed:', error);
       toastError('Feedback application failed: ' + error.message);
@@ -610,6 +640,14 @@ const Write = () => {
       />
 
       <ShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
+      <DiffModal
+        isOpen={diffModal.show}
+        oldText={diffModal.oldText}
+        newText={diffModal.newText}
+        title={diffModal.title}
+        onAccept={diffModal.onAccept || (() => {})}
+        onReject={() => setDiffModal(prev => ({ ...prev, show: false, onAccept: null }))}
+      />
 
       {confirmModal && (
         <ConfirmModal

@@ -41,9 +41,18 @@ const HomePage = () => {
   ];
 
   const testimonials = [
-    { name: 'Sarah Johnson', role: 'PhD Candidate, Stanford', content: 'PAGYS saved me months of work. The team understood my research topic perfectly and the content was actually useful.' },
-    { name: 'Michael Chen', role: 'Master\'s Student, MIT', content: 'The chapter structure feature is brilliant. It kept me organized and the citations were formatted perfectly in APA style.' },
-    { name: 'Dr. Emily Rodriguez', role: 'Research Fellow, Oxford', content: 'As a supervisor, I recommend PAGYS to my students. It helps them structure their thoughts and focus on the actual research.' }
+    { name: 'Dr. Kwame Asare', role: 'PhD Graduate, KNUST', content: 'PAGYS took my thesis from scattered notes to a defendable draft in two weeks. The chapter structure feature alone saved me a whole semester.' },
+    { name: 'Grace Osei', role: 'MPhil Student, University of Ghana', content: 'I was stuck on my literature review for months. With PAGYS, I finished Chapter 2 in one weekend. The auto-citations are a lifesaver.' },
+    { name: 'Samuel Adeyemi', role: 'MSc Candidate, University of Lagos', content: 'My supervisor kept rejecting my drafts until I used PAGYS. The academic tone and proper referencing finally got me a green light.' },
+    { name: 'Ama Serwaa Bonsu', role: 'PhD Candidate, UPSA', content: 'Balancing work and thesis was impossible until I found this. The guided writing kept me on track and I submitted on time.' },
+    { name: 'Chidiebere Obi', role: 'Master\'s Student, University of Ibadan', content: 'Writing methodology chapter was a nightmare. PAGYS generated a solid quantitative framework that needed only minor tweaks.' },
+    { name: 'Nana Yaa Asantewaa', role: 'Final Year, Pentecost University', content: 'The humanise feature is pure gold. It turned robotic AI text into something that actually sounds like me.' },
+    { name: 'Emeka Okafor', role: 'PhD Researcher, Obafemi Awolowo University', content: 'I uploaded my messy chapter outline and PAGYS turned it into a structured thesis with proper headings and flow. Incredible.' },
+    { name: 'Mensah Nyarko', role: 'MPhil Student, University of Cape Coast', content: 'The citation verification tool caught errors I would have missed. My bibliography was acceptance-ready in minutes.' },
+    { name: 'Folake Adeleke', role: 'Master\'s Candidate, Covenant University', content: 'Exporting to PDF with all figures and references intact was seamless. My panel was impressed by the formatting.' },
+    { name: 'Kwesi Boateng', role: 'PhD Candidate, University of Ghana', content: 'From introduction to conclusion, PAGYS helped me write each chapter with confidence. I graduated with distinction. Worth every pesewa.' },
+    { name: 'Dr. Yakubu Ibrahim', role: 'Lecturer, Ahmadu Bello University', content: 'I recommend PAGYS to all my final-year students. It teaches them proper thesis structure while accelerating their writing.' },
+    { name: 'Akosua Manu', role: 'MPhil Graduate, KNUST', content: 'Three months of writer\'s block vanished after I started using PAGYS. The progressive writing approach kept me going every day.' },
   ];
 
   const stats = [
@@ -117,11 +126,19 @@ const HomePage = () => {
 
       <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '80px 20px', borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '48px' }}>What Our Users Say</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-            {testimonials.map((testimonial, index) => (
-              <TestimonialCard key={index} name={testimonial.name} role={testimonial.role} content={testimonial.content} colors={colors} isDarkMode={isDarkMode} />
-            ))}
+          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>What Our Users Say</h2>
+          <p style={{ fontSize: '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '600px', margin: '0 auto 48px', lineHeight: '1.6' }}>From KNUST to University of Lagos — trusted by students across Africa.</p>
+          <div style={{ overflow: 'hidden', maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)' }}
+            onMouseEnter={(e) => { e.currentTarget.firstChild.style.animationPlayState = 'paused'; }}
+            onMouseLeave={(e) => { e.currentTarget.firstChild.style.animationPlayState = 'running'; }}
+          >
+            <div style={{ display: 'flex', gap: '24px', animation: 'scroll 45s linear infinite', width: 'max-content' }}>
+              {[...testimonials, ...testimonials].map((testimonial, index) => (
+                <div key={index} style={{ flex: '0 0 340px' }}>
+                  <TestimonialCard name={testimonial.name} role={testimonial.role} content={testimonial.content} colors={colors} isDarkMode={isDarkMode} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -149,6 +166,10 @@ const HomePage = () => {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        @keyframes scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
       `}</style>
       <Footer />

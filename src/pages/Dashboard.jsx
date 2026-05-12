@@ -11,6 +11,7 @@ import NewProjectForm from '../components/dashboard/NewProjectForm';
 import ProjectsList from '../components/dashboard/ProjectsList';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
+import { PageSkeleton } from '../components/Skeleton';
 
 const Dashboard = ({ onPremiumClick, isPremium }) => {
   const { colors } = useTheme();
@@ -73,7 +74,7 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
     }
   };
 
-  if (!user) return <div style={{ textAlign: 'center', padding: '50px', color: colors.text }}>Loading...</div>;
+  if (!user) return <PageSkeleton />;
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: colors.background, padding: '32px', transition: 'all 0.3s' }}>

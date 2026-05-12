@@ -8,6 +8,7 @@ import Toast from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
 import PremiumModal from './components/PremiumModal';
 import HomePage from './components/home/HomePage';
+import { PageSkeleton } from './components/Skeleton';
 import usePayment from './hooks/usePayment';
 import './App.css';
 
@@ -24,14 +25,9 @@ const Settings = lazy(() => import('./pages/Settings'));
 const CitationVerify = lazy(() => import('./pages/CitationVerify'));
 const MergeDocument = lazy(() => import('./pages/MergeDocument'));
 
-const loadingStyle = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  minHeight: '100vh', fontSize: '16px', color: '#6b7280'
-};
-
 const Page = ({ children }) => (
   <ErrorBoundary>
-    <Suspense fallback={<div style={loadingStyle}>Loading...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       {children}
     </Suspense>
   </ErrorBoundary>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ProjectCard from './ProjectCard';
+import { CardSkeleton } from '../Skeleton';
 
 const SkeletonCard = ({ colors, isDarkMode }) => (
   <div style={{
@@ -21,7 +22,7 @@ const SkeletonCard = ({ colors, isDarkMode }) => (
 
 const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHover, onContinue, onDelete, onCreateFirst }) => {
   const { colors, isDarkMode } = useTheme();
-  if (loading) return <p style={{ textAlign: 'center', padding: '32px', color: colors.textSecondary }}>Loading...</p>;
+  if (loading) return <CardSkeleton count={3} />;
   if (!projects.length) {
     return (
       <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '48px 48px 56px', textAlign: 'center', border: `1px solid ${colors.border}` }}>

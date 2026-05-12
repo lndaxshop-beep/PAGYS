@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { extractCitations, formatGroundedReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { getGeneratedContent, getChapters } from '../services/firestoreService';
+import { PageSkeleton } from '../components/Skeleton';
 
 const CitationVerify = () => {
   const { projectId } = useParams();
@@ -65,13 +66,7 @@ const CitationVerify = () => {
     setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] }));
   };
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: colors.text, fontSize: '18px' }}>Loading citations...</div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton />;
 
   if (!project) {
     return (

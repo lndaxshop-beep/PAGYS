@@ -6,6 +6,7 @@ import { getProjects, getGeneratedContent, getChapters } from '../services/fires
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { loadInstruments } from '../utils/merge/instrumentExporter.js';
 import generateMergedDocument from '../utils/merge/mergeDocumentEngine.js';
+import { PageSkeleton } from '../components/Skeleton';
 
 const PLACEHOLDER_FIELDS = [
   { key: 'fullName', label: 'Full Name', default: '' },
@@ -166,13 +167,7 @@ const MergeDocument = () => {
 
   const contentChapters = chapters.filter(ch => ch.id !== 'proposal');
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>
-        Loading project...
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton />;
 
   if (!project) {
     return (

@@ -22,6 +22,7 @@ import ContentButtons from '../components/writing/ContentButtons';
 import ChapterStructureModal from '../components/writing/ChapterStructureModal';
 import FeedbackModal from '../components/writing/FeedbackModal';
 import SourceModeSelector from '../components/writing/SourceModeSelector';
+import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import useSourceLibrary from '../hooks/useSourceLibrary';
@@ -461,7 +462,7 @@ const Write = () => {
     setIsPreviewMode(true);
   };
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Loading your thesis project...</div>;
+  if (loading) return <PageSkeleton />;
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;
 
   return (

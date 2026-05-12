@@ -75,7 +75,7 @@ const HomePage = () => {
           <div style={{ display: 'inline-block', backgroundColor: colors.primary + '20', color: colors.primary, padding: '8px 16px', borderRadius: '30px', fontSize: '15px', fontWeight: '700', marginBottom: '24px' }}>Trusted by 10,000+ Students & Professionals</div>
           <h1 style={{ fontSize: 'clamp(25px, 5vw, 56px)', fontWeight: '800', color: colors.text, marginBottom: '20px', lineHeight: '1.2' }}>
             Write Your Thesis{' '}
-            <span style={{ background: `linear-gradient(135deg, ${colors.primary}, #9583b988)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>Like A Pro</span>
+            <span key={isDarkMode ? 'dark' : 'light'} style={{ background: `linear-gradient(135deg, ${colors.primary}, #9583b988)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>Like A Pro</span>
           </h1>
           <p style={{ fontSize: '18px', color: colors.textSecondary, maxWidth: '700px', margin: '0 auto 32px', lineHeight: '1.6' }}>
             Generate complete, well-structured thesis drafts tailored to your topic, field, and academic level. Save months of research and writing time.

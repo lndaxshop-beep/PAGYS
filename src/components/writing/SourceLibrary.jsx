@@ -57,26 +57,22 @@ const SourceLibrary = ({
               }}
             >Clear All</button>
           )}
-          {isPremium && (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.jpg,.jpeg,.png"
-                multiple
-                onChange={onAddFile}
-                style={{ display: 'none' }}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  backgroundColor: colors.primary, color: 'white',
-                  padding: '8px 16px', border: 'none', borderRadius: '6px',
-                  fontWeight: '500', cursor: 'pointer', fontSize: '13px'
-                }}
-              >+ Add Source</button>
-            </>
-          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.jpg,.jpeg,.png"
+            multiple
+            onChange={onAddFile}
+            style={{ display: 'none' }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              backgroundColor: colors.primary, color: 'white',
+              padding: '8px 16px', border: 'none', borderRadius: '6px',
+              fontWeight: '500', cursor: 'pointer', fontSize: '13px'
+            }}
+          >+ Add Source</button>
         </div>
       </div>
 
@@ -101,18 +97,16 @@ const SourceLibrary = ({
             No sources uploaded yet
           </p>
           <p style={{ color: colors.textSecondary, fontSize: '13px', marginBottom: '16px' }}>
-            {isPremium ? 'Upload PDFs, Word documents, or screenshots of research papers' : 'Upgrade to Premium to upload your own sources'}
+            Upload PDFs, Word documents, or screenshots of research papers
           </p>
-          {isPremium && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                backgroundColor: colors.primary, color: 'white',
-                padding: '10px 24px', border: 'none', borderRadius: '8px',
-                fontWeight: '500', cursor: 'pointer', fontSize: '14px'
-              }}
-            >Upload Your First Source</button>
-          )}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              backgroundColor: colors.primary, color: 'white',
+              padding: '10px 24px', border: 'none', borderRadius: '8px',
+              fontWeight: '500', cursor: 'pointer', fontSize: '14px'
+            }}
+          >Upload Your First Source</button>
         </div>
       )}
 

@@ -11,55 +11,56 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
 
   if (!isOpen) return null;
 
+  const reconstructAbstract = (invertedIndex) => {
+    if (!invertedIndex) return '';
+    const words = [];
+    for (const [word, positions] of Object.entries(invertedIndex)) {
+      for (const pos of positions) {
+        words[pos] = word;
+      }
+    }
+    return words.filter(Boolean).join(' ');
+  };
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     setSearching(true);
     setError('');
     setResults([]);
     try {
-      const { genAI, MODEL } = await import('../services/gemini/config');
-      const model = genAI.getGenerativeModel({
-        model: MODEL,
-        tools: [{ googleSearch: {} }],
-        generationConfig: { temperature: 0.2 },
+      const searchQuery = encodeURIComponent(query.trim());
+      const url = `https://api.openalex.org/works?search=${searchQuery}&per_page=10&sort=relevance_score:desc&filter=open_access.is_oa:true`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
       });
-
-      const prompt = `Search for academic sources related to: "${query.trim()}"
-
-For the thesis topic: "${project?.title || ''}" in the field of "${project?.field || ''}".
-
-Return a JSON array of exactly 5-8 academic sources. Each source MUST be a REAL publication found via Google Search. Format:
-
-[
-  {
-    "title": "Full paper title",
-    "authors": "Author1, Author2",
-    "year": "2023",
-    "journal": "Journal Name",
-    "doi": "10.xxxx/xxxxx",
-    "abstract": "Brief summary of the paper (1-2 sentences)",
-    "relevance": "high/medium/low",
-    "uri": "URL to the paper"
-  }
-]
-
-CRITICAL:
-- Every source MUST be real and verifiable via the URI.
-- Include a mix of recent (last 5 years) and seminal works.
-- Focus on peer-reviewed journal articles and academic books.`;
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        setResults(parsed);
-      } else {
-        setError('Could not parse search results. Please try a different query.');
+      if (!response.ok) {
+        throw new Error(`OpenAlex API error (${response.status})`);
       }
+      const data = await response.json();
+      if (!data.results || data.results.length === 0) {
+        setError('No open-access results found. Try different keywords.');
+        setSearching(false);
+        return;
+      }
+      const parsed = data.results.map(work => ({
+        title: work.title || 'Untitled',
+        authors: (work.authorships || [])
+          .map(a => a.author?.display_name)
+          .filter(Boolean)
+          .join(', '),
+        year: work.publication_year || new Date().getFullYear(),
+        journal: work.primary_location?.source?.display_name || '',
+        doi: work.doi ? work.doi.replace('https://doi.org/', '') : '',
+        abstract: reconstructAbstract(work.abstract_inverted_index),
+        relevance: work.relevance_score > 0.8 ? 'high' : work.relevance_score > 0.5 ? 'medium' : 'low',
+        uri: work.open_access?.oa_url || work.doi || '',
+        citedBy: work.cited_by_count || 0,
+        isOpenAccess: work.open_access?.is_oa || false,
+      }));
+      setResults(parsed);
     } catch (e) {
       console.error('Literature search failed:', e);
-      setError('Search failed: ' + (e.message || 'Unknown error'));
+      setError('Search failed: ' + (e.message || 'Could not reach academic database. Check your internet connection.'));
     }
     setSearching(false);
   };
@@ -116,6 +117,9 @@ CRITICAL:
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}>✕</button>
         </div>
 
+        <p style={{ fontSize: '12px', color: colors.textSecondary, margin: '0 0 12px', flexShrink: 0 }}>
+          Searches open-access academic papers via OpenAlex. Results are real, citable publications.
+        </p>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexShrink: 0 }}>
           <input
             value={query}
@@ -162,7 +166,12 @@ CRITICAL:
                     <div style={{ fontWeight: '600', fontSize: '14px', color: colors.text, marginBottom: '4px' }}>{r.title}</div>
                     <div style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '2px' }}>{r.authors} ({r.year})</div>
                     {r.journal && <div style={{ fontSize: '11px', color: colors.textSecondary, fontStyle: 'italic' }}>{r.journal}</div>}
-                    {r.abstract && <div style={{ fontSize: '12px', color: colors.text, marginTop: '4px' }}>{r.abstract}</div>}
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      {r.isOpenAccess && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#d1fae5', color: '#059669', fontWeight: '600' }}>Open Access</span>}
+                      {r.doi && <span style={{ fontSize: '10px', color: colors.primary }}>DOI: {r.doi}</span>}
+                      {r.citedBy > 0 && <span style={{ fontSize: '10px', color: colors.textSecondary }}>Cited by {r.citedBy}</span>}
+                    </div>
+                    {r.abstract && <div style={{ fontSize: '12px', color: colors.text, marginTop: '4px', lineHeight: '1.4' }}>{r.abstract}</div>}
                     {r.uri && <div style={{ fontSize: '11px', color: colors.primary, marginTop: '2px', wordBreak: 'break-all' }}>{r.uri}</div>}
                   </div>
                   <div style={{
@@ -179,7 +188,7 @@ CRITICAL:
             ))
           ) : (
             <div style={{ textAlign: 'center', padding: '40px', color: colors.textSecondary, fontSize: '14px' }}>
-              Enter a search query above to find academic sources. Results will appear here.
+              {results.length === 0 ? 'Enter a search query above to find open-access academic papers. Results will appear here.' : ''}
             </div>
           )}
         </div>

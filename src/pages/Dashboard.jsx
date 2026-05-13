@@ -10,6 +10,7 @@ import RecycleBin from '../components/dashboard/RecycleBin';
 import NewProjectForm from '../components/dashboard/NewProjectForm';
 import ProjectsList from '../components/dashboard/ProjectsList';
 import PaymentModal from '../components/PaymentModal';
+import ProjectConfirmationModal from '../components/ProjectConfirmationModal';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
@@ -36,6 +37,8 @@ const Dashboard = () => {
   const [paymentProject, setPaymentProject] = useState(null);
   const [paymentTier, setPaymentTier] = useState(null);
   const [paymentIsUpgrade, setPaymentIsUpgrade] = useState(false);
+  const [confirmationProject, setConfirmationProject] = useState(null);
+  const [confirmationTier, setConfirmationTier] = useState(null);
 
   const confirmAction = useCallback((config) => {
     return new Promise((resolve) => {
@@ -60,18 +63,11 @@ const Dashboard = () => {
     form, handleChange, useOrganization, setUseOrganization,
     organizationName, setOrganizationName, hideOrganization, setHideOrganization,
     questionModal, setQuestionModal, loadingQuestions,
-    generateResearchQuestions, handleSubmit
+    generateResearchQuestions, handleSubmit,
+    setFormData, resetForm
   } = useDashboardForm(async (project, tier) => {
-    await saveProject(project);
-    notify(`Project created successfully!${useOrganization && organizationName ? ` Organization "${organizationName}" will be used as case study.` : ''}`, 'success');
-    setShowNewProjectForm(false);
-    loadProjects();
-    setCreatedProjectId(project.id);
-    setCreatedProjectTier(tier || 'regular');
-    setPaymentProject(project);
-    setPaymentTier(tier || 'regular');
-    setPaymentIsUpgrade(false);
-    setShowPaymentModal(true);
+    setConfirmationProject(project);
+    setConfirmationTier(tier || 'regular');
   }, { onNotify: notify });
 
   useEffect(() => {
@@ -131,6 +127,7 @@ const Dashboard = () => {
     setShowPaymentModal(false);
     setPaymentProject(null);
     setPaymentTier(null);
+    resetForm();
   };
 
   const handleUpgrade = (project) => {
@@ -148,6 +145,36 @@ const Dashboard = () => {
       setPaymentProject(null);
       loadProjects();
     }
+  };
+
+  const handleConfirmProject = async () => {
+    if (!confirmationProject) return;
+    const project = confirmationProject;
+    const tier = confirmationTier;
+    await saveProject(project);
+    notify(`Project created successfully!${project.useOrganization && project.organizationName ? ` Organization "${project.organizationName}" will be used as case study.` : ''}`, 'success');
+    setConfirmationProject(null);
+    setConfirmationTier(null);
+    setShowNewProjectForm(false);
+    loadProjects();
+    setCreatedProjectId(project.id);
+    setCreatedProjectTier(tier);
+    setPaymentProject(project);
+    setPaymentTier(tier);
+    setPaymentIsUpgrade(false);
+    setShowPaymentModal(true);
+  };
+
+  const handleEditConfirmation = () => {
+    setConfirmationProject(null);
+    setConfirmationTier(null);
+  };
+
+  const handleCancelConfirmation = () => {
+    setConfirmationProject(null);
+    setConfirmationTier(null);
+    resetForm();
+    setShowNewProjectForm(false);
   };
 
   if (!user) return <PageSkeleton />;
@@ -232,6 +259,16 @@ const Dashboard = () => {
 
       {showOnboarding && <OnboardingWizard onDismiss={handleDismissOnboarding} />}
 
+      {confirmationProject && (
+        <ProjectConfirmationModal
+          project={confirmationProject}
+          tier={confirmationTier}
+          onConfirm={handleConfirmProject}
+          onEdit={handleEditConfirmation}
+          onCancel={handleCancelConfirmation}
+        />
+      )}
+
       {showPaymentModal && paymentProject && (
         <PaymentModal
           project={paymentProject}
@@ -248,8 +285,8 @@ const Dashboard = () => {
         <SourceSetupModalWrapper
           projectId={createdProjectId}
           isPremium={createdProjectTier === 'premium'}
-          onClose={() => { setShowSourceSetup(false); setCreatedProjectId(null); setCreatedProjectTier(null); }}
-          onContinue={() => { setShowSourceSetup(false); setCreatedProjectId(null); setCreatedProjectTier(null); }}
+          onClose={() => { setShowSourceSetup(false); setCreatedProjectId(null); setCreatedProjectTier(null); resetForm(); }}
+          onContinue={() => { setShowSourceSetup(false); setCreatedProjectId(null); setCreatedProjectTier(null); resetForm(); }}
         />
       )}
 

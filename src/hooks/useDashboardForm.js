@@ -71,6 +71,27 @@ Examples:
     });
   };
 
+  const setFormData = (data) => {
+    setForm({
+      title: data.title || '',
+      level: data.level || 'undergraduate',
+      field: data.field || '',
+      topic: data.topic || '',
+      methodology: data.methodology || '',
+      referenceStyle: data.referenceStyle || 'apa',
+    });
+    setUseOrganization(data.useOrganization || false);
+    setOrganizationName(data.organizationName || '');
+    setHideOrganization(data.hideOrganization || false);
+  };
+
+  const resetForm = () => {
+    setForm(defaultForm);
+    setUseOrganization(false);
+    setOrganizationName('');
+    setHideOrganization(false);
+  };
+
   const handleSubmit = async (e, tier) => {
     e.preventDefault();
     const project = {
@@ -83,16 +104,13 @@ Examples:
       isPremium: (tier || 'regular') === 'premium',
     };
     await onSuccess(project);
-    setForm(defaultForm);
-    setUseOrganization(false);
-    setOrganizationName('');
-    setHideOrganization(false);
   };
 
   return {
     form, handleChange, useOrganization, setUseOrganization,
     organizationName, setOrganizationName, hideOrganization, setHideOrganization,
     questionModal, setQuestionModal, loadingQuestions,
-    generateResearchQuestions, handleSubmit
+    generateResearchQuestions, handleSubmit,
+    setFormData, resetForm
   };
 };

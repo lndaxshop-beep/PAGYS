@@ -88,6 +88,17 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
           </div>
         </div>
 
+        <div style={{
+          backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '10px',
+          padding: '12px 16px', marginBottom: '20px', display: 'flex', gap: '10px',
+          alignItems: 'flex-start'
+        }}>
+          <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
+          <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.5' }}>
+            <strong style={{ fontWeight: '600' }}>Please verify carefully.</strong> Once payment is made, the project title, research topic, and all details above cannot be edited. Review everything before proceeding.
+          </div>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <button onClick={onConfirm} style={{
             backgroundColor: colors.primary, color: 'white', padding: '14px',

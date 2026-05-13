@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
 const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only') => {
@@ -15,6 +15,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   })();
   const humaniseLimit = isPremium ? 4 : 1;
   const feedbackLimit = isPremium ? 4 : 1;
+  const contentCache = useRef(new Map());
 
   const handleGenerateConceptualFramework = useCallback(async () => {
     setGeneratingVisual(true);
@@ -75,6 +76,10 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     if (!sub) return { error: true, message: 'Subsection not found.' };
     if (sub.generated) return { skipped: true, reason: 'already generated' };
     if (sub.type === 'references') return { skipped: true, reason: 'references' };
+
+    const cacheKey = `${chapterId}:${subId}:${ch.guidelines || ''}`;
+    const cached = contentCache.current.get(cacheKey);
+    if (cached) return cached;
 
     const chapterTitle = getChapterDisplayTitle(ch);
     const ordinal = getChapterOrdinal(ch, chapters);
@@ -138,7 +143,13 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const citations = extractCitations(generatedContent);
     const { calculateBurstiness } = await import('../services/gemini/antiDetection');
     const burstiness = calculateBurstiness(generatedContent);
-    return { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv };
+    const cacheEntry = { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv };
+    contentCache.current.set(cacheKey, cacheEntry);
+    if (contentCache.current.size > 200) {
+      const firstKey = contentCache.current.keys().next().value;
+      contentCache.current.delete(firstKey);
+    }
+    return cacheEntry;
   }, [project, chapters, uploadedFindings, literatureReviewType, userSources, sourceMode]);
 
   const handleGenerateCurrent = useCallback(async (activeSubsections) => {

@@ -67,7 +67,7 @@ const SourceModeBadge = ({ sourceMode, sourceCount }) => {
   );
 };
 
-const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, projectId, saveStatus, lastSaved, onSaveNow, wordCount, sourceMode, sourceCount }) => {
+const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, projectId, saveStatus, lastSaved, onSaveNow, wordCount, sourceMode, sourceCount, isPremium }) => {
   const { colors } = useTheme();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -79,7 +79,7 @@ const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAID
       </div>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <button onClick={onToggleShortcuts} title="Keyboard Shortcuts" style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 8px', fontSize: '14px', cursor: 'pointer', lineHeight: '1' }}>⌨</button>
-        <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>📚 Search Literature</button>
+        {isPremium && <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>📚 Search Literature</button>}
         <button onClick={onToggleAIDetection} title="Check content originality" style={{ backgroundColor: 'transparent', color: '#dc2626', border: `1px solid #dc262660`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>🤖 AI Score</button>
       </div>
     </div>

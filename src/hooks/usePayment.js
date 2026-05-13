@@ -1,67 +1,60 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 const usePayment = (onNotify) => {
-  const [showPremiumConfirm, setShowPremiumConfirm] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
-  const handlePremiumClick = async () => {
-    let projects;
+  const processPayment = useCallback(async (projectId, tier) => {
+    setProcessing(true);
     try {
-      const { getProjects } = await import('../services/firestoreService');
-      projects = await getProjects();
-    } catch (e) {
-      console.error('Error loading projects for premium:', e);
-      if (onNotify) onNotify('Failed to check premium status. Please try again.', 'error');
-      return;
-    }
-    if (!projects || projects.length === 0) {
-      if (onNotify) onNotify('Create a project first before upgrading to Premium.', 'error');
-      return;
-    }
-    if (projects.some(p => p.isPremium)) {
-      setShowPremiumModal(true);
-      return;
-    }
-    setShowPremiumConfirm(true);
-  };
-
-  const handleConfirmPremium = async () => {
-    try {
-      const { getProjects, updateProject } = await import('../services/firestoreService');
-      const projects = await getProjects();
-      await Promise.all(projects.map(p => updateProject(p.id, { isPremium: true })));
-      try {
-        const stored = JSON.parse(localStorage.getItem('thesisProjects') || '[]');
-        localStorage.setItem('thesisProjects', JSON.stringify(stored.map(p => ({ ...p, isPremium: true }))));
-      } catch (e) { console.warn('Failed to sync localStorage:', e); }
-      setIsPremium(true);
-      setShowPremiumConfirm(false);
-      window.dispatchEvent(new CustomEvent('premiumActivated'));
-      if (onNotify) onNotify('Premium activated successfully! Humanise and Feedback: up to 4 times per subsection.', 'success');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const { updateProject } = await import('../services/firestoreService');
+      await updateProject(projectId, {
+        tier,
+        isPremium: tier === 'premium',
+      });
+      if (onNotify) onNotify(
+        tier === 'premium'
+          ? 'Premium project created! All features unlocked.'
+          : 'Regular project created! You can upgrade anytime.',
+        'success'
+      );
+      window.dispatchEvent(new CustomEvent('projectPaymentComplete', {
+        detail: { projectId, tier }
+      }));
       return true;
     } catch (e) {
-      console.error('Error updating premium status:', e);
-      if (onNotify) onNotify('Failed to activate premium. Please try again.', 'error');
+      console.error('Error processing payment:', e);
+      if (onNotify) onNotify('Payment failed. Please try again.', 'error');
       return false;
+    } finally {
+      setProcessing(false);
     }
-  };
+  }, [onNotify]);
 
-  const handleCancelPremium = () => {
-    setShowPremiumConfirm(false);
-  };
+  const upgradeToPremium = useCallback(async (projectId) => {
+    setProcessing(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const { updateProject } = await import('../services/firestoreService');
+      await updateProject(projectId, {
+        tier: 'premium',
+        isPremium: true,
+      });
+      if (onNotify) onNotify('Project upgraded to Premium (₵10)! All features unlocked.', 'success');
+      window.dispatchEvent(new CustomEvent('projectUpgraded', {
+        detail: { projectId }
+      }));
+      return true;
+    } catch (e) {
+      console.error('Error upgrading project:', e);
+      if (onNotify) onNotify('Upgrade failed. Please try again.', 'error');
+      return false;
+    } finally {
+      setProcessing(false);
+    }
+  }, [onNotify]);
 
-  const handleClosePremiumModal = () => {
-    setShowPremiumModal(false);
-  };
-
-  return {
-    showPremiumConfirm, showPremiumModal, isPremium,
-    handlePremiumClick,
-    handleConfirmPremium,
-    handleCancelPremium,
-    handleClosePremiumModal,
-  };
+  return { processing, processPayment, upgradeToPremium };
 };
 
 export default usePayment;

@@ -5,10 +5,9 @@ import ThemeToggle from '../ThemeToggle';
 import ProfileMenu from '../ProfileMenu';
 import useAppAuth from '../../hooks/useAppAuth';
 
-const Header = ({ onPremiumClick, isPremium: propIsPremium }) => {
+const Header = () => {
   const { colors } = useTheme();
-  const { isLoggedIn, user, showProfileMenu, isPremium: authIsPremium, setShowProfileMenu, handleLogout } = useAppAuth();
-  const isPremium = propIsPremium || authIsPremium;
+  const { isLoggedIn, user, showProfileMenu, setShowProfileMenu, handleLogout } = useAppAuth();
 
   return (
     <header style={{
@@ -32,28 +31,6 @@ const Header = ({ onPremiumClick, isPremium: propIsPremium }) => {
         )}
         {isLoggedIn ? (
           <>
-            <button
-              onClick={onPremiumClick}
-              title={isPremium ? 'Premium Active' : 'Upgrade to Premium'}
-              style={{
-                backgroundColor: isPremium ? '#f59e0b' : 'transparent',
-                color: isPremium ? 'white' : '#f59e0b',
-                border: `1px solid #f59e0b`,
-                borderRadius: '20px',
-                padding: '5px 14px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { if (!isPremium) { e.target.style.backgroundColor = '#f59e0b'; e.target.style.color = 'white'; } }}
-              onMouseLeave={(e) => { if (!isPremium) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#f59e0b'; } }}
-            >
-              💎 {isPremium ? 'Premium' : 'Upgrade'}
-            </button>
             <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}

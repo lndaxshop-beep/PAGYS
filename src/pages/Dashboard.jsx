@@ -9,14 +9,16 @@ import DashboardHeader from '../components/dashboard/DashboardHeader';
 import RecycleBin from '../components/dashboard/RecycleBin';
 import NewProjectForm from '../components/dashboard/NewProjectForm';
 import ProjectsList from '../components/dashboard/ProjectsList';
+import PaymentModal from '../components/PaymentModal';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
 import OnboardingWizard from '../components/OnboardingWizard';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import SourceSetupModal from '../components/SourceSetupModal';
+import usePayment from '../hooks/usePayment';
 
-const Dashboard = ({ onPremiumClick, isPremium }) => {
+const Dashboard = () => {
   const { colors } = useTheme();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -28,6 +30,12 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
   const [toast, setToast] = useState(null);
   const [showSourceSetup, setShowSourceSetup] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState(null);
+  const [createdProjectTier, setCreatedProjectTier] = useState(null);
+  const [selectedTier, setSelectedTier] = useState('regular');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProject, setPaymentProject] = useState(null);
+  const [paymentTier, setPaymentTier] = useState(null);
+  const [paymentIsUpgrade, setPaymentIsUpgrade] = useState(false);
 
   const confirmAction = useCallback((config) => {
     return new Promise((resolve) => {
@@ -38,6 +46,8 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
   const notify = useCallback((message, type) => {
     setToast({ message, type });
   }, []);
+
+  const { processing: processingPayment, processPayment, upgradeToPremium } = usePayment(notify);
 
   const {
     projects, deletedProjects, projectsWithProgress, loading, progressLoading,
@@ -51,13 +61,17 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
     organizationName, setOrganizationName, hideOrganization, setHideOrganization,
     questionModal, setQuestionModal, loadingQuestions,
     generateResearchQuestions, handleSubmit
-  } = useDashboardForm(async (project) => {
+  } = useDashboardForm(async (project, tier) => {
     await saveProject(project);
     notify(`Project created successfully!${useOrganization && organizationName ? ` Organization "${organizationName}" will be used as case study.` : ''}`, 'success');
     setShowNewProjectForm(false);
     loadProjects();
     setCreatedProjectId(project.id);
-    setShowSourceSetup(true);
+    setCreatedProjectTier(tier || 'regular');
+    setPaymentProject(project);
+    setPaymentTier(tier || 'regular');
+    setPaymentIsUpgrade(false);
+    setShowPaymentModal(true);
   }, { onNotify: notify });
 
   useEffect(() => {
@@ -98,6 +112,44 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
     }
   };
 
+  const handlePaymentConfirm = async () => {
+    if (!paymentProject) return;
+    const success = await processPayment(paymentProject.id, paymentTier);
+    if (success) {
+      setShowPaymentModal(false);
+      setPaymentProject(null);
+      setPaymentTier(null);
+      if (paymentIsUpgrade) {
+        loadProjects();
+      } else {
+        setShowSourceSetup(true);
+      }
+    }
+  };
+
+  const handleClosePayment = () => {
+    setShowPaymentModal(false);
+    setPaymentProject(null);
+    setPaymentTier(null);
+  };
+
+  const handleUpgrade = (project) => {
+    setPaymentProject(project);
+    setPaymentTier('premium');
+    setPaymentIsUpgrade(true);
+    setShowPaymentModal(true);
+  };
+
+  const handleUpgradeConfirm = async () => {
+    if (!paymentProject) return;
+    const success = await upgradeToPremium(paymentProject.id);
+    if (success) {
+      setShowPaymentModal(false);
+      setPaymentProject(null);
+      loadProjects();
+    }
+  };
+
   if (!user) return <PageSkeleton />;
 
   return (
@@ -129,21 +181,9 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
             onGenerateQuestions={generateResearchQuestions}
             onSubmit={handleSubmit}
             onCancel={() => setShowNewProjectForm(false)}
+            selectedTier={selectedTier}
+            onTierChange={setSelectedTier}
           />
-        )}
-
-        {!isPremium && (
-          <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', border: `1px solid ${colors.border}`, marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, margin: '0 0 4px 0' }}>💎 Unlock Premium Features</h3>
-              <p style={{ fontSize: '13px', color: colors.textSecondary, margin: 0 }}>
-                Regular: 1× Humanise & Feedback per subsection · <strong style={{ color: '#f59e0b' }}>Premium: 4× per subsection</strong>
-              </p>
-            </div>
-            <button onClick={onPremiumClick} style={{ backgroundColor: '#f59e0b', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap' }}>
-              Upgrade Now
-            </button>
-          </div>
         )}
         <div style={{ marginBottom: '32px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px', color: colors.text }}>Your Projects</h2>
@@ -156,6 +196,7 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
             onContinue={continueProject}
             onDelete={handleDeleteProject}
             onCreateFirst={() => setShowNewProjectForm(true)}
+            onUpgrade={handleUpgrade}
           />
         </div>
       </div>
@@ -191,11 +232,24 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
 
       {showOnboarding && <OnboardingWizard onDismiss={handleDismissOnboarding} />}
 
+      {showPaymentModal && paymentProject && (
+        <PaymentModal
+          project={paymentProject}
+          tier={paymentTier}
+          amount={paymentIsUpgrade ? 10 : (paymentTier === 'premium' ? 40 : 30)}
+          isUpgrade={paymentIsUpgrade}
+          processingPayment={processingPayment}
+          onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}
+          onCancel={handleClosePayment}
+        />
+      )}
+
       {showSourceSetup && createdProjectId && (
         <SourceSetupModalWrapper
           projectId={createdProjectId}
-          onClose={() => { setShowSourceSetup(false); setCreatedProjectId(null); }}
-          onContinue={() => { setShowSourceSetup(false); setCreatedProjectId(null); }}
+          isPremium={createdProjectTier === 'premium'}
+          onClose={() => { setShowSourceSetup(false); setCreatedProjectId(null); setCreatedProjectTier(null); }}
+          onContinue={() => { setShowSourceSetup(false); setCreatedProjectId(null); setCreatedProjectTier(null); }}
         />
       )}
 
@@ -215,7 +269,7 @@ const Dashboard = ({ onPremiumClick, isPremium }) => {
   );
 };
 
-const SourceSetupModalWrapper = ({ projectId, onClose, onContinue }) => {
+const SourceSetupModalWrapper = ({ projectId, isPremium, onClose, onContinue }) => {
   const sourceLibrary = useSourceLibrary(projectId);
 
   const handleAddFile = async (e) => {
@@ -239,6 +293,7 @@ const SourceSetupModalWrapper = ({ projectId, onClose, onContinue }) => {
       matrix={sourceLibrary.matrix}
       onClose={onClose}
       onContinue={onContinue}
+      isPremium={isPremium}
     />
   );
 };

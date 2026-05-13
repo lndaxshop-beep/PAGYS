@@ -1,10 +1,11 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete }) => {
+const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgrade }) => {
   const { colors, isDarkMode } = useTheme();
   const progress = project.progress || 0;
   const isComplete = progress === 100 && project.status === 'complete';
+  const isPremium = project.tier === 'premium' || project.isPremium;
 
   return (
     <div
@@ -33,9 +34,20 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete }) => {
         }}>✅ Complete</div>
       )}
       <div>
-        <h3 style={{ fontWeight: '600', color: colors.text, marginBottom: '4px', paddingRight: isComplete ? '100px' : '40px' }}>
-          {project.title}
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <h3 style={{ fontWeight: '600', color: colors.text, margin: 0 }}>
+            {project.title}
+          </h3>
+          <span style={{
+            fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
+            fontWeight: '600', whiteSpace: 'nowrap',
+            backgroundColor: isPremium ? (isDarkMode ? '#3d2d1a' : '#fffbe6') : (isDarkMode ? '#2d2d2d' : '#f3f4f6'),
+            color: isPremium ? '#d97706' : colors.textSecondary,
+            border: `1px solid ${isPremium ? '#f59e0b' : colors.border}`
+          }}>
+            {isPremium ? '💎 Premium' : '📘 Regular'}
+          </span>
+        </div>
         {project.useOrganization && project.organizationName && (
           <p style={{ fontSize: '12px', color: colors.primary, marginBottom: '4px' }}>
             🏢 Case study: {project.organizationName}{project.hideOrganization && ' (internal)'}
@@ -54,6 +66,16 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete }) => {
           <div style={{ width: `${progress}%`, backgroundColor: isComplete ? '#059669' : colors.primary, height: '6px', borderRadius: '999px', transition: 'width 0.3s' }} />
         </div>
       </div>
+      {!isPremium && onUpgrade && (
+        <button onClick={() => onUpgrade(project)} style={{
+          width: '100%', marginBottom: '8px',
+          backgroundColor: '#f59e0b', color: 'white', padding: '8px',
+          border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer',
+          fontSize: '12px'
+        }}>
+          ⚡ Upgrade to Premium (+₵10)
+        </button>
+      )}
       <button onClick={() => onContinue(project.id)} style={{
         width: '100%', backgroundColor: isComplete ? '#059669' : colors.primary,
         color: 'white', padding: '10px', border: 'none', borderRadius: '6px',

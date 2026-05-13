@@ -170,10 +170,14 @@ const Write = () => {
   useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
 
   useEffect(() => {
-    const onPremiumActivated = () => setProject(prev => prev ? { ...prev, isPremium: true } : prev);
-    window.addEventListener('premiumActivated', onPremiumActivated);
-    return () => window.removeEventListener('premiumActivated', onPremiumActivated);
-  }, []);
+    const onUpgraded = (e) => {
+      if (e.detail?.projectId === projectId) {
+        setProject(prev => prev ? { ...prev, tier: 'premium', isPremium: true } : prev);
+      }
+    };
+    window.addEventListener('projectUpgraded', onUpgraded);
+    return () => window.removeEventListener('projectUpgraded', onUpgraded);
+  }, [projectId]);
 
   const handleDeleteWithUndo = (subsectionId, chapterId) => {
     const chapter = chapters.find(c => c.id === (chapterId || activeChapter));
@@ -529,17 +533,18 @@ const Write = () => {
           generatingAll={generatingAll} onGenerateAll={handleGenerateAll}
           onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
           onUpdateGuidelines={handleUpdateGuidelines}
+          isPremium={project?.tier === 'premium'}
           />
       </div>
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
-          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} />
+          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
           <p style={{ fontSize: '12px', color: '#059669', marginBottom: '28px' }}>✅ Citations auto-verified, references auto-generated</p>
-          {humaniseLimit > 1 && (() => {
+          {project?.tier === 'premium' && (() => {
             const chHumanise = Object.entries(humaniseUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
             const chFeedback = Object.entries(feedbackUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
             const genCount = activeSubsections.filter(s => s.generated).length;

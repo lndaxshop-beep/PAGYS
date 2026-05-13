@@ -6,7 +6,6 @@ import { deleteUser } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
-import useAppAuth from '../hooks/useAppAuth';
 import { clearAllProjectCache } from '../utils/cacheUtils';
 
 const Settings = () => {
@@ -21,8 +20,8 @@ const Settings = () => {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [projects, setProjects] = useState([]);
 
-  const { isPremium } = useAppAuth();
   const notify = (message, type) => setToast({ message, type });
 
   useEffect(() => {
@@ -38,6 +37,17 @@ const Settings = () => {
       } catch (e) { console.warn('Failed to parse cached user:', e); }
     }
   }, []);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const { getProjects } = await import('../services/firestoreService');
+        const data = await getProjects();
+        setProjects(data);
+      } catch (e) { console.error('Failed to load projects:', e); }
+    };
+    if (user) loadProjects();
+  }, [user]);
 
   const handleSave = async () => {
     const updatedUser = { ...user, fullName, email, username, country };
@@ -145,23 +155,29 @@ const Settings = () => {
         </div>
 
         <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', border: `1px solid ${colors.border}`, marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Premium Status</h2>
-          {isPremium ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '24px' }}>💎</span>
-              <div>
-                <p style={{ fontWeight: '600', color: '#f59e0b' }}>Premium Active</p>
-                <p style={{ fontSize: '13px', color: colors.textSecondary }}>Humanise & Feedback: up to 4 times per subsection</p>
-              </div>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>My Projects</h2>
+          {projects.length > 0 ? (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {projects.map(p => (
+                <div key={p.id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 16px', backgroundColor: colors.background, borderRadius: '8px',
+                  border: `1px solid ${colors.border}`
+                }}>
+                  <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>{p.title}</span>
+                  <span style={{
+                    fontSize: '12px', padding: '3px 10px', borderRadius: '10px', fontWeight: '600',
+                    backgroundColor: p.tier === 'premium' ? (isDarkMode ? '#3d2d1a' : '#fffbe6') : (isDarkMode ? '#2d2d2d' : '#f3f4f6'),
+                    color: p.tier === 'premium' ? '#d97706' : colors.textSecondary,
+                    border: `1px solid ${p.tier === 'premium' ? '#f59e0b' : colors.border}`
+                  }}>
+                    {p.tier === 'premium' ? '💎 Premium' : '📘 Regular'}
+                  </span>
+                </div>
+              ))}
             </div>
           ) : (
-            <div>
-              <p style={{ color: colors.textSecondary, marginBottom: '12px' }}>Upgrade to Premium for extended features.</p>
-              <button onClick={() => notify('Go to your project and click the 💎 Upgrade button in the header.', 'info')}
-                style={{ backgroundColor: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
-                💎 Upgrade to Premium
-              </button>
-            </div>
+            <p style={{ color: colors.textSecondary, fontSize: '14px' }}>No projects yet. Create one from the Dashboard.</p>
           )}
         </div>
 

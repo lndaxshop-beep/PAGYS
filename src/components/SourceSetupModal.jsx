@@ -5,7 +5,7 @@ const SourceSetupModal = ({
   sourceMode, onModeChange, sources, extracting,
   onAddFile, onRemoveSource, onGenerateMatrix,
   generatingMatrix, matrix, onClose, onContinue,
-  title = 'Set Up Your Sources'
+  title = 'Set Up Your Sources', isPremium
 }) => {
   const { colors, isDarkMode } = useTheme();
   const fileInputRef = useRef(null);
@@ -99,7 +99,7 @@ const SourceSetupModal = ({
         </div>
 
         <div style={containerStyle}>
-          {modes.map(mode => (
+          {modes.filter(m => isPremium || m.id === 'ai-only').map(mode => (
             <div
               key={mode.id}
               style={cardStyle(mode.id)}

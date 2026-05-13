@@ -3,7 +3,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 const SourceLibrary = ({
   sources, extracting, loading, matrix, generatingMatrix,
-  onAddFile, onRemoveSource, onGenerateMatrix, onClearSources
+  onAddFile, onRemoveSource, onGenerateMatrix, onClearSources, isPremium
 }) => {
   const { colors, isDarkMode } = useTheme();
   const fileInputRef = useRef(null);
@@ -57,22 +57,26 @@ const SourceLibrary = ({
               }}
             >Clear All</button>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.jpg,.jpeg,.png"
-            multiple
-            onChange={onAddFile}
-            style={{ display: 'none' }}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              backgroundColor: colors.primary, color: 'white',
-              padding: '8px 16px', border: 'none', borderRadius: '6px',
-              fontWeight: '500', cursor: 'pointer', fontSize: '13px'
-            }}
-          >+ Add Source</button>
+          {isPremium && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.jpg,.jpeg,.png"
+                multiple
+                onChange={onAddFile}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  backgroundColor: colors.primary, color: 'white',
+                  padding: '8px 16px', border: 'none', borderRadius: '6px',
+                  fontWeight: '500', cursor: 'pointer', fontSize: '13px'
+                }}
+              >+ Add Source</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -97,16 +101,18 @@ const SourceLibrary = ({
             No sources uploaded yet
           </p>
           <p style={{ color: colors.textSecondary, fontSize: '13px', marginBottom: '16px' }}>
-            Upload PDFs, Word documents, or screenshots of research papers
+            {isPremium ? 'Upload PDFs, Word documents, or screenshots of research papers' : 'Upgrade to Premium to upload your own sources'}
           </p>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              backgroundColor: colors.primary, color: 'white',
-              padding: '10px 24px', border: 'none', borderRadius: '8px',
-              fontWeight: '500', cursor: 'pointer', fontSize: '14px'
-            }}
-          >Upload Your First Source</button>
+          {isPremium && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                backgroundColor: colors.primary, color: 'white',
+                padding: '10px 24px', border: 'none', borderRadius: '8px',
+                fontWeight: '500', cursor: 'pointer', fontSize: '14px'
+              }}
+            >Upload Your First Source</button>
+          )}
         </div>
       )}
 

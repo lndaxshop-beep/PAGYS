@@ -71,7 +71,7 @@ Examples:
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, tier) => {
     e.preventDefault();
     const project = {
       id: Date.now(), ...form,
@@ -79,7 +79,8 @@ Examples:
       lastEdited: new Date().toISOString(),
       progress: 0, status: 'active', unlocked: true,
       useOrganization, organizationName: useOrganization ? organizationName : '',
-      hideOrganization, isPremium: false,
+      hideOrganization, tier: tier || 'regular',
+      isPremium: (tier || 'regular') === 'premium',
     };
     await onSuccess(project);
     setForm(defaultForm);

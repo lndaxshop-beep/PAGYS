@@ -17,7 +17,7 @@ const LeftPane = ({
   draggedItem, dragOverItem, chapterWordCounts,
   generatingAll, onGenerateAll,
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
-  onUpdateGuidelines,
+  onUpdateGuidelines, isPremium,
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
@@ -197,7 +197,7 @@ const LeftPane = ({
                   )}
 
                   <AddSubsection onAdd={(title) => onAddSubsection(title, chapter.id)} />
-                  {onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
+                  {isPremium && onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
                     generatingAll && generatingAll.chapterId === chapter.id ? (
                       <div style={{ marginTop: '12px', padding: '8px', fontSize: '12px', color: colors.primary, textAlign: 'center', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
                         Writing {generatingAll.completed}/{generatingAll.total}...
@@ -219,7 +219,7 @@ const LeftPane = ({
                       </button>
                     )
                   )}
-                  <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />
+                  {isPremium && <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />}
                   <DeletedSubsections
                     chapterId={chapter.id}
                     deletedSubsections={chapter.deletedSubsections || []}

@@ -4,7 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 const NewProjectForm = ({
   form, onChange, useOrganization, setUseOrganization,
   organizationName, setOrganizationName, hideOrganization, setHideOrganization,
-  onGenerateQuestions, onSubmit, onCancel
+  onGenerateQuestions, onSubmit, onCancel, selectedTier, onTierChange
 }) => {
   const { colors, isDarkMode } = useTheme();
   const inputStyle = {
@@ -16,7 +16,7 @@ const NewProjectForm = ({
   return (
     <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '32px', marginBottom: '32px', border: `1px solid ${colors.border}` }}>
       <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px', color: colors.text }}>Start New Thesis Project</h2>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={(e) => onSubmit(e, selectedTier)}>
         <div style={{ display: 'grid', gap: '20px' }}>
           <div>
             <label htmlFor="projectTitle" style={labelStyle}>Thesis Title *</label>
@@ -88,9 +88,59 @@ const NewProjectForm = ({
               <option value="ieee">IEEE</option>
             </select>
           </div>
-          <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f0fdf4', border: `1px solid ${isDarkMode ? '#059669' : '#86efac'}`, borderRadius: '8px', padding: '16px' }}>
-            <p style={{ color: isDarkMode ? '#4ade80' : '#059669', fontWeight: '600', marginBottom: '4px' }}>✅ FREE TESTING MODE</p>
-            <p style={{ color: colors.textSecondary, fontSize: '14px' }}>Projects are created free for testing. All features are enabled.</p>
+          <div>
+            <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500', color: colors.text }}>Project Tier *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div
+                onClick={() => onTierChange('regular')}
+                style={{
+                  padding: '16px', borderRadius: '10px', cursor: 'pointer',
+                  border: `2px solid ${selectedTier === 'regular' ? colors.primary : colors.border}`,
+                  backgroundColor: selectedTier === 'regular'
+                    ? (isDarkMode ? '#2d2a4a' : '#f0f0ff')
+                    : (isDarkMode ? '#2d2d2d' : '#ffffff'),
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { if (selectedTier !== 'regular') e.currentTarget.style.borderColor = colors.primary; }}
+                onMouseLeave={(e) => { if (selectedTier !== 'regular') e.currentTarget.style.borderColor = colors.border; }}
+              >
+                <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
+                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — ₵30</div>
+                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
+                  <li>Humanise (1 use per subsection)</li>
+                  <li>Feedback (1 use per subsection)</li>
+                  <li>Basic writing features</li>
+                </ul>
+              </div>
+              <div
+                onClick={() => onTierChange('premium')}
+                style={{
+                  padding: '16px', borderRadius: '10px', cursor: 'pointer',
+                  border: `2px solid ${selectedTier === 'premium' ? '#f59e0b' : colors.border}`,
+                  backgroundColor: selectedTier === 'premium'
+                    ? (isDarkMode ? '#3d2d1a' : '#fffbe6')
+                    : (isDarkMode ? '#2d2d2d' : '#ffffff'),
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { if (selectedTier !== 'premium') e.currentTarget.style.borderColor = '#f59e0b'; }}
+                onMouseLeave={(e) => { if (selectedTier !== 'premium') e.currentTarget.style.borderColor = colors.border; }}
+              >
+                <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
+                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — ₵40</div>
+                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
+                  <li>Humanise (4 uses per subsection)</li>
+                  <li>Feedback (4 uses per subsection)</li>
+                  <li>Write All Remaining at once</li>
+                  <li>Search Literature & Add Sources</li>
+                  <li>Custom chapter guidelines</li>
+                </ul>
+                {selectedTier === 'premium' && (
+                  <div style={{ marginTop: '8px', fontSize: '11px', color: '#d97706', fontWeight: '500' }}>
+                    ⭐ Best value for full features
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button type="submit" style={{ backgroundColor: colors.primary, color: 'white', padding: '14px 24px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', flex: 1 }}>Create Project</button>

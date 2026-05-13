@@ -8,21 +8,6 @@ const useAppAuth = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
-
-  useEffect(() => {
-    const onPremiumActivated = async () => {
-      try {
-        const { getProjects } = await import('../services/firestoreService');
-        const projects = await getProjects();
-        setIsPremium(projects.some(p => p.isPremium));
-      } catch (e) {
-        console.error('Error refreshing premium status:', e);
-      }
-    };
-    window.addEventListener('premiumActivated', onPremiumActivated);
-    return () => window.removeEventListener('premiumActivated', onPremiumActivated);
-  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -41,16 +26,12 @@ const useAppAuth = () => {
           setUser(currentUser);
           setIsLoggedIn(true);
           localStorage.setItem('currentUser', JSON.stringify(currentUser));
-          const { getProjects } = await import('../services/firestoreService');
-          const projects = await getProjects();
-          setIsPremium(projects.some(p => p.isPremium));
         } catch (e) {
           console.error('Error loading user data:', e);
         }
       } else {
         setIsLoggedIn(false);
         setUser(null);
-        setIsPremium(false);
       }
     });
     return () => unsubscribe();
@@ -66,7 +47,7 @@ const useAppAuth = () => {
     navigate('/');
   };
 
-  return { isLoggedIn, user, showProfileMenu, isPremium, setShowProfileMenu, handleLogout };
+  return { isLoggedIn, user, showProfileMenu, setShowProfileMenu, handleLogout };
 };
 
 export default useAppAuth;

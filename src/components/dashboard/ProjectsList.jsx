@@ -20,7 +20,7 @@ const SkeletonCard = ({ colors, isDarkMode }) => (
   </div>
 );
 
-const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHover, onContinue, onDelete, onCreateFirst }) => {
+const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHover, onContinue, onDelete, onCreateFirst, onUpgrade }) => {
   const { colors, isDarkMode } = useTheme();
   if (loading) return <CardSkeleton count={3} />;
   if (!projects.length) {
@@ -59,6 +59,7 @@ const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHo
                 onHover={onHover}
                 onContinue={onContinue}
                 onDelete={onDelete}
+                onUpgrade={onUpgrade}
               />
             ))}
       </div>

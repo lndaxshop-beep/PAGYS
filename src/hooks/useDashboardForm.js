@@ -103,7 +103,7 @@ Examples:
       hideOrganization, tier: tier || 'regular',
       isPremium: (tier || 'regular') === 'premium',
     };
-    await onSuccess(project);
+    await onSuccess(project, tier);
   };
 
   return {

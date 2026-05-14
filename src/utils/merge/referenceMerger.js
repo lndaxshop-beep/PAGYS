@@ -1,99 +1,93 @@
-import { extractCitations, formatGroundedReference, formatSimpleReference } from '../writeHelpers.jsx';
+import { extractCitations } from '../writeHelpers.jsx';
 
-export const mergeReferences = async (selectedChapters, generatedSubsections, style) => {
+const parseRefEntries = (refString) => {
+  const lines = refString.split('\n').map(l => l.trim()).filter(Boolean);
+  const entries = [];
+  let started = false;
+  for (const line of lines) {
+    if (line.toLowerCase().startsWith('references')) { started = true; continue; }
+    if (!started) continue;
+    if (line) entries.push(line);
+  }
+  return entries;
+};
+
+const getDedupKey = (entry) => {
+  const authorMatch = entry.match(/^([A-Za-z-]+)/);
+  const yearMatch = entry.match(/\((\d{4})\)/);
+  return `${authorMatch?.[1]?.toLowerCase() || ''}|${yearMatch?.[1] || ''}`;
+};
+
+const loadUserSources = () => {
+  try {
+    return JSON.parse(localStorage.getItem('userSources') || '[]');
+  } catch { return []; }
+};
+
+export const mergeReferences = async (selectedChapters, generatedSubsections, style, projectId) => {
   const allEntries = [];
   const seen = new Set();
 
   for (const chapter of selectedChapters) {
     const chapterContent = generatedSubsections[chapter.id] || {};
-    const chapterCitations = [];
 
-    Object.entries(chapterContent).forEach(([title, content]) => {
-      if (title === 'references' || title === 'References' || title === 'complete' || title === 'fullChapter') return;
-      if (!content || typeof content !== 'string') return;
-      const citations = extractCitations(content);
-      chapterCitations.push(...citations);
-    });
+    const existingRefs = chapterContent.references || chapterContent.References || '';
 
-    const uniqueChapterCitations = [...new Set(chapterCitations)];
-    if (uniqueChapterCitations.length === 0) continue;
+    if (existingRefs && existingRefs.length > 10) {
+      const parsed = parseRefEntries(existingRefs);
+      for (const entry of parsed) {
+        const key = getDedupKey(entry);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        allEntries.push({ formatted: entry, orderKey: entry.toLowerCase() });
+      }
+    } else {
+      const chapterCitations = [];
+      Object.entries(chapterContent).forEach(([title, content]) => {
+        if (title === 'references' || title === 'References' || title === 'complete' || title === 'fullChapter') return;
+        if (!content || typeof content !== 'string') return;
+        chapterCitations.push(...extractCitations(content));
+      });
 
-    const storedSources = (() => {
+      const uniqueCitations = [...new Set(chapterCitations)];
+      if (uniqueCitations.length === 0) continue;
+
+      const userSources = loadUserSources();
+      let generated = false;
+
       try {
-        return JSON.parse(localStorage.getItem(`groundingSources_${chapter.id}`) || '[]');
-      } catch { return []; }
-    })();
-
-    for (const citation of uniqueChapterCitations) {
-      const dedupKey = citation.replace(/\s+/g, ' ').toLowerCase().trim();
-      if (seen.has(dedupKey)) continue;
-      seen.add(dedupKey);
-
-      const parts = citation.split(/[, ]+/);
-      const author = parts[0]?.toLowerCase();
-      const year = parts[1]?.replace(/[a-z]?\)$/, '');
-
-      let matchedSource = null;
-      for (const source of storedSources) {
-        const formatted = formatGroundedReference(source, style);
-        if (author && year && formatted?.toLowerCase().includes(author) && formatted.includes(year)) {
-          matchedSource = source;
-          break;
-        }
-      }
-
-      if (matchedSource) {
-        allEntries.push({
-          citation,
-          formatted: formatGroundedReference(matchedSource, style),
-          source: 'grounded',
-          orderKey: citation.toLowerCase()
-        });
-      } else {
-        allEntries.push({
-          citation,
-          formatted: null,
-          source: 'unmatched',
-          orderKey: citation.toLowerCase()
-        });
-      }
-    }
-  }
-
-  const unmatchedCitations = allEntries.filter(e => e.source === 'unmatched').map(e => e.citation);
-  if (unmatchedCitations.length > 0) {
-    try {
-      const { generateReferences } = await import('../../services/geminiService');
-      const aiRefs = await generateReferences(unmatchedCitations, style);
-      if (aiRefs) {
-        const refLines = aiRefs.split('\n').filter(l => l.trim());
-        refLines.forEach(line => {
-          const match = allEntries.find(e => e.source === 'unmatched' && e.formatted === null);
-          if (match) {
-            match.formatted = line.trim();
-            match.source = 'ai-generated';
+        const { generateReferences } = await import('../../services/geminiService');
+        const aiResult = await generateReferences(uniqueCitations, style, userSources, 'combine');
+        if (aiResult) {
+          const lines = aiResult.split('\n').filter(l => l.trim());
+          for (const line of lines) {
+            const key = getDedupKey(line);
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            allEntries.push({ formatted: line.trim(), orderKey: line.toLowerCase() });
           }
-        });
+          generated = true;
+        }
+      } catch (err) {
+        console.error(`[referenceMerger] AI generation failed for chapter "${chapter.title}":`, err.message);
       }
-    } catch { /* AI ref generation failed, will use simple formatting */ }
-  }
 
-  allEntries.forEach(e => {
-    if (!e.formatted) {
-      const parts = e.citation.split(/[, ]+/);
-      const author = parts[0] || 'Unknown Author';
-      const year = parts[1]?.replace(/[a-z]?\)$/, '') || 'n.d.';
-      e.formatted = formatSimpleReference(author, year);
+      if (!generated) {
+        const chapterTitle = chapter.customTitle || chapter.title || `Chapter ${chapter.id}`;
+        throw new Error(
+          `References for "${chapterTitle}" could not be generated. Please open this chapter and click "Generate References" first, then try merging again.`
+        );
+      }
     }
-  });
+  }
 
   allEntries.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
 
   return {
     entries: allEntries.map(e => e.formatted),
     totalCount: allEntries.length,
-    matchedCount: allEntries.filter(e => e.source === 'grounded').length,
-    aiGeneratedCount: allEntries.filter(e => e.source === 'ai-generated').length
+    matchedCount: allEntries.length,
+    aiGeneratedCount: 0
   };
 };
 

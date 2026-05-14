@@ -79,8 +79,8 @@ const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAID
       </div>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <button onClick={onToggleShortcuts} title="Keyboard Shortcuts" style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 8px', fontSize: '14px', cursor: 'pointer', lineHeight: '1' }}>⌨</button>
-        {isPremium && <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}60`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>📚 Search Literature</button>}
-        <button onClick={onToggleAIDetection} title="Check content originality" style={{ backgroundColor: 'transparent', color: '#dc2626', border: `1px solid #dc262660`, borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>🤖 AI Score</button>
+        {isPremium && <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(79,70,229,0.3)' }}>📚 Search Literature</button>}
+        <button onClick={onToggleAIDetection} title="Check content originality" style={{ backgroundColor: '#0891b2', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(8,145,178,0.3)' }}>🤖 AI Score</button>
       </div>
     </div>
   );

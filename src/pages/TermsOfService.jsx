@@ -8,20 +8,13 @@ const TermsOfService = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-      <button onClick={() => navigate(-1)} style={{
-        position: 'fixed', top: '20px', right: '20px', zIndex: 100,
-        backgroundColor: colors.surface, color: colors.text,
-        border: `1px solid ${colors.border}`, borderRadius: '10px',
-        padding: '10px 18px', fontSize: '14px', fontWeight: '500',
-        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-        boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s',
-      }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 6px 16px rgba(0,0,0,0.5)' : '0 6px 16px rgba(0,0,0,0.15)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)'; }}
-      >← Back</button>
-
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+        <button onClick={() => navigate(-1)} style={{
+          background: 'none', border: 'none', color: colors.primary,
+          cursor: 'pointer', fontSize: '14px', fontWeight: '500',
+          padding: 0, marginBottom: '16px', display: 'inline-flex',
+          alignItems: 'center', gap: '4px'
+        }}>← Back</button>
         <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', border: `1px solid ${colors.border}` }}>
           <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Terms of Service</h1>
           <p style={{ color: colors.textSecondary, marginBottom: '32px' }}>Last updated: January 2026</p>
@@ -93,7 +86,7 @@ const TermsOfService = () => {
           </Section>
 
           <Section title="11. Governing Law" colors={colors}>
-            <p>These Terms are governed by the laws of Canada. Disputes shall be resolved through negotiation first, then binding arbitration.</p>
+            <p>These Terms are governed by international law. Disputes shall be resolved through negotiation first, then binding arbitration.</p>
           </Section>
 
           <Section title="12. Contact" colors={colors}>

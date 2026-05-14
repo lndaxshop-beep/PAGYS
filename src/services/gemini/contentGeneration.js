@@ -86,10 +86,7 @@ export const generateAcademicContent = async (promptData) => {
     const wordRange = promptData.wordCount || { min: 500, max: 1000 };
     const targetWords = Math.floor((wordRange.min + wordRange.max) / 2);
 
-    let chapterNames = { 'ONE': 'CHAPTER ONE', 'TWO': 'CHAPTER TWO', 'THREE': 'CHAPTER THREE', 'FOUR': 'CHAPTER FOUR', 'FIVE': 'CHAPTER FIVE' };
-    let structureInstruction = promptData.isFirstSubsection && promptData.chapterNumber
-      ? `Start with "${chapterNames[promptData.chapterNumber] || 'CHAPTER'}" on its own line, then the chapter title on its own line, then the subsection heading.`
-      : `Start directly with the subsection heading.`;
+    const structureInstruction = 'Start directly with the subsection heading.';
 
     let sourceModeInstruction = '';
     if (promptData.sourceMode === 'user-only' && promptData.userSources?.length > 0) {

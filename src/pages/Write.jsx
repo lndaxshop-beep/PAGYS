@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import LeftPane from '../components/writing/LeftPane';
@@ -29,6 +29,8 @@ import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import useSourceLibrary from '../hooks/useSourceLibrary';
+import VersionBrowser from '../components/writing/VersionBrowser';
+import { saveSubsectionVersions, getSubsectionVersions } from '../services/firestoreService';
 
 const Write = () => {
   const { projectId } = useParams();
@@ -77,6 +79,8 @@ const Write = () => {
   const [showLitSearchModal, setShowLitSearchModal] = useState(false);
   const [showAIDetection, setShowAIDetection] = useState(false);
   const [diffModal, setDiffModal] = useState({ show: false, oldText: '', newText: '', onAccept: null, title: '' });
+  const [subsectionVersions, setSubsectionVersions] = useState({});
+  const [versionBrowserSubsection, setVersionBrowserSubsection] = useState(null);
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -167,6 +171,9 @@ const Write = () => {
       setLoading(false);
     };
     loadProject();
+    getSubsectionVersions(projectId).then(v => {
+      if (v && Object.keys(v).length > 0) setSubsectionVersions(v);
+    }).catch(() => {});
   }, [projectId, navigate]);
 
   useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations).catch(e => console.error('Auto-save citations failed:', e)); }, [chapterCitations, projectId]);
@@ -178,6 +185,17 @@ const Write = () => {
   useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`humaniseBonus_${projectId}`, String(humaniseBonus)); } catch {} }, [humaniseBonus, projectId]);
   useEffect(() => { try { localStorage.setItem(`feedbackBonus_${projectId}`, String(feedbackBonus)); } catch {} }, [feedbackBonus, projectId]);
+  useEffect(() => { try { localStorage.setItem(`subsectionVersions_${projectId}`, JSON.stringify(subsectionVersions)); } catch {} }, [subsectionVersions, projectId]);
+
+  const versionsTimerRef = useRef(null);
+  useEffect(() => {
+    if (!projectId || Object.keys(subsectionVersions).length === 0) return;
+    if (versionsTimerRef.current) clearTimeout(versionsTimerRef.current);
+    versionsTimerRef.current = setTimeout(() => {
+      saveSubsectionVersions(projectId, subsectionVersions).catch(e => console.warn('Failed to save versions:', e));
+    }, 15000);
+    return () => { if (versionsTimerRef.current) clearTimeout(versionsTimerRef.current); };
+  }, [subsectionVersions, projectId]);
 
   useEffect(() => {
     const onUpgraded = (e) => {
@@ -322,6 +340,7 @@ const Write = () => {
       if (result.skipped) return;
       const { content, citations, subsectionId } = result;
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
+      captureVersion(activeChapter, subsectionId, generatedSubsections[activeChapter]?.[subsectionId], 'AI Generated');
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionId]: content } }));
       setCurrentContent(content);
       setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s) } : ch));
@@ -404,6 +423,7 @@ const Write = () => {
         newText: humanisedText,
         title: 'Humanise Changes',
         onAccept: () => {
+          captureVersion(activeChapter, currentSubsection?.id, currentContent, 'Humanised');
           setCurrentContent(humanisedText);
           if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: humanisedText } }));
           setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
@@ -425,6 +445,7 @@ const Write = () => {
       const { modifiedContent, feedbackKey } = result;
 
       const applyChanges = () => {
+        captureVersion(activeChapter, modals.currentFeedbackSubsection.id, currentContentText, 'Feedback Applied');
         setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
         if (currentSubsection?.id === modals.currentFeedbackSubsection.id) setCurrentContent(modifiedContent);
         setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
@@ -524,6 +545,25 @@ const Write = () => {
     }, 1000);
   };
 
+  const captureVersion = (chapterId, subsectionId, content, label) => {
+    if (!content || !subsectionId) return;
+    setSubsectionVersions(prev => {
+      const key = `${chapterId}_${subsectionId}`;
+      const list = prev[key] || [];
+      if (list.length > 0 && list[list.length - 1].content === content) return prev;
+      return { ...prev, [key]: [...list, { content, label, timestamp: Date.now() }] };
+    });
+  };
+
+  const handleRestoreVersion = (chapterId, subsectionId, content) => {
+    captureVersion(chapterId, subsectionId, generatedSubsections[chapterId]?.[subsectionId] || currentContent, 'Restored');
+    setGeneratedSubsections(prev => ({
+      ...prev, [chapterId]: { ...prev[chapterId], [subsectionId]: content }
+    }));
+    if (currentSubsection?.id === subsectionId) setCurrentContent(content);
+    setVersionBrowserSubsection(null);
+  };
+
   const overallProgress = calculateOverallProgress(chapters, generatedSubsections);
   const totalActive = activeSubsections.length;
   const generatedActive = activeSubsections.filter(s => s.generated).length;
@@ -544,6 +584,7 @@ const Write = () => {
   const handleSaveEdit = () => {
     if (currentSubsection) {
       const key = currentSubsection.id || 'references';
+      captureVersion(activeChapter, key, generatedSubsections[activeChapter]?.[key], 'Manual Edit');
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [key]: currentContent } }));
     }
     setIsPreviewMode(true);
@@ -642,6 +683,7 @@ const Write = () => {
                 feedbackLeft={feedbackLeft}
                 onResetHumanise={() => setResetModalType('humanise')}
                 onResetFeedback={() => setResetModalType('feedback')}
+                onOpenVersions={() => setVersionBrowserSubsection(currentSubsection)}
               />
             </>
           )}
@@ -677,6 +719,17 @@ const Write = () => {
         onApply={wrappedApplyFeedback}
         applying={modals.applyingSubFeedback}
       />
+
+      {versionBrowserSubsection && (
+        <VersionBrowser
+          isOpen={!!versionBrowserSubsection}
+          onClose={() => setVersionBrowserSubsection(null)}
+          subsection={versionBrowserSubsection}
+          versions={subsectionVersions[`${activeChapter}_${versionBrowserSubsection.id}`] || []}
+          currentContent={generatedSubsections[activeChapter]?.[versionBrowserSubsection.id] || ''}
+          onRestore={(content) => handleRestoreVersion(activeChapter, versionBrowserSubsection.id, content)}
+        />
+      )}
 
       {resetModalType && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000 }}>

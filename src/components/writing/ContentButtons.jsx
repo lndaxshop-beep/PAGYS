@@ -7,7 +7,7 @@ const ContentButtons = ({
   referencesSub, referencesGenerated,
   onGenerate, onHumanise, onFeedback, onPrev, onNext, onComplete, getButtonText,
   humaniseAvailable, feedbackAvailable, humaniseLeft, feedbackLeft,
-  onResetHumanise, onResetFeedback
+  onResetHumanise, onResetFeedback, onOpenVersions
 }) => {
   const { colors } = useTheme();
   const sub = activeSubsections[currentSubsectionIndex];
@@ -68,6 +68,15 @@ const ContentButtons = ({
                   🔄 Reset Feedback (₵5)
                 </button>
               ) : null}
+              {currentSubsection?.generated && (
+                <button onClick={onOpenVersions} style={{
+                  backgroundColor: '#6b7280',
+                  color: 'white', padding: '10px 16px', border: 'none', borderRadius: '6px',
+                  fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                }}>
+                  📋 Written Versions
+                </button>
+              )}
             </>
           ) : (
             <div style={{ color: colors.textSecondary, padding: '10px 0' }}>References are auto-generated from in-text citations.</div>

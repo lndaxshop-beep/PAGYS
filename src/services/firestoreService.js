@@ -113,6 +113,22 @@ export const permanentlyDeleteProject = async (projectId) => {
   } catch (e) { logError('permanentlyDeleteProject', e); throw e; }
 };
 
+export const saveSubsectionVersions = async (projectId, versions) => {
+  try {
+    await setDoc(doc(db, 'subsectionVersions', projectId.toString()), {
+      versions, updatedAt: new Date().toISOString(),
+    });
+  } catch (e) { logError('saveSubsectionVersions', e); throw e; }
+};
+
+export const getSubsectionVersions = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'subsectionVersions', projectId.toString()));
+    if (snap.exists()) return snap.data().versions;
+    return {};
+  } catch (e) { logError('getSubsectionVersions', e); throw e; }
+};
+
 export const saveVisualData = async (projectId, type, data) => {
   try {
     await setDoc(doc(db, 'visuals', projectId.toString()), {

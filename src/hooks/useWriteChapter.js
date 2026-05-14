@@ -89,19 +89,65 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     const ordinal = chapter ? getChapterOrdinal(chapter, chapters) : -1;
     const chapterNum = ordinal >= 0 ? String(ordinal) : chapterId.replace('chapter', '');
     const filtered = headings.filter(t => !t.toLowerCase().includes('reference'));
-    const clean = filtered.map((title, i) => {
-      let cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
-      return {
-        id: `${chapterId}_sub_${Date.now()}_${i}`,
-        title: cleanTitle,
-        type: 'subsection',
-        hasPlaceholder: cleanTitle.toLowerCase().includes('organisation') || cleanTitle.toLowerCase().includes('organization') || cleanTitle.toLowerCase().includes('company') || cleanTitle.toLowerCase().includes('institution'),
-        placeholder: 'Organization', customValue: project?.organizationName || '',
-        generated: false, deleted: false
-      };
+
+    const subsections = [];
+    let currentParent = null;
+    let parentIdx = -1;
+
+    const hasPlaceholderCheck = (title) =>
+      title.toLowerCase().includes('organisation') ||
+      title.toLowerCase().includes('organization') ||
+      title.toLowerCase().includes('company') ||
+      title.toLowerCase().includes('institution');
+
+    filtered.forEach((title) => {
+      const match = title.match(/^(\d+)\.(\d+)(?:\.(\d+))?\s+(.+)/);
+      if (match) {
+        const sub = match[3] ? parseInt(match[3]) : NaN;
+        const cleanTitle = match[4];
+
+        if (isNaN(sub)) {
+          const subObj = {
+            id: `${chapterId}_sub_${Date.now()}_${subsections.length}`,
+            title: cleanTitle,
+            type: 'subsection',
+            hasPlaceholder: hasPlaceholderCheck(cleanTitle),
+            placeholder: 'Organization',
+            customValue: project?.organizationName || '',
+            generated: false, deleted: false,
+            children: []
+          };
+          subsections.push(subObj);
+          currentParent = subObj;
+          parentIdx = subsections.length - 1;
+        } else if (currentParent && parentIdx >= 0) {
+          subsections[parentIdx].children.push({
+            id: `${subsections[parentIdx].id}_child_${subsections[parentIdx].children.length}`,
+            title: cleanTitle,
+            type: 'sub-subsection',
+            generated: false
+          });
+        }
+      } else {
+        const cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
+        const subObj = {
+          id: `${chapterId}_sub_${Date.now()}_${subsections.length}`,
+          title: cleanTitle,
+          type: 'subsection',
+          hasPlaceholder: hasPlaceholderCheck(cleanTitle),
+          placeholder: 'Organization',
+          customValue: project?.organizationName || '',
+          generated: false, deleted: false,
+          children: []
+        };
+        subsections.push(subObj);
+        currentParent = subObj;
+        parentIdx = subsections.length - 1;
+      }
     });
-    const ref = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false };
-    const numbered = renumberSubsections([...clean, ref], chapterId, chapterNum);
+
+    const ref = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false, children: [] };
+    const numbered = renumberSubsections([...subsections, ref], chapterId, chapterNum);
     setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: numbered, generated: true } : ch));
   }, [project, chapters, renumberSubsections]);
 

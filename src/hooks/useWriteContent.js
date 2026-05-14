@@ -87,6 +87,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const chapterNumber = ordinal > 0 && ordinal < numberWords.length ? numberWords[ordinal] : '';
     const totalWordCount = ch.wordCount || { min: 1000, max: 2000 };
     const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsList, subTitle);
+    const childrenTopics = (sub.children || []).map(c => c.title).filter(Boolean);
     const { generateAcademicContent, selfReviewContent } = await import('../services/geminiService');
     const result = await generateAcademicContent({
       chapter: chapterTitle, chapterId, chapterNumber, subsection: subTitle,
@@ -96,6 +97,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
       userSources, sourceMode,
       guidelines: ch.guidelines || '',
+      childrenTopics,
     });
     let generatedContent = typeof result === 'object' ? result.text : result;
     try {

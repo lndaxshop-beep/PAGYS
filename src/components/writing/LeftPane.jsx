@@ -172,26 +172,57 @@ const LeftPane = ({
                         const subOutline = extractOutline(subContent);
 
                         return (
-                        <SubsectionItem
-                          key={sub.id}
-                          subsection={sub}
-                          chapterId={chapter.id}
-                          index={idx}
-                          isActiveChapter={activeChapter === chapter.id}
-                          isDraggable={draggable}
-                          isClickable={clickable}
-                          isDragged={draggedItem === idx}
-                          isDragOver={dragOverItem === idx && draggedItem !== idx}
-                          wordCount={isRefs ? null : subWC}
-                          outline={subOutline}
-                          onDragStart={onDragStart}
-                          onDragOver={onDragOver}
-                          onDrop={onDrop}
-                          onDragEnd={onDragEnd}
-                          onClick={() => handleSubsectionClick(sub, activeSubsections)}
-                          onDelete={(id) => onDeleteSubsection(id, chapter.id)}
-                          onRename={(id, newTitle) => onRenameSubsection?.(id, newTitle)}
-                        />);
+                        <div key={sub.id}>
+                          <SubsectionItem
+                            subsection={sub}
+                            chapterId={chapter.id}
+                            index={idx}
+                            isActiveChapter={activeChapter === chapter.id}
+                            isDraggable={draggable}
+                            isClickable={clickable}
+                            isDragged={draggedItem === idx}
+                            isDragOver={dragOverItem === idx && draggedItem !== idx}
+                            wordCount={isRefs ? null : subWC}
+                            outline={subOutline}
+                            onDragStart={onDragStart}
+                            onDragOver={onDragOver}
+                            onDrop={onDrop}
+                            onDragEnd={onDragEnd}
+                            onClick={() => handleSubsectionClick(sub, activeSubsections)}
+                            onDelete={(id) => onDeleteSubsection(id, chapter.id)}
+                            onRename={(id, newTitle) => onRenameSubsection?.(id, newTitle)}
+                          />
+                          {(sub.children || []).length > 0 && (
+                            <div style={{ marginLeft: '20px', borderLeft: `1px solid ${colors.border}30`, paddingLeft: '12px', marginTop: '4px', marginBottom: '4px' }}>
+                              {sub.children.map((child, ci) => {
+                                const childContent = generatedSubsections[chapter.id]?.[child.id] || '';
+                                const childOutline = extractOutline(childContent);
+                                return (
+                                  <SubsectionItem
+                                    key={child.id}
+                                    subsection={child}
+                                    chapterId={chapter.id}
+                                    index={ci}
+                                    isActiveChapter={activeChapter === chapter.id}
+                                    isDraggable={false}
+                                    isClickable={true}
+                                    isDragged={false}
+                                    isDragOver={false}
+                                    wordCount={null}
+                                    outline={childOutline}
+                                    onDragStart={() => {}}
+                                    onDragOver={() => {}}
+                                    onDrop={() => {}}
+                                    onDragEnd={() => {}}
+                                    onClick={() => handleSubsectionClick(child, activeSubsections)}
+                                    onDelete={null}
+                                    onRename={null}
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>);
                       })}
                     </div>
                   )}

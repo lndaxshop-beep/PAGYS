@@ -172,6 +172,13 @@ Rules:
 - Charts, tables, and diagrams must contain REAL data — never fabricate numbers.
 
 ${structureInstruction}
+${promptData.childrenTopics?.length > 0 ? `
+
+## SUB-TOPICS TO COVER IN THIS SECTION
+This section has the following sub-topics that must be covered. Include EACH as an H3 subheading within the text:
+
+${promptData.childrenTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+` : ''}
 ${promptData.guidelines ? `
 
 ## CHAPTER-SPECIFIC GUIDELINES

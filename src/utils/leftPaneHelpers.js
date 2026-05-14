@@ -1,7 +1,16 @@
 export const getChapterProgress = (chapter) => {
   const active = chapter.subsections?.filter(s => s.type !== 'references' && !s.deleted) || [];
-  if (active.length === 0) return 0;
-  return Math.round((active.filter(s => s.generated).length / active.length) * 100);
+  let total = 0, generated = 0;
+  active.forEach(s => {
+    total += 1;
+    if (s.generated) generated += 1;
+    (s.children || []).forEach(c => {
+      total += 1;
+      if (c.generated) generated += 1;
+    });
+  });
+  if (total === 0) return 0;
+  return Math.round((generated / total) * 100);
 };
 
 export const getActiveSubsections = (subsections) =>

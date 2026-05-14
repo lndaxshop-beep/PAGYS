@@ -7,8 +7,14 @@ export const calculateOverallProgress = (chapters, generatedSubsections) => {
   let total = 0, generated = 0;
   chapters.forEach(ch => {
     const active = ch.subsections?.filter(s => s.type !== 'references' && !s.deleted) || [];
-    total += active.length;
-    generated += active.filter(s => s.generated).length;
+    active.forEach(s => {
+      total += 1;
+      if (s.generated) generated += 1;
+      (s.children || []).forEach(c => {
+        total += 1;
+        if (c.generated) generated += 1;
+      });
+    });
   });
   return { percentage: total > 0 ? Math.round((generated / total) * 100) : 0, generated, total };
 };
@@ -128,10 +134,21 @@ export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
       : sub.title.match(/^[P\d]+(\.\d+)*\s+/)
         ? sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `)
         : `${newNumber} ${sub.title}`;
+    const newChildren = (sub.children || []).map((child, ci) => {
+      const childNum = `${newNumber}.${ci + 1}`;
+      return {
+        ...child,
+        number: childNum,
+        title: child.title.match(/^[\d.]+\.\d+\s+/)
+          ? child.title.replace(/^[\d.]+\.\d+\s+/, `${childNum} `)
+          : `${childNum} ${child.title}`
+      };
+    });
     return {
       ...sub,
       number: newNumber,
       title: newTitle,
+      children: newChildren,
     };
   });
 };

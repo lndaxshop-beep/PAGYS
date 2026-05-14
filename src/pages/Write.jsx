@@ -314,7 +314,7 @@ const Write = () => {
       setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionId]: content } }));
       setCurrentContent(content);
-      setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, generated: true } : s) } : ch));
+      setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s) } : ch));
       setIsPreviewMode(true);
       preRenderDiagrams(content, isDarkMode).then(rendered => {
         if (rendered && Object.keys(rendered).length > 0) {
@@ -353,7 +353,15 @@ const Write = () => {
 
   const wrappedHandleSubsectionClick = (subsectionId) => {
     const activeSubs = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
-    const sub = currentChapter?.subsections.find(s => s.id === subsectionId);
+    let sub = currentChapter?.subsections.find(s => s.id === subsectionId);
+    let parentSub = null;
+    if (!sub) {
+      for (const s of (currentChapter?.subsections || [])) {
+        const child = (s.children || []).find(c => c.id === subsectionId);
+        if (child) { sub = child; parentSub = s; break; }
+      }
+    }
+    if (!sub) return;
     if (sub?.type === 'references') {
       const allOthersGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
       if (!allOthersGenerated) { toastError('Please write all other subsections first.'); return; }
@@ -365,7 +373,8 @@ const Write = () => {
       }
       wrappedGenerateReferences(); return;
     }
-    const index = activeSubs.findIndex(s => s.id === subsectionId);
+    const targetId = parentSub ? parentSub.id : sub.id;
+    const index = activeSubs.findIndex(s => s.id === targetId);
     if (index !== -1) {
       setCurrentSubsectionIndex(index); setIsViewingReferences(false); setIsPreviewMode(true);
       setCurrentContent(generatedSubsections[activeChapter]?.[activeSubs[index].id] || '');
@@ -478,7 +487,7 @@ const Write = () => {
       if (result?.skipped) { setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null); continue; }
       setChapterCitations(prev => ({ ...prev, [chapterId]: [...new Set([...(prev[chapterId] || []), ...result.citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], [result.subsectionId]: result.content } }));
-      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: ch.subsections.map(s => s.id === result.subsectionId ? { ...s, generated: true } : s) } : ch));
+      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: ch.subsections.map(s => s.id === result.subsectionId ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s) } : ch));
       setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null);
     }
     setGeneratingAll(null);

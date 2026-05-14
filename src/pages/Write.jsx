@@ -45,6 +45,14 @@ const Write = () => {
   const [feedbackUsed, setFeedbackUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
+  const [humaniseBonus, setHumaniseBonus] = useState(() => {
+    try { return parseInt(localStorage.getItem(`humaniseBonus_${projectId}`) || '0', 10); } catch { return 0; }
+  });
+  const [feedbackBonus, setFeedbackBonus] = useState(() => {
+    try { return parseInt(localStorage.getItem(`feedbackBonus_${projectId}`) || '0', 10); } catch { return 0; }
+  });
+  const [resetModalType, setResetModalType] = useState(null);
+  const [processingReset, setProcessingReset] = useState(false);
   const [currentContent, setCurrentContent] = useState('');
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
@@ -87,7 +95,7 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode);
+  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, humaniseBonus, feedbackBonus);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
@@ -168,6 +176,8 @@ const Write = () => {
 
   useEffect(() => { try { localStorage.setItem(`humaniseUsed_${projectId}`, JSON.stringify(humaniseUsed)); } catch {} }, [humaniseUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
+  useEffect(() => { try { localStorage.setItem(`humaniseBonus_${projectId}`, String(humaniseBonus)); } catch {} }, [humaniseBonus, projectId]);
+  useEffect(() => { try { localStorage.setItem(`feedbackBonus_${projectId}`, String(feedbackBonus)); } catch {} }, [feedbackBonus, projectId]);
 
   useEffect(() => {
     const onUpgraded = (e) => {
@@ -501,6 +511,19 @@ const Write = () => {
     try { localStorage.setItem(`instruments_${projectId}`, JSON.stringify(downloadedTypes || [])); } catch (e) { console.warn('Failed to cache instruments:', e); }
   };
 
+  const handleResetConfirm = () => {
+    setProcessingReset(true);
+    setTimeout(() => {
+      if (resetModalType === 'humanise') {
+        setHumaniseBonus(prev => prev + 2);
+      } else if (resetModalType === 'feedback') {
+        setFeedbackBonus(prev => prev + 3);
+      }
+      setProcessingReset(false);
+      setResetModalType(null);
+    }, 1000);
+  };
+
   const overallProgress = calculateOverallProgress(chapters, generatedSubsections);
   const totalActive = activeSubsections.length;
   const generatedActive = activeSubsections.filter(s => s.generated).length;
@@ -617,6 +640,8 @@ const Write = () => {
                 feedbackAvailable={feedbackLeft > 0}
                 humaniseLeft={humaniseLeft}
                 feedbackLeft={feedbackLeft}
+                onResetHumanise={() => setResetModalType('humanise')}
+                onResetFeedback={() => setResetModalType('feedback')}
               />
             </>
           )}
@@ -652,6 +677,54 @@ const Write = () => {
         onApply={wrappedApplyFeedback}
         applying={modals.applyingSubFeedback}
       />
+
+      {resetModalType && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000 }}>
+          <div style={{ backgroundColor: colors.surface, borderRadius: '16px', maxWidth: '400px', width: '90%', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: '40px', textAlign: 'center', marginBottom: '16px' }}>
+              {resetModalType === 'humanise' ? '✨' : '✏️'}
+            </div>
+            <h2 style={{ textAlign: 'center', fontSize: '22px', fontWeight: '700', color: colors.text, margin: '0 0 8px' }}>
+              Reset {resetModalType === 'humanise' ? 'Humanise' : 'Feedback'}
+            </h2>
+            <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>
+              Get {resetModalType === 'humanise' ? '2' : '3'} more {resetModalType} uses for the entire project.
+            </p>
+            <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Feature</span>
+                <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px', textTransform: 'capitalize' }}>{resetModalType}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Bonus uses</span>
+                <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>+{resetModalType === 'humanise' ? '2' : '3'} per subsection</span>
+              </div>
+              <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵5</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button onClick={handleResetConfirm} disabled={processingReset} style={{
+                backgroundColor: processingReset ? colors.border : (resetModalType === 'humanise' ? '#2563eb' : '#059669'),
+                color: 'white', padding: '14px', border: 'none', borderRadius: '8px',
+                fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
+                fontSize: '15px', opacity: processingReset ? 0.7 : 1
+              }}>
+                {processingReset ? 'Processing...' : 'Pay ₵5'}
+              </button>
+              <button onClick={() => setResetModalType(null)} disabled={processingReset} style={{
+                backgroundColor: 'transparent', color: colors.textSecondary,
+                padding: '10px', border: `1px solid ${colors.border}`, borderRadius: '8px',
+                fontWeight: '500', cursor: processingReset ? 'not-allowed' : 'pointer',
+                fontSize: '14px'
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AIDetectionDashboard isOpen={showAIDetection} onClose={() => setShowAIDetection(false)} content={currentContent} />
       <LiteratureSearchModal

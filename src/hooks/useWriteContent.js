@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
-const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only') => {
+const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', humaniseBonus = 0, feedbackBonus = 0) => {
   const [generating, setGenerating] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
   const [humanising, setHumanising] = useState(false);
@@ -13,8 +13,10 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       return stored.some(p => p.id.toString() === project?.id?.toString() && p.isPremium);
     } catch { return false; }
   })();
-  const humaniseLimit = isPremium ? 4 : 1;
-  const feedbackLimit = isPremium ? 4 : 1;
+  const baseHumaniseLimit = isPremium ? 4 : 1;
+  const baseFeedbackLimit = isPremium ? 4 : 1;
+  const humaniseLimit = baseHumaniseLimit + humaniseBonus;
+  const feedbackLimit = baseFeedbackLimit + feedbackBonus;
   const contentCache = useRef(new Map());
 
   const handleGenerateConceptualFramework = useCallback(async () => {
@@ -294,6 +296,8 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 
   const handleApplyFeedback = useCallback(async (currentContentText, feedbackText, feedbackFiles, currentFeedbackSubsection) => {
     if (!feedbackText && feedbackFiles.length === 0) return { error: true, message: 'Please enter feedback or upload files' };
+    const wc = feedbackText.trim() ? feedbackText.trim().split(/\s+/).length : 0;
+    if (wc > 50) return { error: true, message: 'Feedback exceeds 50 words. Please shorten it.' };
     const feedbackKey = `${activeChapter}_${currentFeedbackSubsection.id}`;
     if ((feedbackUsed[feedbackKey] || 0) >= feedbackLimit) return { error: true, message: `Feedback limit reached (${feedbackLimit}/${feedbackLimit}) for this subsection.` };
     setApplyingSubFeedback(true);

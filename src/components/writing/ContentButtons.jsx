@@ -6,7 +6,8 @@ const ContentButtons = ({
   generating, humanising, chapterComplete, overallProgress, generatedActive, totalActive,
   referencesSub, referencesGenerated,
   onGenerate, onHumanise, onFeedback, onPrev, onNext, onComplete, getButtonText,
-  humaniseAvailable, feedbackAvailable, humaniseLeft, feedbackLeft
+  humaniseAvailable, feedbackAvailable, humaniseLeft, feedbackLeft,
+  onResetHumanise, onResetFeedback
 }) => {
   const { colors } = useTheme();
   const sub = activeSubsections[currentSubsectionIndex];
@@ -14,6 +15,8 @@ const ContentButtons = ({
   const canGenerate = !generating && currentSubsection && !currentSubsection?.generated;
   const canHumanise = !humanising && currentSubsection?.generated && humaniseAvailable;
   const canFeedback = chapterComplete && currentSubsection?.generated && feedbackAvailable;
+  const showHumaniseReset = currentSubsection?.generated && humaniseLeft === 0 && humaniseAvailable !== undefined;
+  const showFeedbackReset = currentSubsection?.generated && chapterComplete && feedbackLeft === 0 && feedbackAvailable !== undefined;
 
   const btnStyle = (disabled) => ({
     backgroundColor: disabled ? colors.border : (colors.primary || '#7c3aed'),
@@ -33,18 +36,38 @@ const ContentButtons = ({
               <button onClick={onGenerate} disabled={!canGenerate} style={btnStyle(!canGenerate)}>
                 {generating ? 'Writing...' : currentSubsection?.generated ? 'Written' : `Write ${currentSubsection?.title || 'Current'}`}
               </button>
-              <button onClick={onHumanise} disabled={!canHumanise} style={{
-                ...btnStyle(!canHumanise),
-                backgroundColor: !canHumanise ? colors.border : '#d97706'
-              }}>
-                {humanising ? 'Humanising...' : `✨ Humanise (${humaniseLeft} left)`}
-              </button>
-              <button onClick={() => onFeedback(currentSubsection)} disabled={!canFeedback} title={!chapterComplete ? 'Complete the chapter first' : 'Apply supervisor feedback'} style={{
-                ...btnStyle(!canFeedback),
-                backgroundColor: !canFeedback ? colors.border : '#f59e0b'
-              }}>
-                ✏️ Feedback ({feedbackLeft} left) {!chapterComplete && '🔒'}
-              </button>
+              {currentSubsection?.generated && humaniseLeft > 0 ? (
+                <button onClick={onHumanise} disabled={humanising} style={{
+                  ...btnStyle(false),
+                  backgroundColor: '#d97706'
+                }}>
+                  {humanising ? 'Humanising...' : `✨ Humanise (${humaniseLeft} left)`}
+                </button>
+              ) : showHumaniseReset ? (
+                <button onClick={() => onResetHumanise?.()} style={{
+                  backgroundColor: '#2563eb',
+                  color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
+                  fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                }}>
+                  🔄 Reset Humanise (₵5)
+                </button>
+              ) : null}
+              {chapterComplete && currentSubsection?.generated && feedbackLeft > 0 ? (
+                <button onClick={() => onFeedback(currentSubsection)} disabled={!chapterComplete || !currentSubsection?.generated} title={!chapterComplete ? 'Complete the chapter first' : 'Apply supervisor feedback'} style={{
+                  ...btnStyle(!chapterComplete || !currentSubsection?.generated),
+                  backgroundColor: !chapterComplete || !currentSubsection?.generated ? colors.border : '#f59e0b'
+                }}>
+                  ✏️ Feedback ({feedbackLeft} left)
+                </button>
+              ) : showFeedbackReset ? (
+                <button onClick={() => onResetFeedback?.()} style={{
+                  backgroundColor: '#059669',
+                  color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
+                  fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                }}>
+                  🔄 Reset Feedback (₵5)
+                </button>
+              ) : null}
             </>
           ) : (
             <div style={{ color: colors.textSecondary, padding: '10px 0' }}>References are auto-generated from in-text citations.</div>

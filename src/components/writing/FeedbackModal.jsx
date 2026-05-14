@@ -1,8 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+
+const MAX_WORDS = 50;
+
+const countWords = (text) => text.trim() ? text.trim().split(/\s+/).length : 0;
 
 const FeedbackModal = ({ isOpen, onClose, subsection, feedbackText, setFeedbackText, feedbackFiles, onFileUpload, onRemoveFile, onApply, applying }) => {
   const { colors } = useTheme();
+  const wordCount = useMemo(() => countWords(feedbackText), [feedbackText]);
+  const atLimit = wordCount >= MAX_WORDS;
+
+  const handleChange = (e) => {
+    const newText = e.target.value;
+    const wc = countWords(newText);
+    if (wc <= MAX_WORDS || newText.length < feedbackText.length) {
+      setFeedbackText(newText);
+    }
+  };
+
   if (!isOpen || !subsection) return null;
 
   return (
@@ -22,7 +37,15 @@ const FeedbackModal = ({ isOpen, onClose, subsection, feedbackText, setFeedbackT
           <>
             <div style={{ marginBottom: '20px' }}>
               <label htmlFor="feedbackNotes" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Correction notes:</label>
-              <textarea id="feedbackNotes" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} rows="5" style={{ width: '100%', padding: '12px', border: `1px solid ${colors.border}`, borderRadius: '8px' }} />
+              <textarea id="feedbackNotes" value={feedbackText} onChange={handleChange} rows="5" style={{ width: '100%', padding: '12px', border: `1px solid ${atLimit ? '#ef4444' : colors.border}`, borderRadius: '8px', outline: atLimit ? '2px solid #ef4444' : 'none' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontSize: '12px', color: atLimit ? '#ef4444' : colors.textSecondary }}>
+                  {wordCount} / {MAX_WORDS} words
+                </span>
+                {atLimit && (
+                  <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>Maximum words reached ({MAX_WORDS}/{MAX_WORDS})</span>
+                )}
+              </div>
             </div>
             <div style={{ marginBottom: '20px' }}>
               <label htmlFor="feedbackFiles" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Upload screenshots (optional):</label>
@@ -39,7 +62,7 @@ const FeedbackModal = ({ isOpen, onClose, subsection, feedbackText, setFeedbackT
               )}
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button onClick={onApply} disabled={!feedbackText && feedbackFiles.length === 0} style={{ flex: 1, backgroundColor: (!feedbackText && feedbackFiles.length === 0) ? colors.border : '#f59e0b', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Apply Feedback</button>
+              <button onClick={onApply} disabled={(!feedbackText && feedbackFiles.length === 0) || atLimit} style={{ flex: 1, backgroundColor: ((!feedbackText && feedbackFiles.length === 0) || atLimit) ? colors.border : '#f59e0b', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Apply Feedback</button>
               <button onClick={onClose} style={{ flex: 1, backgroundColor: 'transparent', color: colors.text, padding: '14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
             </div>
           </>

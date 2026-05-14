@@ -117,7 +117,7 @@ const Dashboard = () => {
       setPaymentTier(null);
       if (paymentIsUpgrade) {
         loadProjects();
-      } else {
+      } else if (paymentTier === 'premium') {
         setShowSourceSetup(true);
       }
     }
@@ -281,7 +281,7 @@ const Dashboard = () => {
         />
       )}
 
-      {showSourceSetup && createdProjectId && (
+      {showSourceSetup && createdProjectId && createdProjectTier === 'premium' && (
         <SourceSetupModalWrapper
           projectId={createdProjectId}
           isPremium={createdProjectTier === 'premium'}

@@ -42,7 +42,14 @@ const htmlDoc = (title, bodyHtml, formatConfig) => {
 <html>
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
-  @page { margin: ${pageMargins.top}cm ${pageMargins.right}cm ${pageMargins.bottom}cm ${pageMargins.left}cm; }
+  @page {
+    margin: ${pageMargins.top}cm ${pageMargins.right}cm ${pageMargins.bottom}cm ${pageMargins.left}cm;
+    @bottom-center {
+      content: counter(page);
+      font-family: ${fontFamily}, serif;
+      font-size: 10pt;
+    }
+  }
   * { box-sizing: border-box; }
   body { font-family: ${fontFamily}, serif; font-size: ${bodyFontSize}pt; line-height: ${lineSpacing}; color: #000; margin: 0; padding: 0; }
   .page-break { page-break-before: always; }

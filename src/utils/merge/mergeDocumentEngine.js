@@ -1,6 +1,6 @@
 import {
   Document, Packer, Paragraph, TextRun, AlignmentType,
-  HeadingLevel, PageBreak, NumberFormat
+  HeadingLevel, PageBreak, NumberFormat, Footer, PageNumber
 } from 'docx';
 import parseTemplate from './templateParser.js';
 import mergeReferences from './referenceMerger.js';
@@ -111,6 +111,17 @@ export const generateMergedDocument = async (config) => {
     }
   }
 
+  const pageFooter = (ff) => new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ children: [PageNumber.CURRENT], font: ff, size: 24 }),
+        ],
+      }),
+    ],
+  });
+
   onProgress?.('Building document structure...');
 
   const sectionMargins = formatConfig.pageMargins || { top: 2.54, right: 2.54, bottom: 2.54, left: 2.54 };
@@ -136,6 +147,7 @@ export const generateMergedDocument = async (config) => {
         pageNumbers: { formatType: NumberFormat.UPPER_ROMAN },
       },
     },
+    footers: { default: pageFooter(formatConfig.fontFamily) },
     children: frontMatterChildren,
   } : null;
 
@@ -150,6 +162,7 @@ export const generateMergedDocument = async (config) => {
         pageNumbers: { formatType: NumberFormat.DECIMAL, start: 1 },
       },
     },
+    footers: { default: pageFooter(formatConfig.fontFamily) },
     children: contentChildren,
   };
 
@@ -164,6 +177,7 @@ export const generateMergedDocument = async (config) => {
         pageNumbers: { formatType: NumberFormat.DECIMAL },
       },
     },
+    footers: { default: pageFooter(formatConfig.fontFamily) },
     children: referencesChildren,
   };
 
@@ -182,6 +196,7 @@ export const generateMergedDocument = async (config) => {
           pageNumbers: { formatType: NumberFormat.DECIMAL },
         },
       },
+      footers: { default: pageFooter(formatConfig.fontFamily) },
       children: appendixChildren,
     });
   }

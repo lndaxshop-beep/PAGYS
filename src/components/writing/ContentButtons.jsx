@@ -15,8 +15,6 @@ const ContentButtons = ({
   const canGenerate = !generating && currentSubsection && !currentSubsection?.generated;
   const canHumanise = !humanising && currentSubsection?.generated && humaniseAvailable;
   const canFeedback = currentSubsection?.generated && feedbackAvailable;
-  const showHumaniseReset = currentSubsection?.generated && humaniseLeft === 0 && humaniseAvailable !== undefined;
-  const showFeedbackReset = currentSubsection?.generated && feedbackLeft === 0 && feedbackAvailable !== undefined;
 
   const btnStyle = (disabled) => ({
     backgroundColor: disabled ? colors.border : (colors.primary || '#7c3aed'),
@@ -36,46 +34,48 @@ const ContentButtons = ({
               <button onClick={onGenerate} disabled={!canGenerate} style={btnStyle(!canGenerate)}>
                 {generating ? 'Writing...' : currentSubsection?.generated ? 'Written' : `Write ${currentSubsection?.title || 'Current'}`}
               </button>
-              {currentSubsection?.generated && humaniseLeft > 0 ? (
-                <button onClick={onHumanise} disabled={humanising} style={{
-                  ...btnStyle(false),
-                  backgroundColor: '#d97706'
-                }}>
-                  {humanising ? 'Humanising...' : `✨ Humanise (${humaniseLeft} left)`}
-                </button>
-              ) : showHumaniseReset ? (
-                <button onClick={() => onResetHumanise?.()} style={{
-                  backgroundColor: '#2563eb',
-                  color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
-                  fontWeight: '600', fontSize: '13px', cursor: 'pointer'
-                }}>
-                  🔄 Reset Humanise (₵5)
-                </button>
-              ) : null}
-              {currentSubsection?.generated && feedbackLeft > 0 ? (
-                <button onClick={() => onFeedback(currentSubsection)} disabled={!currentSubsection?.generated} title={'Apply supervisor feedback'} style={{
-                  ...btnStyle(!currentSubsection?.generated),
-                  backgroundColor: !currentSubsection?.generated ? colors.border : '#f59e0b'
-                }}>
-                  ✏️ Feedback ({feedbackLeft} left)
-                </button>
-              ) : showFeedbackReset ? (
-                <button onClick={() => onResetFeedback?.()} style={{
-                  backgroundColor: '#059669',
-                  color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
-                  fontWeight: '600', fontSize: '13px', cursor: 'pointer'
-                }}>
-                  🔄 Reset Feedback (₵5)
-                </button>
-              ) : null}
               {currentSubsection?.generated && (
-                <button onClick={onOpenVersions} style={{
-                  backgroundColor: '#6b7280',
-                  color: 'white', padding: '10px 16px', border: 'none', borderRadius: '6px',
-                  fontWeight: '600', fontSize: '13px', cursor: 'pointer'
-                }}>
-                  📋 Written Versions
-                </button>
+                <>
+                  {humaniseLeft > 0 ? (
+                    <button onClick={onHumanise} disabled={humanising} style={{
+                      ...btnStyle(false),
+                      backgroundColor: '#d97706'
+                    }}>
+                      {humanising ? 'Humanising...' : `✨ Humanise (${humaniseLeft} left)`}
+                    </button>
+                  ) : (
+                    <button onClick={() => onResetHumanise?.()} style={{
+                      backgroundColor: '#2563eb',
+                      color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
+                      fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                    }}>
+                      🔄 Reset Humanise (₵5)
+                    </button>
+                  )}
+                  {feedbackLeft > 0 ? (
+                    <button onClick={() => onFeedback(currentSubsection)} title="Apply supervisor feedback" style={{
+                      ...btnStyle(false),
+                      backgroundColor: '#f59e0b'
+                    }}>
+                      ✏️ Feedback ({feedbackLeft} left)
+                    </button>
+                  ) : (
+                    <button onClick={() => onResetFeedback?.()} style={{
+                      backgroundColor: '#059669',
+                      color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
+                      fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                    }}>
+                      🔄 Reset Feedback (₵5)
+                    </button>
+                  )}
+                  <button onClick={onOpenVersions} style={{
+                    backgroundColor: '#6b7280',
+                    color: 'white', padding: '10px 16px', border: 'none', borderRadius: '6px',
+                    fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                  }}>
+                    📋 Written Versions
+                  </button>
+                </>
               )}
             </>
           ) : (

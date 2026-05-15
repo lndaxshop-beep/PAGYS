@@ -55,6 +55,7 @@ const Write = () => {
   });
   const [resetModalType, setResetModalType] = useState(null);
   const [processingReset, setProcessingReset] = useState(false);
+  const resetTimeoutRef = useRef(null);
   const [currentContent, setCurrentContent] = useState('');
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
@@ -533,8 +534,9 @@ const Write = () => {
   };
 
   const handleResetConfirm = () => {
+    if (processingReset) return;
     setProcessingReset(true);
-    setTimeout(() => {
+    resetTimeoutRef.current = setTimeout(() => {
       if (resetModalType === 'humanise') {
         setHumaniseBonus(prev => prev + 2);
       } else if (resetModalType === 'feedback') {
@@ -544,6 +546,12 @@ const Write = () => {
       setResetModalType(null);
     }, 1000);
   };
+
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+    };
+  }, []);
 
   const captureVersion = (chapterId, subsectionId, content, label) => {
     if (!content || !subsectionId) return;

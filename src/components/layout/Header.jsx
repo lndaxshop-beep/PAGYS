@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
+import logo from '../../assets/logo.png';
 import ThemeToggle from '../ThemeToggle';
 import ProfileMenu from '../ProfileMenu';
 import useAppAuth from '../../hooks/useAppAuth';
@@ -21,7 +22,7 @@ const Header = () => {
       top: 0,
       zIndex: 100
     }}>
-      <Link to="/" style={{ fontSize: '24px', fontWeight: 'bold', color: colors.primary, textDecoration: 'none' }}>PAGYS</Link>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}><img src={logo} alt="PAGYS" style={{ height: '32px', display: 'block' }} /></Link>
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
         {isLoggedIn && (
           <>

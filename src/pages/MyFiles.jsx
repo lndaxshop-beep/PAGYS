@@ -308,7 +308,7 @@ const MyFiles = () => {
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div><h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text }}>My Files</h1><p style={{ color: colors.textSecondary }}>View and download your thesis</p></div>
-          <button onClick={() => navigate('/dashboard')} style={{ backgroundColor: colors.primary, color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: '500', cursor: 'pointer' }}>← Back</button>
+          <button onClick={() => navigate(`/write/${selectedProject}`)} style={{ backgroundColor: colors.primary, color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: '500', cursor: 'pointer' }}>← Back</button>
         </div>
         {projects.length > 0 && (
           <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>

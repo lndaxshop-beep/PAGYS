@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const LABEL_COLORS = {
   'AI Generated': { bg: '#ede9fe', text: '#5b21b6' },
@@ -88,16 +89,16 @@ const VersionBrowser = ({ isOpen, onClose, versions, currentContent, onRestore, 
                       <div style={{ fontWeight: '600', marginBottom: '8px', color: '#991b1b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>
                         Original — {selectedVersion.label}
                       </div>
-                      <div style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '12px', lineHeight: '1.5', whiteSpace: 'pre-wrap', border: `1px solid ${colors.border}`, overflowY: 'auto' }}>
-                        {selectedVersion.content}
+                      <div style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '12pt', lineHeight: '1.6', fontFamily: "'Times New Roman', serif", textAlign: 'justify', border: `1px solid ${colors.border}`, overflowY: 'auto' }}>
+                        <ContentRenderer content={selectedVersion.content} />
                       </div>
                     </div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                       <div style={{ fontWeight: '600', marginBottom: '8px', color: '#065f46', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>
                         Modified — Current Active
                       </div>
-                      <div style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '12px', lineHeight: '1.5', whiteSpace: 'pre-wrap', border: `1px solid ${colors.border}`, overflowY: 'auto' }}>
-                        {currentContent}
+                      <div style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '12pt', lineHeight: '1.6', fontFamily: "'Times New Roman', serif", textAlign: 'justify', border: `1px solid ${colors.border}`, overflowY: 'auto' }}>
+                        <ContentRenderer content={currentContent} />
                       </div>
                     </div>
                   </div>

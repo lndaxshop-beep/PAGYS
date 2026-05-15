@@ -49,7 +49,7 @@ const ContentButtons = ({
                       color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
                       fontWeight: '600', fontSize: '13px', cursor: 'pointer'
                     }}>
-                      🔄 Reset Humanise (₵5)
+                      🔄 Reset Humanise (₵2)
                     </button>
                   )}
                   {feedbackLeft > 0 ? (
@@ -65,7 +65,7 @@ const ContentButtons = ({
                       color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
                       fontWeight: '600', fontSize: '13px', cursor: 'pointer'
                     }}>
-                      🔄 Reset Feedback (₵5)
+                      🔄 Reset Feedback (₵2)
                     </button>
                   )}
                   <button onClick={onOpenVersions} style={{

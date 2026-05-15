@@ -48,10 +48,10 @@ const Write = () => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
   const [humaniseBonus, setHumaniseBonus] = useState(() => {
-    try { return parseInt(localStorage.getItem(`humaniseBonus_${projectId}`) || '0', 10); } catch { return 0; }
+    try { return JSON.parse(localStorage.getItem(`humaniseBonus_${projectId}`) || '{}'); } catch { return {}; }
   });
   const [feedbackBonus, setFeedbackBonus] = useState(() => {
-    try { return parseInt(localStorage.getItem(`feedbackBonus_${projectId}`) || '0', 10); } catch { return 0; }
+    try { return JSON.parse(localStorage.getItem(`feedbackBonus_${projectId}`) || '{}'); } catch { return {}; }
   });
   const [resetModalType, setResetModalType] = useState(null);
   const [processingReset, setProcessingReset] = useState(false);
@@ -100,7 +100,10 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, humaniseBonus, feedbackBonus);
+  const chapterHumaniseBonus = humaniseBonus[activeChapter] || 0;
+  const chapterFeedbackBonus = feedbackBonus[activeChapter] || 0;
+
+  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, chapterHumaniseBonus, chapterFeedbackBonus);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
@@ -184,8 +187,8 @@ const Write = () => {
 
   useEffect(() => { try { localStorage.setItem(`humaniseUsed_${projectId}`, JSON.stringify(humaniseUsed)); } catch {} }, [humaniseUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
-  useEffect(() => { try { localStorage.setItem(`humaniseBonus_${projectId}`, String(humaniseBonus)); } catch {} }, [humaniseBonus, projectId]);
-  useEffect(() => { try { localStorage.setItem(`feedbackBonus_${projectId}`, String(feedbackBonus)); } catch {} }, [feedbackBonus, projectId]);
+  useEffect(() => { try { localStorage.setItem(`humaniseBonus_${projectId}`, JSON.stringify(humaniseBonus)); } catch {} }, [humaniseBonus, projectId]);
+  useEffect(() => { try { localStorage.setItem(`feedbackBonus_${projectId}`, JSON.stringify(feedbackBonus)); } catch {} }, [feedbackBonus, projectId]);
   useEffect(() => { try { localStorage.setItem(`subsectionVersions_${projectId}`, JSON.stringify(subsectionVersions)); } catch {} }, [subsectionVersions, projectId]);
 
   const versionsTimerRef = useRef(null);
@@ -538,9 +541,9 @@ const Write = () => {
     setProcessingReset(true);
     resetTimeoutRef.current = setTimeout(() => {
       if (resetModalType === 'humanise') {
-        setHumaniseBonus(prev => prev + 2);
+        setHumaniseBonus(prev => ({ ...prev, [activeChapter]: (prev[activeChapter] || 0) + 2 }));
       } else if (resetModalType === 'feedback') {
-        setFeedbackBonus(prev => prev + 3);
+        setFeedbackBonus(prev => ({ ...prev, [activeChapter]: (prev[activeChapter] || 0) + 3 }));
       }
       setProcessingReset(false);
       setResetModalType(null);
@@ -749,7 +752,7 @@ const Write = () => {
               Reset {resetModalType === 'humanise' ? 'Humanise' : 'Feedback'}
             </h2>
             <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>
-              Get {resetModalType === 'humanise' ? '2' : '3'} more {resetModalType} uses for the entire project.
+              Get {resetModalType === 'humanise' ? '2' : '3'} more {resetModalType} uses for this chapter.
             </p>
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -762,7 +765,7 @@ const Write = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵5</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵2</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -772,7 +775,7 @@ const Write = () => {
                 fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingReset ? 0.7 : 1
               }}>
-                {processingReset ? 'Processing...' : 'Pay ₵5'}
+                {processingReset ? 'Processing...' : 'Pay ₵2'}
               </button>
               <button onClick={() => setResetModalType(null)} disabled={processingReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,

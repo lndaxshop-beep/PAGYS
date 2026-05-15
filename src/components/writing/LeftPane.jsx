@@ -81,7 +81,7 @@ const LeftPane = ({
   };
 
   return (
-    <div style={{
+    <div data-tour="left-pane" style={{
       width: '100%', height: '100vh', backgroundColor: colors.surface,
       borderRight: `1px solid ${colors.border}`, padding: '20px',
       overflowY: 'auto'

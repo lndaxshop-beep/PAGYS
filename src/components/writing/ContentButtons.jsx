@@ -31,13 +31,13 @@ const ContentButtons = ({
         <div style={{ display: 'flex', gap: '12px' }}>
           {!isViewingReferences ? (
             <>
-              <button onClick={onGenerate} disabled={!canGenerate} style={btnStyle(!canGenerate)}>
+              <button data-tour="write-btn" onClick={onGenerate} disabled={!canGenerate} style={btnStyle(!canGenerate)}>
                 {generating ? 'Writing...' : currentSubsection?.generated ? 'Written' : `Write ${currentSubsection?.title || 'Current'}`}
               </button>
               {currentSubsection?.generated && (
                 <>
                   {humaniseLeft > 0 ? (
-                    <button onClick={onHumanise} disabled={humanising} style={{
+                    <button data-tour="humanise-btn" onClick={onHumanise} disabled={humanising} style={{
                       ...btnStyle(false),
                       backgroundColor: '#d97706'
                     }}>
@@ -53,7 +53,7 @@ const ContentButtons = ({
                     </button>
                   )}
                   {feedbackLeft > 0 ? (
-                    <button onClick={() => onFeedback(currentSubsection)} title="Apply supervisor feedback" style={{
+                    <button data-tour="feedback-btn" onClick={() => onFeedback(currentSubsection)} title="Apply supervisor feedback" style={{
                       ...btnStyle(false),
                       backgroundColor: '#f59e0b'
                     }}>
@@ -68,7 +68,7 @@ const ContentButtons = ({
                       🔄 Reset Feedback (₵2)
                     </button>
                   )}
-                  <button onClick={onOpenVersions} style={{
+                  <button data-tour="versions-btn" onClick={onOpenVersions} style={{
                     backgroundColor: '#6b7280',
                     color: 'white', padding: '10px 16px', border: 'none', borderRadius: '6px',
                     fontWeight: '600', fontSize: '13px', cursor: 'pointer'
@@ -106,7 +106,7 @@ const ContentButtons = ({
           Overall Progress: {overallProgress.percentage}% • {generatedActive} of {totalActive} subsections written
           {referencesSub && ` • References: ${referencesGenerated ? '✓' : 'pending'}`}
         </span>
-        <button onClick={onComplete} disabled={!chapterComplete} style={{
+        <button data-tour="complete-btn" onClick={onComplete} disabled={!chapterComplete} style={{
           backgroundColor: chapterComplete ? '#059669' : colors.border,
           color: chapterComplete ? 'white' : colors.textSecondary,
           padding: '10px 24px', border: 'none', borderRadius: '8px',

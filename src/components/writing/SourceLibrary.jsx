@@ -65,7 +65,7 @@ const SourceLibrary = ({
             onChange={onAddFile}
             style={{ display: 'none' }}
           />
-          <button
+          <button data-tour="source-btn"
             onClick={() => fileInputRef.current?.click()}
             style={{
               backgroundColor: colors.primary, color: 'white',

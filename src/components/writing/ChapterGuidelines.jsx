@@ -27,7 +27,7 @@ const ChapterGuidelines = ({ chapter, onUpdate }) => {
   return (
     <div style={{ marginTop: '8px' }}>
       {!expanded ? (
-        <button
+        <button data-tour="guidelines-btn"
           onClick={() => setExpanded(true)}
           style={{
             width: '100%', padding: '8px 12px', fontSize: '12px', fontWeight: '600',

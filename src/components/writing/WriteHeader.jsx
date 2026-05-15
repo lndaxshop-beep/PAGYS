@@ -67,7 +67,7 @@ const SourceModeBadge = ({ sourceMode, sourceCount }) => {
   );
 };
 
-const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, projectId, saveStatus, lastSaved, onSaveNow, wordCount, sourceMode, sourceCount, isPremium }) => {
+const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, onToggleTour, projectId, saveStatus, lastSaved, onSaveNow, wordCount, sourceMode, sourceCount, isPremium }) => {
   const { colors } = useTheme();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -78,8 +78,9 @@ const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAID
         <WordCount count={wordCount} />
       </div>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button onClick={onToggleTour} title="Feature Tour" style={{ backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', lineHeight: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>?</button>
         <button onClick={onToggleShortcuts} title="Keyboard Shortcuts" style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 8px', fontSize: '14px', cursor: 'pointer', lineHeight: '1' }}>⌨</button>
-        {isPremium && <button onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(79,70,229,0.3)' }}>📚 Search Literature</button>}
+        {isPremium && <button data-tour="literature-btn" onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(79,70,229,0.3)' }}>📚 Search Literature</button>}
         <button onClick={onToggleAIDetection} title="Check content originality" style={{ backgroundColor: '#0891b2', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(8,145,178,0.3)' }}>🤖 AI Score</button>
       </div>
     </div>

@@ -14,9 +14,9 @@ const ContentButtons = ({
   const subId = sub?.id || '';
   const canGenerate = !generating && currentSubsection && !currentSubsection?.generated;
   const canHumanise = !humanising && currentSubsection?.generated && humaniseAvailable;
-  const canFeedback = chapterComplete && currentSubsection?.generated && feedbackAvailable;
+  const canFeedback = currentSubsection?.generated && feedbackAvailable;
   const showHumaniseReset = currentSubsection?.generated && humaniseLeft === 0 && humaniseAvailable !== undefined;
-  const showFeedbackReset = currentSubsection?.generated && chapterComplete && feedbackLeft === 0 && feedbackAvailable !== undefined;
+  const showFeedbackReset = currentSubsection?.generated && feedbackLeft === 0 && feedbackAvailable !== undefined;
 
   const btnStyle = (disabled) => ({
     backgroundColor: disabled ? colors.border : (colors.primary || '#7c3aed'),
@@ -52,10 +52,10 @@ const ContentButtons = ({
                   🔄 Reset Humanise (₵5)
                 </button>
               ) : null}
-              {chapterComplete && currentSubsection?.generated && feedbackLeft > 0 ? (
-                <button onClick={() => onFeedback(currentSubsection)} disabled={!chapterComplete || !currentSubsection?.generated} title={!chapterComplete ? 'Complete the chapter first' : 'Apply supervisor feedback'} style={{
-                  ...btnStyle(!chapterComplete || !currentSubsection?.generated),
-                  backgroundColor: !chapterComplete || !currentSubsection?.generated ? colors.border : '#f59e0b'
+              {currentSubsection?.generated && feedbackLeft > 0 ? (
+                <button onClick={() => onFeedback(currentSubsection)} disabled={!currentSubsection?.generated} title={'Apply supervisor feedback'} style={{
+                  ...btnStyle(!currentSubsection?.generated),
+                  backgroundColor: !currentSubsection?.generated ? colors.border : '#f59e0b'
                 }}>
                   ✏️ Feedback ({feedbackLeft} left)
                 </button>

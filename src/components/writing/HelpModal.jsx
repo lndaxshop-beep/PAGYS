@@ -34,7 +34,7 @@ const FEATURES = [
   {
     icon: '✨',
     title: 'Custom Guidelines',
-    description: 'Set per-chapter writing instructions up to 500 words. Guidelines are applied automatically whenever content is composed for that chapter.',
+    description: 'Set per-chapter writing instructions. Guidelines are applied automatically whenever content is composed for that chapter.',
     premium: true,
   },
   {

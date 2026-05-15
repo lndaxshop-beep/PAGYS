@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const WORD_LIMIT = 500;
-
 const ChapterGuidelines = ({ chapter, onUpdate }) => {
   const { colors, isDarkMode } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState(chapter.guidelines || '');
 
-  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const overLimit = wordCount > WORD_LIMIT;
-
   const handleSave = () => {
-    if (overLimit) return;
     onUpdate?.(chapter.id, text);
     setExpanded(false);
   };
@@ -73,39 +67,25 @@ const ChapterGuidelines = ({ chapter, onUpdate }) => {
             placeholder="e.g., Focus on qualitative studies from Sub-Saharan Africa. Avoid citing papers older than 2015. Emphasize methodological rigor."
             style={{
               width: '100%', minHeight: '60px', padding: '6px', fontSize: '11px',
-              border: `1px solid ${overLimit ? '#ef4444' : colors.border}`, borderRadius: '4px',
+              border: `1px solid ${colors.border}`, borderRadius: '4px',
               backgroundColor: colors.input, color: colors.text, resize: 'vertical',
               fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
             }}
           />
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
             marginTop: '4px', gap: '8px', flexWrap: 'wrap',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{
-                fontSize: '11px', fontWeight: '600',
-                color: overLimit ? '#ef4444' : colors.textSecondary,
-              }}>
-                {wordCount} / {WORD_LIMIT} words
-              </span>
-              {overLimit && (
-                <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: '500' }}>
-                  Limit exceeded — trim to save
-                </span>
-              )}
-            </div>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button onClick={handleCancel} style={{
                 padding: '4px 10px', fontSize: '11px', borderRadius: '4px',
                 backgroundColor: 'transparent', color: colors.textSecondary,
                 border: `1px solid ${colors.border}`, cursor: 'pointer',
               }}>Cancel</button>
-              <button onClick={handleSave} disabled={overLimit} style={{
+              <button onClick={handleSave} style={{
                 padding: '4px 10px', fontSize: '11px', borderRadius: '4px',
-                backgroundColor: overLimit ? colors.border : colors.primary,
-                color: 'white', border: 'none', cursor: overLimit ? 'not-allowed' : 'pointer',
-                fontWeight: '500', opacity: overLimit ? 0.6 : 1,
+                backgroundColor: colors.primary, color: 'white', border: 'none',
+                cursor: 'pointer', fontWeight: '500',
               }}>Save Guidelines</button>
             </div>
           </div>

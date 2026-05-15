@@ -443,10 +443,12 @@ const Write = () => {
   const wrappedApplyFeedback = async (skipDiff) => {
     try {
       if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
+      modals.setApplyingSubFeedback(true);
       const currentContentText = generatedSubsections[activeChapter]?.[modals.currentFeedbackSubsection.id] || '';
       const result = await handleApplyFeedback(currentContentText, modals.feedbackText, modals.feedbackFiles, modals.currentFeedbackSubsection);
-      if (!result || result.error) { toastError(result?.message || 'Feedback application failed.'); return; }
+      if (!result || result.error) { modals.setApplyingSubFeedback(false); toastError(result?.message || 'Feedback application failed.'); return; }
       const { modifiedContent, feedbackKey } = result;
+      modals.setApplyingSubFeedback(false);
 
       const applyChanges = () => {
         captureVersion(activeChapter, modals.currentFeedbackSubsection.id, currentContentText, 'Feedback Applied');
@@ -477,6 +479,7 @@ const Write = () => {
         });
       }
     } catch (error) {
+      modals.setApplyingSubFeedback(false);
       console.error('Feedback application failed:', error);
       toastError('Feedback application failed: ' + error.message);
     }

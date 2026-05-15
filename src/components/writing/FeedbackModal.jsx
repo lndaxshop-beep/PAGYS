@@ -62,7 +62,7 @@ const FeedbackModal = ({ isOpen, onClose, subsection, feedbackText, setFeedbackT
               )}
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button onClick={onApply} disabled={(!feedbackText && feedbackFiles.length === 0) || atLimit} style={{ flex: 1, backgroundColor: ((!feedbackText && feedbackFiles.length === 0) || atLimit) ? colors.border : '#f59e0b', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Apply Feedback</button>
+              <button onClick={onApply} disabled={(!feedbackText && feedbackFiles.length === 0) || atLimit || applying} style={{ flex: 1, backgroundColor: ((!feedbackText && feedbackFiles.length === 0) || atLimit || applying) ? colors.border : '#f59e0b', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: applying ? 'not-allowed' : 'pointer' }}>{applying ? 'Applying...' : 'Apply Feedback'}</button>
               <button onClick={onClose} style={{ flex: 1, backgroundColor: 'transparent', color: colors.text, padding: '14px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
             </div>
           </>

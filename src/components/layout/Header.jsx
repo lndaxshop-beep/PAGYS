@@ -22,7 +22,7 @@ const Header = () => {
       top: 0,
       zIndex: 100
     }}>
-      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}><img src={logo} alt="PAGYS" style={{ height: '42px', display: 'block' }} /></Link>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}><img src={logo} alt="PAGYS" style={{ height: '56px', display: 'block' }} /></Link>
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
         {isLoggedIn && (
           <>

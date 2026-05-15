@@ -4,9 +4,33 @@ import { extractJSONArray } from './utils';
 export const generateDefenceQuestions = async (projectData) => {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
-    const completedChapters = Object.keys(projectData.completedChapters || {});
-    const chapterSummary = completedChapters.map(ch => `- ${ch}: Completed`).join('\n');
-    const prompt = `You are a thesis defence expert. Generate likely defence questions and simple answers.\n\nTHESIS: "${projectData.title}"\nFIELD: ${projectData.field}\nLEVEL: ${projectData.level}\nCOMPLETED: ${chapterSummary || 'None'}\n\nFor each completed chapter, provide 2-3 Q&A. For final defence, provide 3-4 Q&A. Return JSON: {"proposal":[{"question":"...","answer":"..."}],"chapter1":[...],"final":[...]}`;
+    const chapters = projectData.chapters || {};
+    const chapterEntries = Object.entries(chapters);
+    if (chapterEntries.length === 0) return null;
+
+    const chapterBlocks = chapterEntries.map(([id, ch]) => {
+      const title = ch.title || id;
+      const content = ch.content || '';
+      return `--- ${title} ---\n${content || 'No content available.'}`;
+    }).join('\n\n');
+
+    const prompt = `You are a thesis defence expert preparing a student for their viva voce.
+
+THESIS: "${projectData.title || ''}"
+FIELD: ${projectData.field || ''}
+LEVEL: ${projectData.level || ''}
+
+The student has written the following chapters. Below is the actual content of each completed chapter.
+
+${chapterBlocks}
+
+Based on this content, think of every possible question a panel member could ask about this specific thesis. Cover all areas: rationale, methodology, findings, limitations, theoretical choices, literature gaps, and implications.
+
+For each question, provide ONE clear answer. Write the answer in plain, basic English — as if you are explaining to someone who is new to academic work. Use simple words and short sentences. Do not use jargon unless absolutely necessary, and explain it if you do. The answer should be a moderate length — a few sentences that give the most correct and helpful explanation without being too short or too long.
+
+Return ONLY valid JSON with chapter IDs as keys and arrays of {question, answer} objects. Example:
+{"proposal":[{"question":"...","answer":"..."}],"chapter1":[{"question":"...","answer":"..."}]}`;
+
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);

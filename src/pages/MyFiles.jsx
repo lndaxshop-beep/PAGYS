@@ -119,17 +119,33 @@ const MyFiles = () => {
     } catch (e) { setAbbreviations([]); } finally { setLoadingAbbr(false); }
   };
 
-  const loadDefenceQuestions = async (pid) => {
+  const loadDefenceQuestions = async (pid, forceRefresh = false) => {
     setLoadingDefence(true);
     try {
-      const sd = localStorage.getItem(`defence_${pid}`); if (sd) { setDefenceQuestions(JSON.parse(sd)); setLoadingDefence(false); return; }
       const content = await getGeneratedContent(pid);
-      const c = content || {}; const cc = {};
-      Object.entries(c).forEach(([id, ch]) => { if (ch && Object.keys(ch).length > 0) cc[id] = true; });
+      const c = content || {};
+      const cc = {};
+      Object.entries(c).forEach(([chId, subsections]) => {
+        if (!subsections || Object.keys(subsections).length === 0) return;
+        const ch = chapters.find(x => x.id === chId);
+        const title = ch ? getChapterDisplayTitle(ch) : chId;
+        let text = '';
+        Object.values(subsections).forEach(v => {
+          if (typeof v === 'string') text += v + '\n';
+        });
+        if (text.trim()) cc[chId] = { title, content: text.slice(0, 5000) };
+      });
       if (Object.keys(cc).length === 0) { setDefenceQuestions(null); setLoadingDefence(false); return; }
+      const contentStr = JSON.stringify(cc);
+      const hash = contentStr.length.toString(36);
+      const cacheKey = `defence_${pid}_${hash}`;
+      if (!forceRefresh) {
+        const sd = localStorage.getItem(cacheKey);
+        if (sd) { setDefenceQuestions(JSON.parse(sd)); setLoadingDefence(false); return; }
+      }
       const { generateDefenceQuestions } = await import('../services/geminiService');
-      const qs = await generateDefenceQuestions({ title: projects.find(p => p.id === pid)?.title, field: projects.find(p => p.id === pid)?.field, level: projects.find(p => p.id === pid)?.level, completedChapters: cc });
-      if (qs) { setDefenceQuestions(qs); localStorage.setItem(`defence_${pid}`, JSON.stringify(qs)); }
+      const qs = await generateDefenceQuestions({ title: projects.find(p => p.id === pid)?.title, field: projects.find(p => p.id === pid)?.field, level: projects.find(p => p.id === pid)?.level, chapters: cc });
+      if (qs) { setDefenceQuestions(qs); localStorage.setItem(cacheKey, JSON.stringify(qs)); }
     } catch (e) {} finally { setLoadingDefence(false); }
   };
 
@@ -353,7 +369,7 @@ const MyFiles = () => {
         {activeTab === 'defence' && (
           <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
             <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Defence Preparation</h2>
-            {loadingDefence ? <p style={{ color: colors.textSecondary }}>Generating defence questions...</p> : defenceQuestions ? (
+            {loadingDefence ? <p style={{ color: colors.textSecondary }}>Reading your chapters and generating defence questions...</p> : defenceQuestions ? (
               <div>
                 {Object.entries(defenceQuestions).map(([section, questions]) => {
                   if (!questions || questions.length === 0) return null;
@@ -369,7 +385,10 @@ const MyFiles = () => {
                     </div>
                   );
                 })}
-                <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>🎯 Download Defence Questions</button>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                  <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>🎯 Download Defence Questions</button>
+                  <button onClick={() => loadDefenceQuestions(selectedProject, true)} style={{ backgroundColor: 'transparent', color: colors.primary, padding: '10px 20px', border: `1px solid ${colors.primary}`, borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>🔄 Regenerate</button>
+                </div>
               </div>
             ) : <p style={{ color: colors.textSecondary }}>Complete thesis chapters to generate defence preparation questions.</p>}
           </div>

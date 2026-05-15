@@ -1,30 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { computeDiff } from '../../utils/textDiff';
 
 const LABEL_COLORS = {
   'AI Generated': { bg: '#ede9fe', text: '#5b21b6' },
   'Humanised': { bg: '#fef3c7', text: '#92400e' },
   'Feedback Applied': { bg: '#dbeafe', text: '#1e40af' },
   'Manual Edit': { bg: '#d1fae5', text: '#065f46' },
+  'Restored': { bg: '#f3e8ff', text: '#7c3aed' },
 };
 
 const VersionBrowser = ({ isOpen, onClose, versions, currentContent, onRestore, subsection }) => {
   const { colors, isDarkMode } = useTheme();
-  const [selectedVersion, setSelectedVersion] = useState(null);
-
-  const activeContent = useMemo(() => {
-    if (versions.length === 0) return null;
-    for (const v of [...versions].reverse()) {
-      if (v.content === currentContent) return v;
-    }
-    return null;
-  }, [versions, currentContent]);
-
-  const diff = useMemo(() => {
-    if (!selectedVersion || !currentContent) return [];
-    return computeDiff(selectedVersion.content, currentContent);
-  }, [selectedVersion, currentContent]);
+  const [selectedVersion, setSelectedVersion] = React.useState(null);
 
   const formatTime = (ts) => {
     const d = new Date(ts);
@@ -32,6 +19,12 @@ const VersionBrowser = ({ isOpen, onClose, versions, currentContent, onRestore, 
   };
 
   if (!isOpen) return null;
+
+  const findPreviousContent = (v) => {
+    const idx = versions.indexOf(v);
+    if (idx <= 0) return null;
+    return versions[idx - 1].content;
+  };
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={onClose}>
@@ -78,10 +71,10 @@ const VersionBrowser = ({ isOpen, onClose, versions, currentContent, onRestore, 
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               {selectedVersion ? (
-                <>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
                     <span style={{ fontSize: '13px', color: colors.textSecondary }}>
-                      Comparing <strong>{selectedVersion.label}</strong> with <strong>Current</strong>
+                      <strong>{selectedVersion.label}</strong> — {formatTime(selectedVersion.timestamp)}
                     </span>
                     <button onClick={() => onRestore(selectedVersion.content)} style={{
                       padding: '8px 18px', fontSize: '13px', borderRadius: '8px', cursor: 'pointer',
@@ -90,25 +83,28 @@ const VersionBrowser = ({ isOpen, onClose, versions, currentContent, onRestore, 
                       Restore This Version
                     </button>
                   </div>
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '13px', lineHeight: '1.6', fontFamily: 'monospace', whiteSpace: 'pre-wrap', border: `1px solid ${colors.border}` }}>
-                    {diff.map((seg, i) => {
-                      if (seg.type === 'same') return <span key={i}>{seg.text}</span>;
-                      if (seg.type === 'add') return <span key={i} style={{ backgroundColor: '#d1fae5', color: '#065f46', borderRadius: '2px', padding: '0 1px' }}>{seg.text}</span>;
-                      if (seg.type === 'remove') return <span key={i} style={{ backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '2px', padding: '0 1px', textDecoration: 'line-through' }}>{seg.text}</span>;
-                      if (seg.type === 'replace') return (
-                        <span key={i} style={{ backgroundColor: '#fef3c7', borderRadius: '2px', padding: '0 1px' }}>
-                          <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', textDecoration: 'line-through' }}>{seg.oldText}</span>
-                          <span style={{ color: colors.textSecondary }}>→</span>
-                          <span style={{ backgroundColor: '#d1fae5', color: '#065f46' }}>{seg.newText}</span>
-                        </span>
-                      );
-                      return null;
-                    })}
+                  <div style={{ flex: 1, display: 'flex', gap: '12px', minHeight: 0 }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <div style={{ fontWeight: '600', marginBottom: '8px', color: '#991b1b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>
+                        Original — {selectedVersion.label}
+                      </div>
+                      <div style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '12px', lineHeight: '1.5', whiteSpace: 'pre-wrap', border: `1px solid ${colors.border}`, overflowY: 'auto' }}>
+                        {selectedVersion.content}
+                      </div>
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <div style={{ fontWeight: '600', marginBottom: '8px', color: '#065f46', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>
+                        Modified — Current Active
+                      </div>
+                      <div style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '8px', fontSize: '12px', lineHeight: '1.5', whiteSpace: 'pre-wrap', border: `1px solid ${colors.border}`, overflowY: 'auto' }}>
+                        {currentContent}
+                      </div>
+                    </div>
                   </div>
-                </>
+                </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: colors.textSecondary }}>
-                  Select a version from the list to view changes
+                  Select a version from the list to compare
                 </div>
               )}
             </div>

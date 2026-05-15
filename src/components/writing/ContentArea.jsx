@@ -1,12 +1,59 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges
 }) => {
   const { colors } = useTheme();
+  const previewRef = useRef(null);
   const isReferences = currentSubsection?.type === 'references' || showReferenceInTextarea;
+
+  useEffect(() => {
+    if (!isPreviewMode || !highlightRanges?.length || !previewRef.current) return;
+    const container = previewRef.current;
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    const ranges = highlightRanges.filter(r => r.text && r.text.trim());
+    if (ranges.length === 0) return;
+    let firstBlinkEl = null;
+    for (const range of ranges) {
+      const searchText = range.text.trim();
+      if (!searchText) continue;
+      for (const node of textNodes) {
+        const idx = node.textContent.indexOf(searchText);
+        if (idx === -1) continue;
+        const parent = node.parentElement;
+        if (!parent || parent.closest('.correction-blink')) continue;
+        const span = document.createElement('span');
+        span.className = 'correction-blink';
+        span.textContent = searchText;
+        const after = node.splitText(idx);
+        after.textContent = after.textContent.slice(searchText.length);
+        node.parentElement.insertBefore(span, after);
+        if (!firstBlinkEl) firstBlinkEl = span;
+        break;
+      }
+    }
+    if (firstBlinkEl) {
+      firstBlinkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const timers = [];
+    const blinkEls = container.querySelectorAll('.correction-blink');
+    blinkEls.forEach((el, i) => {
+      const timer = setTimeout(() => {
+        const parent = el.parentNode;
+        if (parent) {
+          const text = document.createTextNode(el.textContent);
+          parent.replaceChild(text, el);
+        }
+      }, 1800 + i * 200);
+      timers.push(timer);
+    });
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [isPreviewMode, highlightRanges]);
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', alignItems: 'center' }}>
@@ -30,7 +77,9 @@ const ContentArea = ({
               {content || <p style={{ color: colors.textSecondary, textAlign: 'center', fontStyle: 'italic' }}>References will appear here after generation...</p>}
             </div>
           ) : (
-            <ContentRenderer content={content} />
+            <div ref={previewRef}>
+              <ContentRenderer content={content} />
+            </div>
           )
         ) : (
           <div>

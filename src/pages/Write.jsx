@@ -32,6 +32,7 @@ import useSourceLibrary from '../hooks/useSourceLibrary';
 import VersionBrowser from '../components/writing/VersionBrowser';
 import HelpModal from '../components/writing/HelpModal';
 import { saveSubsectionVersions, getSubsectionVersions } from '../services/firestoreService';
+import { fixBannedPhrase, fixBurstiness, fixTransitionOveruse, humaniseContent } from '../services/gemini/aiCorrectionService';
 
 const Write = () => {
   const { projectId } = useParams();
@@ -84,6 +85,8 @@ const Write = () => {
   const [subsectionVersions, setSubsectionVersions] = useState({});
   const [versionBrowserSubsection, setVersionBrowserSubsection] = useState(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [highlightRanges, setHighlightRanges] = useState([]);
+  const [applyingAICorrection, setApplyingAICorrection] = useState(false);
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -582,6 +585,48 @@ const Write = () => {
 
   const handleHelpClose = () => setShowHelpModal(false);
 
+  const handleAICorrection = async (suggestion) => {
+    if (!currentContent || !currentSubsection) return;
+    setApplyingAICorrection(true);
+    try {
+      const subId = currentSubsection.id;
+      let result;
+      if (suggestion.type === 'banned') {
+        let corrected = currentContent;
+        let lastChanged = '';
+        for (const phrase of suggestion.data.phrases) {
+          const ctxStart = Math.max(0, currentContent.toLowerCase().indexOf(phrase.toLowerCase()) - 40);
+          const ctxEnd = Math.min(currentContent.length, currentContent.toLowerCase().indexOf(phrase.toLowerCase()) + phrase.length + 40);
+          const context = currentContent.slice(ctxStart, ctxEnd);
+          const res = await fixBannedPhrase(corrected, phrase, context);
+          corrected = res.correctedContent;
+          lastChanged = res.changedText;
+        }
+        result = { correctedContent: corrected, changedText: lastChanged };
+      } else if (suggestion.type === 'burstiness') {
+        result = await fixBurstiness(currentContent);
+      } else if (suggestion.type === 'transitions') {
+        result = await fixTransitionOveruse(currentContent);
+      } else if (suggestion.type === 'humanise') {
+        result = await humaniseContent(currentContent);
+      }
+      if (!result || !result.correctedContent) return;
+      captureVersion(activeChapter, subId, currentContent, 'AI Score Suggestion');
+      setCurrentContent(result.correctedContent);
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subId]: result.correctedContent } }));
+      if (result.changedText) {
+        setHighlightRanges([{ text: result.changedText }]);
+        setTimeout(() => setHighlightRanges([]), 2500);
+      }
+      setIsPreviewMode(true);
+    } catch (error) {
+      console.error('AI Correction failed:', error);
+      addToast('AI correction failed. Please try again.', 'error');
+    } finally {
+      setApplyingAICorrection(false);
+    }
+  };
+
   const overallProgress = calculateOverallProgress(chapters, generatedSubsections);
   const totalActive = activeSubsections.length;
   const generatedActive = activeSubsections.filter(s => s.generated).length;
@@ -673,6 +718,7 @@ const Write = () => {
                 currentSubsection={currentSubsection}
                 showReferenceInTextarea={showReferenceInTextarea}
                 generatingReferences={generatingReferences}
+                highlightRanges={highlightRanges}
               />
 
               <ContentButtons
@@ -797,7 +843,7 @@ const Write = () => {
         </div>
       )}
 
-      <AIDetectionDashboard isOpen={showAIDetection} onClose={() => setShowAIDetection(false)} content={currentContent} />
+      <AIDetectionDashboard isOpen={showAIDetection} onClose={() => setShowAIDetection(false)} content={currentContent} onApplyCorrection={handleAICorrection} applyingCorrection={applyingAICorrection} />
       <LiteratureSearchModal
         isOpen={showLitSearchModal}
         onClose={() => setShowLitSearchModal(false)}
@@ -827,7 +873,17 @@ const Write = () => {
       <HelpModal isOpen={showHelpModal} onClose={handleHelpClose} />
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes correctionBlink {
+          0%   { background-color: #10b981; color: #fff; border-radius: 3px; padding: 0 2px; }
+          50%  { background-color: #10b98180; color: inherit; }
+          100% { background-color: transparent; color: inherit; padding: 0; }
+        }
+        .correction-blink {
+          animation: correctionBlink 1.8s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

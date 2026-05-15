@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { calculateBurstiness, scanBannedPhrases, scanTransitions, calculatePerplexityEstimate } from '../services/gemini/antiDetection';
 
@@ -22,19 +22,37 @@ const Gauge = ({ label, value, max, goodDir = 'up', unit = '' }) => {
   );
 };
 
-const Badge = ({ label, count, color }) => (
-  <span style={{
-    display: 'inline-flex', alignItems: 'center', gap: '4px',
-    padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '500',
-    backgroundColor: `${color}20`, color,
-    margin: '2px',
+const CorrectionCard = ({ icon, title, description, onClick, applying, color = '#059669' }) => (
+  <div style={{
+    padding: '10px 12px', borderRadius: '8px', border: `1px solid ${color}40`,
+    backgroundColor: `${color}08`, marginBottom: '8px',
   }}>
-    {count}× {label}
-  </span>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '12px', fontWeight: '600', color, marginBottom: '2px' }}>
+          {icon} {title}
+        </div>
+        <div style={{ fontSize: '11px', color: '#6b7280', lineHeight: '1.4' }}>{description}</div>
+      </div>
+      <button
+        onClick={onClick}
+        disabled={applying}
+        style={{
+          padding: '5px 12px', fontSize: '11px', fontWeight: '600', borderRadius: '6px',
+          backgroundColor: applying ? '#d1d5db' : color, color: 'white', border: 'none',
+          cursor: applying ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+          opacity: applying ? 0.7 : 1, transition: 'all 0.2s',
+        }}
+      >
+        {applying ? 'Applying...' : '🤖 AI Fix'}
+      </button>
+    </div>
+  </div>
 );
 
-const AIDetectionDashboard = ({ isOpen, onClose, content }) => {
+const AIDetectionDashboard = ({ isOpen, onClose, content, onApplyCorrection, applyingCorrection }) => {
   const { colors, isDarkMode } = useTheme();
+  const [applyingType, setApplyingType] = useState(null);
 
   const metrics = useMemo(() => {
     if (!content) return null;
@@ -48,6 +66,16 @@ const AIDetectionDashboard = ({ isOpen, onClose, content }) => {
   if (!isOpen) return null;
 
   const scoreColor = metrics?.perplexity.score >= 60 ? '#059669' : metrics?.perplexity.score >= 40 ? '#f59e0b' : '#dc2626';
+
+  const handleApply = async (type, data) => {
+    if (applyingType) return;
+    setApplyingType(type);
+    try {
+      await onApplyCorrection?.({ type, data, content });
+    } finally {
+      setApplyingType(null);
+    }
+  };
 
   return (
     <div
@@ -110,30 +138,81 @@ const AIDetectionDashboard = ({ isOpen, onClose, content }) => {
                 <div style={{ fontSize: '13px', fontWeight: '500', color: '#dc2626', marginBottom: '8px' }}>
                   ⚠️ {metrics.banned.length} Banned Phrase(s) Detected
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-                  {metrics.banned.slice(0, 10).map((b, i) => (
-                    <Badge key={i} label={b.phrase} count={1} color="#dc2626" />
+                <div style={{ marginBottom: '8px' }}>
+                  {metrics.banned.slice(0, 5).map((b, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '6px 8px', marginBottom: '4px', borderRadius: '6px',
+                      backgroundColor: '#fef2f2', gap: '8px',
+                    }}>
+                      <span style={{ fontSize: '11px', color: '#991b1b', flex: 1, fontStyle: 'italic' }}>
+                        "...{b.line.length > 80 ? b.line.slice(0, 80) + '...' : b.line}"
+                      </span>
+                      <span style={{
+                        fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px',
+                        backgroundColor: '#fecaca', color: '#dc2626', whiteSpace: 'nowrap',
+                      }}>
+                        {b.phrase}
+                      </span>
+                    </div>
                   ))}
-                  {metrics.banned.length > 10 && (
-                    <span style={{ fontSize: '11px', color: colors.textSecondary, alignSelf: 'center', marginLeft: '4px' }}>
-                      +{metrics.banned.length - 10} more
-                    </span>
+                  {metrics.banned.length > 5 && (
+                    <div style={{ fontSize: '11px', color: colors.textSecondary, textAlign: 'center', marginTop: '4px' }}>
+                      +{metrics.banned.length - 5} more banned phrases
+                    </div>
                   )}
                 </div>
+                <CorrectionCard
+                  icon="✂️"
+                  title={`Replace all ${metrics.banned.length} banned phrases`}
+                  description="AI will replace each detected banned phrase with a more natural alternative."
+                  onClick={() => handleApply('banned', { phrases: metrics.banned.map(b => b.phrase) })}
+                  applying={applyingType === 'banned'}
+                  color="#dc2626"
+                />
               </div>
             )}
 
-            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : '#f0fdf4', borderRadius: '8px', border: '1px solid #05966930' }}>
-              <div style={{ fontSize: '12px', fontWeight: '600', color: '#059669', marginBottom: '4px' }}>💡 Recommendations</div>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: colors.text, lineHeight: '1.6' }}>
-                {metrics.burstiness.cv < 0.4 && <li>Increase sentence length variety — mix very short and long sentences.</li>}
-                {metrics.banned.length > 0 && <li>Replace detected banned phrases with more natural alternatives.</li>}
-                {metrics.transitions.frequency > 1.5 && <li>Reduce transition word frequency for more natural flow.</li>}
-                {metrics.perplexity.score < 60 && metrics.perplexity.score >= 40 && <li>Content shows mixed signals. Try the Humanise feature to improve naturalness.</li>}
-                {metrics.perplexity.score < 40 && <li>Content appears AI-generated. Use the Humanise feature to make it read more naturally.</li>}
-                {metrics.perplexity.score >= 60 && <li>Content reads naturally. No changes needed for AI detection.</li>}
-              </ul>
-            </div>
+            {metrics.burstiness.cv < 0.4 && (
+              <CorrectionCard
+                icon="📊"
+                title="Improve sentence variety"
+                description="Sentences are too uniform in length. AI will vary sentence structure for more natural flow."
+                onClick={() => handleApply('burstiness', {})}
+                applying={applyingType === 'burstiness'}
+                color="#d97706"
+              />
+            )}
+
+            {metrics.transitions.frequency > 1.5 && (
+              <CorrectionCard
+                icon="🔗"
+                title="Reduce transition word frequency"
+                description={`${metrics.transitions.found.length} transition words detected. AI will reduce them for more natural flow.`}
+                onClick={() => handleApply('transitions', {})}
+                applying={applyingType === 'transitions'}
+                color="#0891b2"
+              />
+            )}
+
+            {metrics.perplexity.score < 40 && (
+              <CorrectionCard
+                icon="✨"
+                title="Humanise entire content"
+                description="Low AI score detected. AI will rewrite the content to sound more naturally human-written."
+                onClick={() => handleApply('humanise', {})}
+                applying={applyingType === 'humanise'}
+                color="#7c3aed"
+              />
+            )}
+
+            {metrics.perplexity.score >= 60 && (
+              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #05966930' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#059669', textAlign: 'center' }}>
+                  ✅ No corrections needed — content reads naturally
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

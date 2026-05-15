@@ -14,16 +14,17 @@ const Header = () => {
     <header style={{
       backgroundColor: colors.surface,
       borderBottom: `1px solid ${colors.border}`,
-      padding: '16px 32px',
+      padding: '0 32px 0 0',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'stretch',
       position: 'sticky',
       top: 0,
-      zIndex: 100
+      zIndex: 100,
+      height: '72px'
     }}>
-      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}><img src={logo} alt="PAGYS" style={{ height: '56px', display: 'block' }} /></Link>
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0 }}><img src={logo} alt="PAGYS" style={{ height: '100%', display: 'block', maxHeight: '72px' }} /></Link>
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'center', height: '100%' }}>
         {isLoggedIn && (
           <>
             <Link to="/dashboard" style={{ color: colors.text, textDecoration: 'none' }}>Dashboard</Link>

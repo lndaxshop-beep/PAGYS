@@ -60,7 +60,25 @@ export const extractAbbreviations = async (content, projectTitle) => {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
     const truncated = content.substring(0, 15000);
-    const prompt = `Extract all important abbreviations from this thesis content.\n\nPROJECT: "${projectTitle}"\n\nCONTENT:\n${truncated}\n\nReturn JSON array: [{"abbr":"AI","meaning":"Artificial Intelligence"}]. Only meaningful abbreviations. Skip e.g., i.e., etc. Return [] if none found.`;
+    const prompt = `Extract field-specific abbreviations from this thesis content. Only include abbreviations that are specialized technical terms relevant to the thesis topic or academic field.
+
+PROJECT: "${projectTitle}"
+
+CONTENT:
+${truncated}
+
+Return JSON array: [{"abbr":"SEM","meaning":"Structural Equation Modelling"}].
+
+RULES:
+- Only include abbreviations that are directly related to the thesis topic or academic field
+- EXCLUDE common everyday abbreviations: etc., e.g., i.e., vs., aka, approx, dept, min, max, avg, temp, info, etc.
+- EXCLUDE currency codes: GHS, USD, EUR, GBP, etc.
+- EXCLUDE standard units: kg, km, cm, mm, mg, ml, etc.
+- EXCLUDE common English abbreviations: Mr., Mrs., Dr., St., Ave., etc.
+- EXCLUDE very common non-technical terms: number, total, info, etc.
+- Focus on abbreviations that a reader of this specific thesis would need defined (e.g., field-specific acronyms, statistical terms, methodology-specific abbreviations)
+- Return [] if no abbreviations meeting these criteria are found
+- Return ONLY the JSON array, no other text`;
     const result = await model.generateContent(prompt);
     return extractJSONArray(result.response.text()) || [];
   } catch (error) { console.error('Error extracting abbreviations:', error); return []; }

@@ -608,7 +608,16 @@ const Write = () => {
       } else if (suggestion.type === 'transitions') {
         result = await fixTransitionOveruse(currentContent);
       } else if (suggestion.type === 'humanise') {
+        const humaniseKey = `${activeChapter}_${currentSubsection.id}`;
+        if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) {
+          addToast('Humanise limit reached for this subsection. Use Reset Humanise to add more uses.', 'error');
+          setApplyingAICorrection(false);
+          return;
+        }
         result = await humaniseContent(currentContent);
+        if (result?.correctedContent) {
+          setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
+        }
       }
       if (!result || !result.correctedContent) return;
       captureVersion(activeChapter, subId, currentContent, 'AI Score Suggestion');

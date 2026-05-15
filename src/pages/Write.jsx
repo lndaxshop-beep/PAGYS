@@ -30,7 +30,7 @@ import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, s
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import VersionBrowser from '../components/writing/VersionBrowser';
-import FeatureTour from '../components/writing/FeatureTour';
+import HelpModal from '../components/writing/HelpModal';
 import { saveSubsectionVersions, getSubsectionVersions } from '../services/firestoreService';
 
 const Write = () => {
@@ -83,10 +83,7 @@ const Write = () => {
   const [diffModal, setDiffModal] = useState({ show: false, oldText: '', newText: '', onAccept: null, title: '' });
   const [subsectionVersions, setSubsectionVersions] = useState({});
   const [versionBrowserSubsection, setVersionBrowserSubsection] = useState(null);
-  const [showFeatureTour, setShowFeatureTour] = useState(() => {
-    const seen = localStorage.getItem(`featureTourSeen_${projectId}`);
-    return !seen;
-  });
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -583,10 +580,7 @@ const Write = () => {
     setVersionBrowserSubsection(null);
   };
 
-  const handleTourClose = () => {
-    setShowFeatureTour(false);
-    try { localStorage.setItem(`featureTourSeen_${projectId}`, 'true'); } catch {}
-  };
+  const handleHelpClose = () => setShowHelpModal(false);
 
   const overallProgress = calculateOverallProgress(chapters, generatedSubsections);
   const totalActive = activeSubsections.length;
@@ -636,7 +630,7 @@ const Write = () => {
 
       <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
-          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowFeatureTour(prev => !prev)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
+          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowHelpModal(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
@@ -830,7 +824,7 @@ const Write = () => {
         />
       )}
 
-      <FeatureTour isOpen={showFeatureTour} onClose={handleTourClose} page="write" />
+      <HelpModal isOpen={showHelpModal} onClose={handleHelpClose} />
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>

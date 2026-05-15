@@ -148,62 +148,36 @@ export const buildTableOfContents = () => {
   ];
 };
 
-const formatFigureNumber = (fig) => {
-  const num = fig.chapterNum && fig.seq ? `${fig.chapterNum}.${fig.seq}` : `${fig.seq || 0}`;
-  return `Figure ${num}: `;
-};
-
-const formatTableNumber = (tbl) => {
-  const num = tbl.chapterNum && tbl.seq ? `${tbl.chapterNum}.${tbl.seq}` : `${tbl.seq || 0}`;
-  return `Table ${num}: `;
-};
-
 export const buildListOfFigures = (figures, format) => {
   if (!figures || figures.length === 0) return [];
-  const children = [
+  return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 },
       children: [new TextRun({ text: 'LIST OF FIGURES', bold: true, size: 28, font: format.fontFamily })]
     }),
+    new TableOfContents('List of Figures', {
+      captionLabel: 'Figure',
+      hyperlink: true,
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
   ];
-  figures.forEach((fig) => {
-    children.push(
-      new Paragraph({
-        spacing: { after: 100 },
-        children: [
-          new TextRun({ text: formatFigureNumber(fig), bold: true, size: 24, font: format.fontFamily }),
-          new TextRun({ text: sanitizeXmlText(fig.caption || fig.title || ''), size: 24, font: format.fontFamily }),
-        ]
-      })
-    );
-  });
-  children.push(new Paragraph({ children: [new PageBreak()] }));
-  return children;
 };
 
 export const buildListOfTables = (tables, format) => {
   if (!tables || tables.length === 0) return [];
-  const children = [
+  return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 },
       children: [new TextRun({ text: 'LIST OF TABLES', bold: true, size: 28, font: format.fontFamily })]
     }),
+    new TableOfContents('List of Tables', {
+      captionLabel: 'Table',
+      hyperlink: true,
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
   ];
-  tables.forEach((tbl) => {
-    children.push(
-      new Paragraph({
-        spacing: { after: 100 },
-        children: [
-          new TextRun({ text: formatTableNumber(tbl), bold: true, size: 24, font: format.fontFamily }),
-          new TextRun({ text: sanitizeXmlText(tbl.caption || tbl.title || ''), size: 24, font: format.fontFamily }),
-        ]
-      })
-    );
-  });
-  children.push(new Paragraph({ children: [new PageBreak()] }));
-  return children;
 };
 
 export const buildAbbreviationsList = (abbreviations, format) => {

@@ -1,6 +1,6 @@
 import {
   Paragraph, TextRun, AlignmentType, HeadingLevel,
-  Table, TableRow, TableCell, WidthType, PageBreak
+  Table, TableRow, TableCell, WidthType, PageBreak, SimpleField
 } from 'docx';
 import { renderChartToPng, renderMermaidToPng, buildDocxTable, buildImageParagraph } from '../exportVisualHelpers.js';
 import { sanitizeXmlText } from '../sanitizeText.js';
@@ -44,7 +44,11 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     return new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 240, after: 60 },
-      children: [new TextRun({ text: `Table ${chapterIndex}.${tableCounter}: ${sanitizeXmlText(title)}`, bold: true, size: 24, font: fontFamily })]
+      children: [
+        new TextRun({ text: `Table `, bold: true, size: 24, font: fontFamily }),
+        new SimpleField(` SEQ Table \\* ARABIC \\s 1 `, `${chapterIndex}.${tableCounter}`),
+        new TextRun({ text: `: ${sanitizeXmlText(title)}`, bold: true, size: 24, font: fontFamily })
+      ]
     });
   };
 
@@ -53,7 +57,11 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     return new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 240, after: 60 },
-      children: [new TextRun({ text: `Figure ${chapterIndex}.${figureCounter}: ${sanitizeXmlText(title)}`, bold: false, italics: true, size: 24, font: fontFamily })]
+      children: [
+        new TextRun({ text: `Figure `, bold: false, italics: true, size: 24, font: fontFamily }),
+        new SimpleField(` SEQ Figure \\* ARABIC \\s 1 `, `${chapterIndex}.${figureCounter}`),
+        new TextRun({ text: `: ${sanitizeXmlText(title)}`, bold: false, italics: true, size: 24, font: fontFamily })
+      ]
     });
   };
 

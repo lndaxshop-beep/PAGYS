@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { saveAs } from 'file-saver';
@@ -29,6 +29,14 @@ const MyFiles = () => {
   const [downloadProgress, setDownloadProgress] = useState('');
   const [generatedInstruments, setGeneratedInstruments] = useState([]);
   const [toast, setToast] = useState(null);
+  const [defenceRegenUsed, setDefenceRegenUsed] = useState(0);
+  const [showRegenResetModal, setShowRegenResetModal] = useState(false);
+  const [processingRegenReset, setProcessingRegenReset] = useState(false);
+  const regenResetTimeoutRef = useRef(null);
+
+  const isPremium = projectData?.tier === 'premium' || projectData?.isPremium;
+  const baseDefenceRegenLimit = isPremium ? 2 : 1;
+  const defenceRegenLeft = Math.max(0, baseDefenceRegenLimit - defenceRegenUsed);
 
   const notify = (message, type) => setToast({ message, type });
 
@@ -37,6 +45,16 @@ const MyFiles = () => {
   useEffect(() => { if (selectedProject && activeTab === 'lists') loadAbbreviations(selectedProject); }, [selectedProject, activeTab]);
   useEffect(() => { if (selectedProject && activeTab === 'defence') loadDefenceQuestions(selectedProject); }, [selectedProject, activeTab]);
   useEffect(() => { if (selectedProject && activeTab === 'instruments') loadGeneratedInstruments(selectedProject); }, [selectedProject, activeTab]);
+  useEffect(() => {
+    if (selectedProject) {
+      try {
+        const ru = localStorage.getItem(`defenceRegenUsed_${selectedProject}`);
+        setDefenceRegenUsed(ru ? JSON.parse(ru) : 0);
+      } catch { setDefenceRegenUsed(0); }
+    }
+  }, [selectedProject]);
+  useEffect(() => { try { localStorage.setItem(`defenceRegenUsed_${selectedProject}`, JSON.stringify(defenceRegenUsed)); } catch {} }, [defenceRegenUsed, selectedProject]);
+  useEffect(() => { return () => { if (regenResetTimeoutRef.current) clearTimeout(regenResetTimeoutRef.current); }; }, []);
 
    const loadProjects = async () => {
     try {
@@ -152,6 +170,24 @@ const MyFiles = () => {
   const handleProjectChange = (pid) => { const p = projects.find(pr => pr.id === pid); setSelectedProject(pid); setProjectData(p); loadChaptersForProject(pid); setActiveTab('chapters'); setAbbreviations([]); setDefenceQuestions(null); setGeneratedInstruments([]); };
   const downloadAbbreviations = () => saveAs(new Blob([generateAbbreviationsDocument()], { type: 'application/msword' }), `abbreviations-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`);
   const downloadDefence = () => { if (!defenceQuestions) return; saveAs(new Blob([generateDefenceDocument()], { type: 'application/msword' }), `defence-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`); };
+  const handleDefenceRegen = async () => {
+    if (loadingDefence) return;
+    if (defenceRegenLeft > 0) {
+      setDefenceRegenUsed(prev => prev + 1);
+      await loadDefenceQuestions(selectedProject, true);
+    } else {
+      setShowRegenResetModal(true);
+    }
+  };
+  const handleRegenResetConfirm = () => {
+    if (processingRegenReset) return;
+    setProcessingRegenReset(true);
+    regenResetTimeoutRef.current = setTimeout(() => {
+      setDefenceRegenUsed(0);
+      setProcessingRegenReset(false);
+      setShowRegenResetModal(false);
+    }, 1000);
+  };
   const getGeneratedChaptersCount = () => chapters.filter(ch => ch.generated).length;
 
   const SourcesTabContent = ({ projectId, project }) => {
@@ -385,9 +421,11 @@ const MyFiles = () => {
                     </div>
                   );
                 })}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>🎯 Download Defence Questions</button>
-                  <button onClick={() => loadDefenceQuestions(selectedProject, true)} style={{ backgroundColor: 'transparent', color: colors.primary, padding: '10px 20px', border: `1px solid ${colors.primary}`, borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>🔄 Regenerate</button>
+                  <button onClick={handleDefenceRegen} disabled={loadingDefence} style={{ backgroundColor: 'transparent', color: defenceRegenLeft > 0 ? colors.primary : '#dc2626', padding: '10px 20px', border: `1px solid ${defenceRegenLeft > 0 ? colors.primary : '#dc2626'}`, borderRadius: '8px', cursor: loadingDefence ? 'not-allowed' : 'pointer', fontWeight: '500', fontSize: '13px' }}>
+                    {defenceRegenLeft > 0 ? `🔄 Regenerate (${defenceRegenLeft} left)` : '🔄 Reset Regenerate (₵1)'}
+                  </button>
                 </div>
               </div>
             ) : <p style={{ color: colors.textSecondary }}>Complete thesis chapters to generate defence preparation questions.</p>}
@@ -425,6 +463,43 @@ const MyFiles = () => {
         )}
       </div>
       <style>{`@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}`}</style>
+      {showRegenResetModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000 }}>
+          <div style={{ backgroundColor: colors.surface, borderRadius: '16px', maxWidth: '400px', width: '90%', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: '40px', textAlign: 'center', marginBottom: '16px' }}>🔄</div>
+            <h2 style={{ textAlign: 'center', fontSize: '22px', fontWeight: '700', color: colors.text, margin: '0 0 8px' }}>Reset Regenerate</h2>
+            <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>Get {baseDefenceRegenLimit} more regenerate uses.</p>
+            <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Feature</span>
+                <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px' }}>Regenerate</span>
+              </div>
+              <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵1</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button onClick={handleRegenResetConfirm} disabled={processingRegenReset} style={{
+                backgroundColor: processingRegenReset ? colors.border : '#2563eb',
+                color: 'white', padding: '14px', border: 'none', borderRadius: '8px',
+                fontWeight: '600', cursor: processingRegenReset ? 'not-allowed' : 'pointer',
+                fontSize: '15px', opacity: processingRegenReset ? 0.7 : 1
+              }}>
+                {processingRegenReset ? 'Processing...' : 'Pay ₵1'}
+              </button>
+              <button onClick={() => setShowRegenResetModal(false)} disabled={processingRegenReset} style={{
+                backgroundColor: 'transparent', color: colors.textSecondary,
+                padding: '10px', border: `1px solid ${colors.border}`, borderRadius: '8px',
+                fontWeight: '500', cursor: processingRegenReset ? 'not-allowed' : 'pointer',
+                fontSize: '14px'
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );

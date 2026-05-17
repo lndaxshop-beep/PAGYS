@@ -49,12 +49,7 @@ const Write = () => {
   const [feedbackUsed, setFeedbackUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
-  const [humaniseBonus, setHumaniseBonus] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`humaniseBonus_${projectId}`) || '{}'); } catch { return {}; }
-  });
-  const [feedbackBonus, setFeedbackBonus] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`feedbackBonus_${projectId}`) || '{}'); } catch { return {}; }
-  });
+
   const [resetModalType, setResetModalType] = useState(null);
   const [processingReset, setProcessingReset] = useState(false);
   const resetTimeoutRef = useRef(null);
@@ -106,9 +101,10 @@ const Write = () => {
   const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
 
   const chapterHumaniseBonus = humaniseBonus[activeChapter] || 0;
-  const chapterFeedbackBonus = feedbackBonus[activeChapter] || 0;
+  const humaniseBase = project?.tier === 'premium' ? 15 : 10;
+  const feedbackBase = project?.tier === 'premium' ? 12 : 6;
 
-  const { generating, generatingVisual, humanising, humaniseLimit, feedbackLimit, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, chapterHumaniseBonus, chapterFeedbackBonus);
+  const { generating, generatingVisual, humanising, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, humaniseBase, feedbackBase);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
@@ -192,8 +188,6 @@ const Write = () => {
 
   useEffect(() => { try { localStorage.setItem(`humaniseUsed_${projectId}`, JSON.stringify(humaniseUsed)); } catch {} }, [humaniseUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
-  useEffect(() => { try { localStorage.setItem(`humaniseBonus_${projectId}`, JSON.stringify(humaniseBonus)); } catch {} }, [humaniseBonus, projectId]);
-  useEffect(() => { try { localStorage.setItem(`feedbackBonus_${projectId}`, JSON.stringify(feedbackBonus)); } catch {} }, [feedbackBonus, projectId]);
   useEffect(() => { try { localStorage.setItem(`subsectionVersions_${projectId}`, JSON.stringify(subsectionVersions)); } catch {} }, [subsectionVersions, projectId]);
 
   const versionsTimerRef = useRef(null);
@@ -549,9 +543,9 @@ const Write = () => {
     setProcessingReset(true);
     resetTimeoutRef.current = setTimeout(() => {
       if (resetModalType === 'humanise') {
-        setHumaniseBonus(prev => ({ ...prev, [activeChapter]: (prev[activeChapter] || 0) + 2 }));
+        setHumaniseUsed(prev => ({ ...prev, [activeChapter]: 0 }));
       } else if (resetModalType === 'feedback') {
-        setFeedbackBonus(prev => ({ ...prev, [activeChapter]: (prev[activeChapter] || 0) + 3 }));
+        setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
       }
       setProcessingReset(false);
       setResetModalType(null);
@@ -608,9 +602,9 @@ const Write = () => {
       } else if (suggestion.type === 'transitions') {
         result = await fixTransitionOveruse(currentContent);
       } else if (suggestion.type === 'humanise') {
-        const humaniseKey = `${activeChapter}_${currentSubsection.id}`;
-        if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) {
-          addToast('Humanise limit reached for this subsection. Use Reset Humanise to add more uses.', 'error');
+        const humaniseKey = activeChapter;
+        if ((humaniseUsed[humaniseKey] || 0) >= humaniseBase) {
+          addToast('Humanise limit reached for this chapter. Use Reset Humanise to restore your chapter pool.', 'error');
           setApplyingAICorrection(false);
           return;
         }
@@ -650,8 +644,8 @@ const Write = () => {
     return curIdx === lastIdx ? 'Complete & View Files' : 'Complete & Continue';
   };
 
-  const humaniseLeft = humaniseLimit - (humaniseUsed[`${activeChapter}_${activeSubsections[currentSubsectionIndex]?.id}`] || 0);
-  const feedbackLeft = feedbackLimit - (feedbackUsed[`${activeChapter}_${activeSubsections[currentSubsectionIndex]?.id}`] || 0);
+  const humaniseLeft = humaniseBase - (humaniseUsed[activeChapter] || 0);
+  const feedbackLeft = feedbackBase - (feedbackUsed[activeChapter] || 0);
 
   const handleSaveEdit = () => {
     if (currentSubsection) {
@@ -689,20 +683,13 @@ const Write = () => {
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
           <p style={{ fontSize: '12px', color: '#059669', marginBottom: '28px' }}>✅ Citations auto-verified, references auto-generated</p>
-          {project?.tier === 'premium' && (() => {
-            const chHumanise = Object.entries(humaniseUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
-            const chFeedback = Object.entries(feedbackUsed).filter(([k]) => k.startsWith(activeChapter)).reduce((s, [,v]) => s + v, 0);
-            const genCount = activeSubsections.filter(s => s.generated).length;
-            const hMax = humaniseLimit * genCount || humaniseLimit;
-            const fMax = feedbackLimit * genCount || feedbackLimit;
-            return (
-              <div style={{ fontSize: '12px', color: '#f59e0b', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <span>💎 Premium</span>
-                <span>Humanise: {chHumanise}/{hMax} used</span>
-                <span>Feedback: {chFeedback}/{fMax} used</span>
-              </div>
-            );
-          })()}
+          {project?.tier === 'premium' && (
+            <div style={{ fontSize: '12px', color: '#f59e0b', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <span>💎 Premium</span>
+              <span>Humanise: {humaniseUsed[activeChapter] || 0}/{humaniseBase} used</span>
+              <span>Feedback: {feedbackUsed[activeChapter] || 0}/{feedbackBase} used</span>
+            </div>
+          )}
 
           {generatingSubtopics ? (
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '32px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
@@ -814,7 +801,7 @@ const Write = () => {
               Reset {resetModalType === 'humanise' ? 'Humanise' : 'Feedback'}
             </h2>
             <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>
-              Get {resetModalType === 'humanise' ? '2' : '3'} more {resetModalType} uses for this chapter.
+              Restore full {resetModalType} pool for this chapter.
             </p>
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -822,8 +809,8 @@ const Write = () => {
                 <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px', textTransform: 'capitalize' }}>{resetModalType}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Bonus uses</span>
-                <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>+{resetModalType === 'humanise' ? '2' : '3'} per subsection</span>
+                <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Pool reset</span>
+                <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>Full chapter pool</span>
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>

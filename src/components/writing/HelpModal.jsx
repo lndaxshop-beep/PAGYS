@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: '🌿',
     title: 'Humanise',
-    description: 'Refines content to sound more natural and human-like. Each subsection has a limited number of uses. Additional uses can be purchased per chapter.',
+    description: 'Refines content to sound more natural and human-like. Each chapter has a shared pool of uses across all subsections. When exhausted, purchase a full pool reset for the chapter.',
   },
   {
     icon: '💬',
@@ -76,7 +76,7 @@ const FEATURES = [
   {
     icon: '💎',
     title: 'Premium Features',
-    description: 'Upgrade to unlock Write All Remaining, Search Literature, Custom Guidelines, and higher usage limits for Humanise and Feedback.',
+    description: 'Upgrade to unlock Write All Remaining, Search Literature, Custom Guidelines, and larger per-chapter pools for Humanise and Feedback.',
     premium: true,
   },
 ];

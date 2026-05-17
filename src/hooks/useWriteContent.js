@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
-const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', humaniseBonus = 0, feedbackBonus = 0) => {
+const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', humaniseLimit = 10, feedbackLimit = 6) => {
   const [generating, setGenerating] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
   const [humanising, setHumanising] = useState(false);
@@ -13,10 +13,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       return stored.some(p => p.id.toString() === project?.id?.toString() && p.isPremium);
     } catch { return false; }
   })();
-  const baseHumaniseLimit = isPremium ? 4 : 1;
-  const baseFeedbackLimit = isPremium ? 4 : 1;
-  const humaniseLimit = baseHumaniseLimit + humaniseBonus;
-  const feedbackLimit = baseFeedbackLimit + feedbackBonus;
   const contentCache = useRef(new Map());
 
   const handleGenerateConceptualFramework = useCallback(async () => {
@@ -257,8 +253,8 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 
   const handleHumanise = useCallback(async (content) => {
     if (!content) return { error: true, message: 'No content to humanise.' };
-    const humaniseKey = `${activeChapter}_${currentSubsection?.id}`;
-    if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) return { error: true, message: `Humanise limit reached (${humaniseLimit}/${humaniseLimit}) for this subsection.` };
+    const humaniseKey = activeChapter;
+    if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) return { error: true, message: `Humanise limit reached (${humaniseLimit}/${humaniseLimit}) for this chapter.` };
     setHumanising(true);
     try {
       const { calculateBurstiness, scanBannedPhrases, calculatePerplexityEstimate } = await import('../services/gemini/antiDetection');
@@ -292,14 +288,14 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       return { humanisedText, humaniseKey };
     } catch (error) { throw error; }
     finally { setHumanising(false); }
-  }, [project, activeChapter, currentSubsection, humaniseUsed]);
+  }, [project, activeChapter, currentSubsection, humaniseUsed, humaniseLimit]);
 
   const handleApplyFeedback = useCallback(async (currentContentText, feedbackText, feedbackFiles, currentFeedbackSubsection) => {
     if (!feedbackText && feedbackFiles.length === 0) return { error: true, message: 'Please enter feedback or upload files' };
     const wc = feedbackText.trim() ? feedbackText.trim().split(/\s+/).length : 0;
     if (wc > 50) return { error: true, message: 'Feedback exceeds 50 words. Please shorten it.' };
-    const feedbackKey = `${activeChapter}_${currentFeedbackSubsection.id}`;
-    if ((feedbackUsed[feedbackKey] || 0) >= feedbackLimit) return { error: true, message: `Feedback limit reached (${feedbackLimit}/${feedbackLimit}) for this subsection.` };
+    const feedbackKey = activeChapter;
+    if ((feedbackUsed[feedbackKey] || 0) >= feedbackLimit) return { error: true, message: `Feedback limit reached (${feedbackLimit}/${feedbackLimit}) for this chapter.` };
     setApplyingSubFeedback(true);
     try {
       const { applyFeedbackToContent } = await import('../services/geminiService');
@@ -316,10 +312,10 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
         }
       }
       const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: processedFiles }, currentFeedbackSubsection.title, project);
-      return { modifiedContent, feedbackKey: `${activeChapter}_${currentFeedbackSubsection.id}` };
+      return { modifiedContent, feedbackKey };
     } catch (error) { throw error; }
     finally { setApplyingSubFeedback(false); }
-  }, [project, activeChapter]);
+  }, [project, activeChapter, feedbackUsed, feedbackLimit]);
 
   const preRenderDiagrams = useCallback(async (content, isDarkMode) => {
     const mermaidRegex = /```mermaid\s*([\s\S]*?)```/g;
@@ -344,7 +340,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
 
   return {
     generating, generatingVisual, humanising, applyingSubFeedback,
-    humaniseLimit, feedbackLimit,
     handleGenerateConceptualFramework,
     handleGenerateTheoreticalFramework,
     handleGenerateResearchDesign,

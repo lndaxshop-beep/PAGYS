@@ -15,6 +15,7 @@ const Header = () => {
       backgroundColor: colors.surface,
       borderBottom: `1px solid ${colors.border}`,
       padding: '0 32px 0 0',
+      margin: 0,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'stretch',
@@ -23,7 +24,7 @@ const Header = () => {
       zIndex: 100,
       height: '72px'
     }}>
-      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0 }}><img src={logo} alt="PAGYS" style={{ height: '100%', display: 'block', maxHeight: '72px' }} /></Link>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0, padding: 0, margin: 0 }}><img src={logo} alt="PAGYS" style={{ height: '72px', width: 'auto', display: 'block', objectFit: 'contain' }} /></Link>
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center', height: '100%' }}>
         {isLoggedIn && (
           <>

@@ -83,3 +83,43 @@ RULES:
     return extractJSONArray(result.response.text()) || [];
   } catch (error) { console.error('Error extracting abbreviations:', error); return []; }
 };
+
+export const generateAbstract = async (project, generatedSubsections) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL });
+    let allContent = '';
+    Object.entries(generatedSubsections || {}).forEach(([chId, subsections]) => {
+      if (!subsections || typeof subsections !== 'object') return;
+      allContent += `\n--- ${chId} ---\n`;
+      Object.values(subsections).forEach(v => {
+        if (typeof v === 'string') allContent += v.substring(0, 3000) + '\n';
+      });
+    });
+    const truncated = allContent.substring(0, 50000);
+
+    const prompt = `You are writing the abstract for an academic thesis.
+
+PROJECT TITLE: "${project?.title || ''}"
+FIELD: ${project?.field || ''}
+LEVEL: ${project?.level || ''}
+METHODOLOGY: ${project?.methodology || ''}
+
+Below is the content of the thesis chapters. Read it and write a professional abstract.
+
+THESIS CONTENT:
+${truncated}
+
+Write a concise academic abstract (200-350 words) that covers:
+- Background and rationale for the study
+- Research objectives or questions
+- Methodology used
+- Key findings and results
+- Conclusions and implications
+
+Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    return text || null;
+  } catch (error) { console.error('Error generating abstract:', error); return null; }
+};

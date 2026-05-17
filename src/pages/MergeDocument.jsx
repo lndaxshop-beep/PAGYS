@@ -65,6 +65,7 @@ const MergeDocument = () => {
   const [templateFile, setTemplateFile] = useState(null);
   const [templateFileName, setTemplateFileName] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [generatingAbstract, setGeneratingAbstract] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
 
@@ -130,6 +131,35 @@ const MergeDocument = () => {
     }
   };
 
+  const ensureAbstract = async () => {
+    if (placeholders.abstractText?.trim()) return placeholders.abstractText;
+    setProgress('Generating abstract from thesis content...');
+    try {
+      const { generateAbstract } = await import('../services/geminiService');
+      const text = await generateAbstract(project, generatedSubsections);
+      if (text) setPlaceholders(prev => ({ ...prev, abstractText: text }));
+      return text || null;
+    } catch { return null; }
+  };
+
+  const handleGenerateAbstractClick = async () => {
+    if (generatingAbstract) return;
+    setGeneratingAbstract(true);
+    setError('');
+    try {
+      const { generateAbstract } = await import('../services/geminiService');
+      const text = await generateAbstract(project, generatedSubsections);
+      if (text) {
+        setPlaceholders(prev => ({ ...prev, abstractText: text }));
+      } else {
+        setError('Failed to generate abstract. Try again.');
+      }
+    } catch (e) {
+      setError('Failed to generate abstract: ' + (e.message || 'Unknown error'));
+    }
+    setGeneratingAbstract(false);
+  };
+
   const handleGenerateLatex = async () => {
     if (selectedChapterIds.length === 0) {
       setError('Please select at least one chapter to include.');
@@ -140,10 +170,12 @@ const MergeDocument = () => {
     setProgress('Preparing LaTeX...');
 
     try {
+      const abstractText = await ensureAbstract();
+      const updatedPlaceholders = { ...placeholders, abstractText: abstractText || placeholders.abstractText || '' };
       const style = project?.referenceStyle || 'apa';
       await generateLatexDocument({
         project, chapters, generatedSubsections, selectedChapterIds,
-        frontMatter, placeholders, templateFile, selectedInstrumentIds,
+        frontMatter, placeholders: updatedPlaceholders, templateFile, selectedInstrumentIds,
         projectId, style, onProgress: setProgress,
       });
       setProgress('LaTeX ready!');
@@ -164,10 +196,12 @@ const MergeDocument = () => {
     setProgress('Preparing Markdown...');
 
     try {
+      const abstractText = await ensureAbstract();
+      const updatedPlaceholders = { ...placeholders, abstractText: abstractText || placeholders.abstractText || '' };
       const style = project?.referenceStyle || 'apa';
       await generateMarkdownDocument({
         project, chapters, generatedSubsections, selectedChapterIds,
-        frontMatter, placeholders, templateFile, selectedInstrumentIds,
+        frontMatter, placeholders: updatedPlaceholders, templateFile, selectedInstrumentIds,
         projectId, style, onProgress: setProgress,
       });
       setProgress('Markdown ready!');
@@ -188,6 +222,8 @@ const MergeDocument = () => {
     setProgress('Preparing PDF...');
 
     try {
+      const abstractText = await ensureAbstract();
+      const updatedPlaceholders = { ...placeholders, abstractText: abstractText || placeholders.abstractText || '' };
       const style = project?.referenceStyle || 'apa';
       await generatePdfDocument({
         project,
@@ -195,7 +231,7 @@ const MergeDocument = () => {
         generatedSubsections,
         selectedChapterIds,
         frontMatter,
-        placeholders,
+        placeholders: updatedPlaceholders,
         templateFile,
         selectedInstrumentIds,
         projectId,
@@ -220,6 +256,8 @@ const MergeDocument = () => {
     setProgress('Initializing...');
 
     try {
+      const abstractText = await ensureAbstract();
+      const updatedPlaceholders = { ...placeholders, abstractText: abstractText || placeholders.abstractText || '' };
       const style = project?.referenceStyle || 'apa';
       const blob = await generateMergedDocument({
         project,
@@ -227,7 +265,7 @@ const MergeDocument = () => {
         generatedSubsections,
         selectedChapterIds,
         frontMatter,
-        placeholders,
+        placeholders: updatedPlaceholders,
         templateFile,
         selectedInstrumentIds: selectedInstrumentIds,
         projectId,
@@ -383,13 +421,26 @@ const MergeDocument = () => {
             </div>
 
             <div style={{ marginTop: '16px' }}>
-              <label style={labelStyle}>Abstract (optional; leave blank for placeholder)</label>
+              <label style={labelStyle}>Abstract</label>
               <textarea
                 style={{ ...textareaStyle, minHeight: '120px' }}
                 value={placeholders.abstractText || ''}
                 onChange={(e) => updatePlaceholder('abstractText', e.target.value)}
-                placeholder="[Write your abstract here or leave blank for a placeholder]"
+                placeholder="[Write your abstract here or leave blank for AI generation]"
               />
+              <button
+                onClick={handleGenerateAbstractClick}
+                disabled={generatingAbstract}
+                style={{
+                  marginTop: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                  backgroundColor: generatingAbstract ? colors.border : '#7c3aed',
+                  color: 'white', border: 'none', borderRadius: '6px',
+                  cursor: generatingAbstract ? 'not-allowed' : 'pointer',
+                  opacity: generatingAbstract ? 0.7 : 1,
+                }}
+              >
+                {generatingAbstract ? '⏳ Generating...' : '🤖 Generate Abstract from Thesis'}
+              </button>
             </div>
           </div>
 

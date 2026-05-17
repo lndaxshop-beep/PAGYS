@@ -137,7 +137,7 @@ export const generateMergedDocument = async (config) => {
       page: { margin: marginProps },
       titlePage: true,
     },
-    children: [...titlePageChildren, new Paragraph({ children: [new PageBreak()] })],
+    children: titlePageChildren,
   } : null;
 
   const frontMatterSection = frontMatterChildren.length > 0 ? {

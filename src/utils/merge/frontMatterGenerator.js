@@ -7,11 +7,12 @@ import { sanitizeXmlText } from '../sanitizeText.js';
 
 export const buildTitlePage = (project, placeholders, format) => {
   const twipMargin = (cm) => Math.round(cm * 567);
-  const emptyLine = () => new Paragraph({ spacing: { after: twipMargin(1.5) }, children: [] });
+  const singleLine = Math.round(240);
+  const emptyLine = () => new Paragraph({ spacing: { after: twipMargin(1.5), line: singleLine }, children: [] });
   const centered = (text, size = 14, bold = true, spacing = 0) =>
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: twipMargin(spacing) },
+      spacing: { after: twipMargin(spacing), line: singleLine },
       children: [
         new TextRun({
           text: sanitizeXmlText(text), bold, size: Math.round(size * 2), font: format.fontFamily
@@ -19,8 +20,8 @@ export const buildTitlePage = (project, placeholders, format) => {
       ]
     });
 
-  const bigSpace = () => new Paragraph({ spacing: { after: twipMargin(2.5) }, children: [] });
-  const mediumSpace = () => new Paragraph({ spacing: { after: twipMargin(1.5) }, children: [] });
+  const bigSpace = () => new Paragraph({ spacing: { after: twipMargin(2.5), line: singleLine }, children: [] });
+  const mediumSpace = () => new Paragraph({ spacing: { after: twipMargin(1.5), line: singleLine }, children: [] });
 
   return [
     emptyLine(), emptyLine(), emptyLine(),

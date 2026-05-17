@@ -16,7 +16,8 @@ export const generateDefenceQuestions = async (projectData) => {
 
     const prompt = `You are a thesis defence expert preparing a student for their viva voce.
 
-THESIS: "${projectData.title || ''}"
+THESIS TITLE: "${projectData.title || ''}"
+${projectData.researchTopic ? `RESEARCH QUESTION: "${projectData.researchTopic}"` : ''}
 FIELD: ${projectData.field || ''}
 LEVEL: ${projectData.level || ''}
 
@@ -99,7 +100,8 @@ export const generateAbstract = async (project, generatedSubsections) => {
 
     const prompt = `You are writing the abstract for an academic thesis.
 
-PROJECT TITLE: "${project?.title || ''}"
+THESIS TITLE: "${project?.title || ''}"
+${project?.topic ? `RESEARCH QUESTION: "${project.topic}"` : ''}
 FIELD: ${project?.field || ''}
 LEVEL: ${project?.level || ''}
 METHODOLOGY: ${project?.methodology || ''}

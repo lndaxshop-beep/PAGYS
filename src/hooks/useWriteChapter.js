@@ -173,7 +173,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     const displayTitle = getChapterDisplayTitle(chapter);
     try {
       const { generateSubtopics } = await import('../services/geminiService');
-      const subtopics = await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
+      const subtopics = await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, researchTopic: project.topic, field: project.field, level: project.level, methodology: project.methodology, referenceData });
       if (!subtopics || !Array.isArray(subtopics)) { handleSubtopicsFallback(chapterId); return; }
       const preserveNum = referenceData !== null;
       buildSubsectionsFromHeadings(chapterId, subtopics, preserveNum);
@@ -189,7 +189,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     const displayTitle = getChapterDisplayTitle(chapter);
     try {
       const { generateSubtopics } = await import('../services/geminiService');
-      return await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
+      return await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, researchTopic: project.topic, field: project.field, level: project.level, methodology: project.methodology, referenceData });
     } catch (error) {
       console.error('Error previewing subtopics:', error);
       return null;

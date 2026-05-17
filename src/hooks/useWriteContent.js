@@ -89,7 +89,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const { generateAcademicContent, selfReviewContent } = await import('../services/geminiService');
     const result = await generateAcademicContent({
       chapter: chapterTitle, chapterId, chapterNumber, subsection: subTitle,
-      topic: project.title, field: project.field, level: project.level, methodology: project.methodology,
+      topic: project.title, researchTopic: project.topic, field: project.field, level: project.level, methodology: project.methodology,
       organization: sub.customValue || project?.organizationName || null,
       hideOrganization: project?.hideOrganization || false, findings: chapterId === 'chapter4' ? uploadedFindings : null,
       wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
@@ -100,7 +100,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     let generatedContent = typeof result === 'object' ? result.text : result;
     try {
       const reviewed = await selfReviewContent(generatedContent, {
-        topic: project.title, chapter: chapterTitle, subsection: subTitle
+        topic: project.title, researchTopic: project.topic, field: project.field, chapter: chapterTitle, subsection: subTitle
       });
       if (reviewed && reviewed.trim().length > 50) {
         generatedContent = reviewed;
@@ -126,7 +126,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       const repairPrompt = `CRITICAL FIX REQUIRED: Paragraphs ${missingIndices.join(', ')} (${citationResult.paragraphsMissingCitations.length} total) are MISSING in-text citations. Add exactly one (Author, Year) citation to EACH of those paragraphs using Google Search Grounding. Do NOT change any other paragraphs. Do NOT remove existing citations.`;
       try {
         const repaired = await selfReviewContent(generatedContent, {
-          topic: project.title, chapter: chapterTitle, subsection: subTitle,
+          topic: project.title, researchTopic: project.topic, field: project.field, chapter: chapterTitle, subsection: subTitle,
           extraInstruction: repairPrompt
         });
         if (repaired && repaired.trim().length > 50) {
@@ -274,6 +274,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       const { humaniseContent } = await import('../services/geminiService');
       const humanisedText = await humaniseContent(content, {
         topic: project?.title,
+        researchTopic: project?.topic,
         field: project?.field,
         chapter: chapterTitle,
         subsection: currentSubsection?.title,

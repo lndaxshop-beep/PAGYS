@@ -59,8 +59,10 @@ export const generateSubtopics = async (promptData) => {
     
     const promptText = `You are an expert academic advisor helping a ${promptData.level} student structure their thesis.
 
-RESEARCH TOPIC: "${promptData.topic}"
+THESIS TITLE: "${promptData.topic}"
+${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
 FIELD: ${promptData.field}
+METHODOLOGY: ${promptData.methodology || 'Not specified'} — subtopics must align with this methodology
 CHAPTER: ${promptData.chapterTitle}${promptData.referenceData ? '\n' + referenceInstruction : ''}
 
 ${promptData.referenceData ? 'CRITICAL: Return ONLY a JSON array matching the EXACT structure, numbering, and count from the reference. Include ALL subsections at ALL levels.' : 'Generate 8-12 appropriate subsections with proper academic numbering. Return ONLY a JSON array.'}
@@ -126,11 +128,13 @@ ${sourcesJson.substring(0, 15000)}
 
     const prompt = `You are an advanced academic writing assistant helping a ${promptData.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
 
-TOPIC: "${promptData.topic}"
+THESIS TITLE: "${promptData.topic}"
+${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
+FIELD: ${promptData.field || 'Not specified'}
 CHAPTER: ${promptData.chapter}
 SUBSECTION: ${promptData.subsection}
 TARGET WORD COUNT: ${targetWords} words (range: ${wordRange.min}–${wordRange.max})
-METHODOLOGY: ${promptData.methodology || 'mixed methods'}
+METHODOLOGY: ${promptData.methodology || 'mixed methods'} — all content MUST align with this methodology
 ${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
 
@@ -285,7 +289,9 @@ export const selfReviewContent = async (text, promptData) => {
 ORIGINAL TEXT (AI-generated):
 ${text}
 
-TOPIC: "${promptData?.topic || 'thesis'}"
+THESIS TITLE: "${promptData?.topic || 'thesis'}"
+${promptData?.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
+FIELD: ${promptData?.field || 'Not specified'}
 CHAPTER: ${promptData?.chapter || 'N/A'}
 SUBSECTION: ${promptData?.subsection || 'N/A'}${extraInstr}
 
@@ -353,7 +359,8 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
     const prompt = `You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
 
 SUBSECTION: ${subsectionTitle}
-TOPIC: "${project?.title}"
+THESIS TITLE: "${project?.title}"
+${project?.topic ? `RESEARCH QUESTION: "${project.topic}"` : ''}
 FIELD: ${project?.field}
 
 FEEDBACK TO APPLY:
@@ -430,7 +437,8 @@ export const humaniseContent = async (text, promptData = null) => {
 TEXT TO REWRITE:
 ${text}
 
-TOPIC: "${topic}"
+THESIS TITLE: "${topic}"
+${promptData?.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
 FIELD: ${field}
 CHAPTER: ${chapter}
 SUBSECTION: ${subsection}

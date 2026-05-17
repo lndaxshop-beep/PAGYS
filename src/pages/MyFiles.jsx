@@ -160,7 +160,7 @@ const MyFiles = () => {
       });
       if (Object.keys(cc).length === 0) { setDefenceQuestions(null); setLoadingDefence(false); return; }
       const { generateDefenceQuestions } = await import('../services/geminiService');
-      const qs = await generateDefenceQuestions({ title: projects.find(p => p.id === pid)?.title, field: projects.find(p => p.id === pid)?.field, level: projects.find(p => p.id === pid)?.level, chapters: cc });
+      const qs = await generateDefenceQuestions({ title: projects.find(p => p.id === pid)?.title, researchTopic: projects.find(p => p.id === pid)?.topic, field: projects.find(p => p.id === pid)?.field, level: projects.find(p => p.id === pid)?.level, chapters: cc });
       if (qs) { setDefenceQuestions(qs); localStorage.setItem(simpleKey, JSON.stringify(qs)); }
     } catch (e) {} finally { setLoadingDefence(false); }
   };

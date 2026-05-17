@@ -138,6 +138,11 @@ const MyFiles = () => {
   };
 
   const loadDefenceQuestions = async (pid, forceRefresh = false) => {
+    const simpleKey = `defence_${pid}`;
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(simpleKey);
+      if (cached) { setDefenceQuestions(JSON.parse(cached)); return; }
+    }
     setLoadingDefence(true);
     try {
       const content = await getGeneratedContent(pid);
@@ -154,16 +159,9 @@ const MyFiles = () => {
         if (text.trim()) cc[chId] = { title, content: text.slice(0, 5000) };
       });
       if (Object.keys(cc).length === 0) { setDefenceQuestions(null); setLoadingDefence(false); return; }
-      const contentStr = JSON.stringify(cc);
-      const hash = contentStr.length.toString(36);
-      const cacheKey = `defence_${pid}_${hash}`;
-      if (!forceRefresh) {
-        const sd = localStorage.getItem(cacheKey);
-        if (sd) { setDefenceQuestions(JSON.parse(sd)); setLoadingDefence(false); return; }
-      }
       const { generateDefenceQuestions } = await import('../services/geminiService');
       const qs = await generateDefenceQuestions({ title: projects.find(p => p.id === pid)?.title, field: projects.find(p => p.id === pid)?.field, level: projects.find(p => p.id === pid)?.level, chapters: cc });
-      if (qs) { setDefenceQuestions(qs); localStorage.setItem(cacheKey, JSON.stringify(qs)); }
+      if (qs) { setDefenceQuestions(qs); localStorage.setItem(simpleKey, JSON.stringify(qs)); }
     } catch (e) {} finally { setLoadingDefence(false); }
   };
 

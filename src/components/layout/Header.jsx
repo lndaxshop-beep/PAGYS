@@ -24,7 +24,7 @@ const Header = () => {
       zIndex: 100,
       height: '72px'
     }}>
-      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0, padding: 0, margin: 0 }}><img src={logo} alt="PAGYS" style={{ height: '72px', width: 'auto', display: 'block', objectFit: 'contain' }} /></Link>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0, margin: '0 0 0 -12px' }}><img src={logo} alt="PAGYS" style={{ height: '72px', width: 'auto', display: 'block' }} /></Link>
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center', height: '100%' }}>
         {isLoggedIn && (
           <>

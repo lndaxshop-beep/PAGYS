@@ -84,7 +84,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     }));
   }, [activeChapter]);
 
-  const buildSubsectionsFromHeadings = useCallback((chapterId, headings) => {
+  const buildSubsectionsFromHeadings = useCallback((chapterId, headings, preserveNumbering = false) => {
     const chapter = chapters.find(c => c.id === chapterId);
     const ordinal = chapter ? getChapterOrdinal(chapter, chapters) : -1;
     const chapterNum = ordinal >= 0 ? String(ordinal) : chapterId.replace('chapter', '');
@@ -105,11 +105,14 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
       if (match) {
         const sub = match[3] ? parseInt(match[3]) : NaN;
         const cleanTitle = match[4];
+        const headingNumber = preserveNumbering ? `${match[1]}.${match[2]}` : null;
+        const displayTitle = headingNumber ? `${headingNumber} ${cleanTitle}` : cleanTitle;
 
         if (isNaN(sub)) {
           const subObj = {
             id: `${chapterId}_sub_${Date.now()}_${subsections.length}`,
-            title: cleanTitle,
+            number: headingNumber,
+            title: displayTitle,
             type: 'subsection',
             hasPlaceholder: hasPlaceholderCheck(cleanTitle),
             placeholder: 'Organization',
@@ -121,9 +124,11 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
           currentParent = subObj;
           parentIdx = subsections.length - 1;
         } else if (currentParent && parentIdx >= 0) {
+          const childNumber = preserveNumbering ? `${match[1]}.${match[2]}.${match[3]}` : null;
           subsections[parentIdx].children.push({
             id: `${subsections[parentIdx].id}_child_${subsections[parentIdx].children.length}`,
-            title: cleanTitle,
+            number: childNumber,
+            title: childNumber ? `${childNumber} ${cleanTitle}` : cleanTitle,
             type: 'sub-subsection',
             generated: false
           });
@@ -132,6 +137,7 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
         const cleanTitle = title.replace(/^\d+\.\d+(\.\d+)?\s*/, '').replace(/^\d+\.\s*/, '');
         const subObj = {
           id: `${chapterId}_sub_${Date.now()}_${subsections.length}`,
+          number: null,
           title: cleanTitle,
           type: 'subsection',
           hasPlaceholder: hasPlaceholderCheck(cleanTitle),
@@ -147,8 +153,12 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
     });
 
     const ref = { id: `${chapterId}_references`, title: 'References', type: 'references', hasPlaceholder: false, generated: false, deleted: false, children: [] };
-    const numbered = renumberSubsections([...subsections, ref], chapterId, chapterNum);
-    setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: numbered, generated: true } : ch));
+    if (preserveNumbering) {
+      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: [...subsections, ref], generated: true } : ch));
+    } else {
+      const numbered = renumberSubsections([...subsections, ref], chapterId, chapterNum);
+      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: numbered, generated: true } : ch));
+    }
   }, [project, chapters, renumberSubsections]);
 
   const handleSubtopicsFallback = useCallback((chapterId) => {
@@ -165,7 +175,8 @@ const useWriteChapter = (project, projectId, firestoreFunctions) => {
       const { generateSubtopics } = await import('../services/geminiService');
       const subtopics = await generateSubtopics({ chapterId, chapterTitle: displayTitle, topic: project.title, field: project.field, level: project.level, methodology: project.methodology, referenceData });
       if (!subtopics || !Array.isArray(subtopics)) { handleSubtopicsFallback(chapterId); return; }
-      buildSubsectionsFromHeadings(chapterId, subtopics);
+      const preserveNum = referenceData !== null;
+      buildSubsectionsFromHeadings(chapterId, subtopics, preserveNum);
     } catch (error) {
       console.error('Error generating subtopics:', error);
       handleSubtopicsFallback(chapterId);

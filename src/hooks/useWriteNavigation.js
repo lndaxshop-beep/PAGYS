@@ -25,7 +25,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     const chapterId = pendingChapterForStructure;
     if (!chapterId) return;
     if (referenceData?.editedHeadings) {
-      buildSubsectionsFromHeadings(chapterId, referenceData.editedHeadings);
+      buildSubsectionsFromHeadings(chapterId, referenceData.editedHeadings, true);
     } else {
       let finalReferenceData = referenceData;
       if (referenceData?.type === 'combined') {

@@ -89,7 +89,8 @@ export const getChapterDisplayTitle = (chapter) => {
 };
 
 export const getChapterOrdinal = (chapter, chapters) => {
-  return chapters.findIndex(ch => ch.id === chapter.id);
+  const index = chapters.findIndex(ch => ch.id === chapter.id);
+  return chapter?.id === 'proposal' ? 1 : index;
 };
 
 export const getChapterGuidelines = (chapter) => {
@@ -131,8 +132,8 @@ export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
     const newNumber = `${chapterNum}.${i + 1}`;
     const newTitle = sub.type === 'references'
       ? sub.title
-      : sub.title.match(/^[P\d]+(\.\d+)*\s+/)
-        ? sub.title.replace(/^[P\d]+(\.\d+)*\s+/, `${newNumber} `)
+      : sub.title.match(/^[pP\d]+(\.\d+)*\s+/)
+        ? sub.title.replace(/^[pP\d]+(\.\d+)*\s+/, `${newNumber} `)
         : `${newNumber} ${sub.title}`;
     const newChildren = (sub.children || []).map((child, ci) => {
       const childNum = `${newNumber}.${ci + 1}`;

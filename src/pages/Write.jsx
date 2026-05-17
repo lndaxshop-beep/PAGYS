@@ -100,7 +100,6 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const chapterHumaniseBonus = humaniseBonus[activeChapter] || 0;
   const humaniseBase = project?.tier === 'premium' ? 15 : 10;
   const feedbackBase = project?.tier === 'premium' ? 12 : 6;
 

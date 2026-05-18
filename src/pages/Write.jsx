@@ -585,16 +585,14 @@ const Write = () => {
       let result;
       if (suggestion.type === 'banned') {
         let corrected = currentContent;
-        let lastChanged = '';
         for (const phrase of suggestion.data.phrases) {
           const ctxStart = Math.max(0, currentContent.toLowerCase().indexOf(phrase.toLowerCase()) - 40);
           const ctxEnd = Math.min(currentContent.length, currentContent.toLowerCase().indexOf(phrase.toLowerCase()) + phrase.length + 40);
           const context = currentContent.slice(ctxStart, ctxEnd);
           const res = await fixBannedPhrase(corrected, phrase, context);
           corrected = res.correctedContent;
-          lastChanged = res.changedText;
         }
-        result = { correctedContent: corrected, changedText: lastChanged };
+        result = { correctedContent: corrected };
       } else if (suggestion.type === 'burstiness') {
         result = await fixBurstiness(currentContent);
       } else if (suggestion.type === 'transitions') {
@@ -611,15 +609,20 @@ const Write = () => {
           setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
         }
       }
-      if (!result || !result.correctedContent) return;
-      captureVersion(activeChapter, subId, currentContent, 'AI Score Suggestion');
-      setCurrentContent(result.correctedContent);
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subId]: result.correctedContent } }));
-      if (result.changedText) {
-        setHighlightRanges([{ text: result.changedText }]);
-        setTimeout(() => setHighlightRanges([]), 2500);
-      }
-      setIsPreviewMode(true);
+      if (!result || !result.correctedContent || result.correctedContent === currentContent) return;
+      setDiffModal({
+        show: true,
+        oldText: currentContent,
+        newText: result.correctedContent,
+        title: 'AI Fix Changes',
+        onAccept: () => {
+          captureVersion(activeChapter, subId, currentContent, 'AI Score Suggestion');
+          setCurrentContent(result.correctedContent);
+          setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subId]: result.correctedContent } }));
+          setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
+          addToast('AI fix applied! New score will show when you open AI Score again.', 'success');
+        },
+      });
     } catch (error) {
       console.error('AI Correction failed:', error);
       addToast('AI correction failed. Please try again.', 'error');

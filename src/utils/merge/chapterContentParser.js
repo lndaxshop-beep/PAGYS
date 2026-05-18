@@ -115,6 +115,7 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     let frameworkBuffer = null;
     let inFramework = false;
     let lastCaption = null;
+    let referencesBlock = false;
 
     const flushTable = (captionLine) => {
       const result = flushMarkdownTable(tableBuffer, captionLine);
@@ -202,6 +203,7 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
 
       const headingMatch = trimmed.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);
       if (headingMatch) {
+        referencesBlock = false;
         const level = getHeadingLevel(trimmed, prevHeading);
         prevHeading = level;
         children.push(new Paragraph({
@@ -212,10 +214,14 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
         continue;
       }
 
-      if (trimmed === 'References' || trimmed === 'REFERENCES') {
+      const refCheck = trimmed.replace(/[:\s]*$/, '').trim();
+      if (/^References$/i.test(refCheck)) {
+        referencesBlock = true;
         prevHeading = HeadingLevel.HEADING_1;
         continue;
       }
+
+      if (referencesBlock) continue;
 
       if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
         children.push(new Paragraph({

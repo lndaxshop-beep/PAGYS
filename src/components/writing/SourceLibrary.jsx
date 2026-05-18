@@ -3,7 +3,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 const SourceLibrary = ({
   sources, extracting, loading, matrix, generatingMatrix,
-  onAddFile, onRemoveSource, onGenerateMatrix, onClearSources, isPremium
+  pendingMatrixRegen, processingMatrixPayment,
+  onAddFile, onRemoveSource, onGenerateMatrix, onMatrixPaymentConfirm, onMatrixPaymentCancel,
+  onClearSources, isPremium
 }) => {
   const { colors, isDarkMode } = useTheme();
   const fileInputRef = useRef(null);
@@ -244,6 +246,24 @@ const SourceLibrary = ({
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {pendingMatrixRegen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000 }}>
+          <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', textAlign: 'center', minWidth: '320px' }}>
+            <p style={{ color: colors.text, fontWeight: '600', fontSize: '16px', marginBottom: '16px' }}>
+              {processingMatrixPayment ? 'Processing payment...' : 'Pay ₵2 to regenerate literature matrix?'}
+            </p>
+            {processingMatrixPayment ? (
+              <div style={{ width: '48px', height: '48px', border: `4px solid ${colors.primary}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+            ) : (
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button onClick={onMatrixPaymentCancel} style={{ padding: '10px 24px', backgroundColor: colors.border, color: colors.text, border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={onMatrixPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay ₵2</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

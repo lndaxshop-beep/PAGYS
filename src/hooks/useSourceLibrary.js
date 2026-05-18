@@ -1,9 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { extractTextFromFile, getFileType } from '../utils/fileExtractors';
 import { extractPaperMetadata, generateLiteratureMatrix } from '../services/gemini/sourceExtractor';
 import { saveGeneratedContent, getGeneratedContent } from '../services/firestoreService';
 
 const STORAGE_KEY = 'userSources';
+
+const getCacheKey = (sources, projectId) => {
+  const hash = sources.length.toString(36) + sources.reduce((s, src) => s + (src.title?.length || 0) + (src.authors?.length || 0), 0).toString(36);
+  return `litmatrix_${projectId}_${hash}`;
+};
 
 const useSourceLibrary = (projectId, userId) => {
   const [sources, setSources] = useState(() => {
@@ -15,6 +20,19 @@ const useSourceLibrary = (projectId, userId) => {
   const [extracting, setExtracting] = useState(false);
   const [matrix, setMatrix] = useState(null);
   const [generatingMatrix, setGeneratingMatrix] = useState(false);
+  const [pendingMatrixRegen, setPendingMatrixRegen] = useState(false);
+  const [processingMatrixPayment, setProcessingMatrixPayment] = useState(false);
+  const matrixPaymentTimeoutRef = null;
+
+  useEffect(() => {
+    const key = getCacheKey(sources, projectId);
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      try { setMatrix(JSON.parse(cached)); } catch {}
+    } else {
+      setMatrix(null);
+    }
+  }, [sources.length, projectId]);
 
   const persistSources = (updatedSources) => {
     setSources(updatedSources);
@@ -82,16 +100,51 @@ const useSourceLibrary = (projectId, userId) => {
 
   const generateMatrix = useCallback(async (project) => {
     if (sources.length === 0) return;
+    const key = getCacheKey(sources, projectId);
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      setPendingMatrixRegen(true);
+      return;
+    }
     setGeneratingMatrix(true);
     try {
       const result = await generateLiteratureMatrix(sources, project);
-      if (result) setMatrix(result);
+      if (result) {
+        setMatrix(result);
+        localStorage.setItem(key, JSON.stringify(result));
+      }
     } catch (error) {
       console.error('Error generating matrix:', error);
     } finally {
       setGeneratingMatrix(false);
     }
-  }, [sources]);
+  }, [sources, projectId]);
+
+  const handleMatrixPaymentConfirm = useCallback(async (project) => {
+    setProcessingMatrixPayment(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setProcessingMatrixPayment(false);
+    setPendingMatrixRegen(false);
+    const key = getCacheKey(sources, projectId);
+    localStorage.removeItem(key);
+    setGeneratingMatrix(true);
+    try {
+      const result = await generateLiteratureMatrix(sources, project);
+      if (result) {
+        setMatrix(result);
+        localStorage.setItem(key, JSON.stringify(result));
+      }
+    } catch (error) {
+      console.error('Error regenerating matrix:', error);
+    } finally {
+      setGeneratingMatrix(false);
+    }
+  }, [sources, projectId]);
+
+  const handleMatrixPaymentCancel = useCallback(() => {
+    setPendingMatrixRegen(false);
+    setProcessingMatrixPayment(false);
+  }, []);
 
   const clearSources = useCallback(() => {
     persistSources([]);
@@ -110,17 +163,13 @@ const useSourceLibrary = (projectId, userId) => {
 
   return {
     sources,
-    sourceMode,
-    setSourceMode,
+    sourceMode, setSourceMode,
     extracting,
-    matrix,
-    generatingMatrix,
-    addSource,
-    addSources,
-    removeSource,
-    generateMatrix,
-    clearSources,
-    getActiveSources
+    matrix, generatingMatrix,
+    pendingMatrixRegen, processingMatrixPayment,
+    addSource, addSources, removeSource,
+    generateMatrix, handleMatrixPaymentConfirm, handleMatrixPaymentCancel,
+    clearSources, getActiveSources
   };
 };
 

@@ -218,6 +218,8 @@ const MyFiles = () => {
       onAddFile={handleFileUpload}
       onRemoveSource={sl.removeSource}
       onGenerateMatrix={() => sl.generateMatrix(project)}
+      onMatrixPaymentConfirm={() => sl.handleMatrixPaymentConfirm(project)}
+      onMatrixPaymentCancel={sl.handleMatrixPaymentCancel}
       onClearSources={sl.clearSources}
     />;
   };

@@ -12,6 +12,7 @@ import {
 import { parseChapterContent, buildChapterHeading, collectFiguresAndTables } from './chapterContentParser.js';
 import { buildInstrumentAppendix, loadInstruments } from './instrumentExporter.js';
 import { sanitizeXmlText } from '../sanitizeText.js';
+import { numberVisualReferences } from '../numberingProcessor.js';
 
 const loadAbbreviations = (projectId) => {
   try {
@@ -63,7 +64,7 @@ export const generateMergedDocument = async (config) => {
   for (let ci = 0; ci < selectedChapters.length; ci++) {
     const ch = selectedChapters[ci];
     contentChildren.push(...buildChapterHeading(ch, formatConfig));
-    const chapterContent = generatedSubsections[ch.id] || {};
+    const chapterContent = numberVisualReferences(generatedSubsections[ch.id] || {}, ci + 1);
     contentChildren.push(...await parseChapterContent(chapterContent, ch.id, formatConfig, ci + 1));
     contentChildren.push(new Paragraph({ children: [new PageBreak()] }));
     onProgress?.(`Processing chapter ${ci + 1}/${selectedChapters.length}...`);

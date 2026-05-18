@@ -27,7 +27,7 @@ const LeftPane = ({
   const [renameValue, setRenameValue] = useState('');
 
   const handleChapterClick = (id) => {
-    setExpandedChapters(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+    setExpandedChapters(prev => prev.includes(id) ? [] : [id]);
     onChapterClick(id);
   };
 

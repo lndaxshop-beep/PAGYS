@@ -76,11 +76,19 @@ export const TRANSITION_WORDS = [
 
 const splitSentences = (text) => {
   if (!text) return [];
-  return text
-    .replace(/([.!?])\s+/g, '$1\n')
-    .split('\n')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+  const abbreviations = /\b(Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|vs|etc|e\.g|i\.e|al|Dept|Univ|Fig|Eq|Vol|No|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.$/i;
+  const result = [];
+  const parts = text.split(/(?<=[.!?])\s+/);
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    if (result.length > 0 && abbreviations.test(result[result.length - 1])) {
+      result[result.length - 1] += ' ' + trimmed;
+    } else {
+      result.push(trimmed);
+    }
+  }
+  return result;
 };
 
 export const calculateBurstiness = (text) => {

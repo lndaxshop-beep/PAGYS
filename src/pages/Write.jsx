@@ -131,7 +131,6 @@ const Write = () => {
         modals.setShowLiteratureTypeModal(false);
         modals.setShowChapterStructureModal(false);
         modals.setShowDataCollectionModal(false);
-        setShowSourceModeModal(false);
       }
     }
   });
@@ -453,7 +452,7 @@ const Write = () => {
         setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
         if (currentSubsection?.id === modals.currentFeedbackSubsection.id) setCurrentContent(modifiedContent);
         setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
-        autoGenerateReferences(activeChapter).then(refResult => {
+      autoGenerateReferences(activeChapter, true).then(refResult => {
           if (refResult && refResult.content) {
             setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
           }

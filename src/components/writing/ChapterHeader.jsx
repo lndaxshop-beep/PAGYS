@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const ChapterHeader = ({ chapter, isActive, isExpanded, onClick, onRename, onDelete, isRenaming, renameValue, onRenameChange, onRenameConfirm, onRenameCancel, draggable, onDragStart }) => {

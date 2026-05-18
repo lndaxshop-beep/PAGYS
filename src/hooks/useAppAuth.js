@@ -22,6 +22,7 @@ const useAppAuth = () => {
             username: userData?.username || '',
             email: firebaseUser.email,
             country: userData?.country || '',
+            university: userData?.university || '',
           };
           setUser(currentUser);
           setIsLoggedIn(true);

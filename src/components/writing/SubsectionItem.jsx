@@ -9,8 +9,8 @@ const OutlineTree = ({ outline, isDarkMode, colors }) => {
   return (
     <div style={{ marginTop: '6px', paddingLeft: '8px', borderLeft: `2px solid ${colors.border}`, fontSize: '11px' }}>
       {outline.map((item, i) => (
-        <div key={i} style={{ paddingLeft: (item.depth - 1) * OUTLINE_INDENT, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ color: OUTLINE_COLORS[(item.depth - 1) % OUTLINE_COLORS.length], fontWeight: '500', whiteSpace: 'nowrap' }}>{item.number}</span>
+        <div key={i} style={{ paddingLeft: ((item.depth || 1) - 1) * OUTLINE_INDENT, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ color: OUTLINE_COLORS[((item.depth || 1) - 1) % OUTLINE_COLORS.length], fontWeight: '500', whiteSpace: 'nowrap' }}>{item.number}</span>
           <span style={{ color: colors.textSecondary }}>{item.title}</span>
         </div>
       ))}

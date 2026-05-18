@@ -9,9 +9,20 @@ const cleanJson = (text) => {
 };
 
 const callModel = async (prompt) => {
-  const model = genAI.getGenerativeModel({ model: MODEL });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err) {
+    console.error('[aiCorrectionService] Model call failed:', err);
+    return null;
+  }
+};
+
+const safeParse = (raw) => {
+  if (!raw) return null;
+  try { return JSON.parse(cleanJson(raw)); }
+  catch { console.warn('[aiCorrectionService] Failed to parse AI response'); return null; }
 };
 
 export const fixBannedPhrase = async (content, phrase, contextSentence) => {
@@ -34,9 +45,12 @@ Output: { "replacement": "The results indicate a significant trend." }
 Now process the above banned phrase and context.`;
 
   const raw = await callModel(prompt);
-  const parsed = JSON.parse(cleanJson(raw));
-  const replacement = parsed.replacement || '';
-  const replacedContent = content.replace(new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), replacement);
+  const parsed = safeParse(raw);
+  const replacement = parsed?.replacement || '';
+  if (!replacement) return { correctedContent: content, changedText: '' };
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(escaped, 'gi');
+  const replacedContent = content.replace(regex, replacement);
   return { correctedContent: replacedContent, changedText: replacement };
 };
 
@@ -54,8 +68,8 @@ TEXT TO IMPROVE:
 ${content}`;
 
   const raw = await callModel(prompt);
-  const parsed = JSON.parse(cleanJson(raw));
-  return { correctedContent: parsed.correctedText || content, changedText: '' };
+  const parsed = safeParse(raw);
+  return { correctedContent: parsed?.correctedText || content, changedText: '' };
 };
 
 export const fixTransitionOveruse = async (content) => {
@@ -71,8 +85,8 @@ TEXT TO IMPROVE:
 ${content}`;
 
   const raw = await callModel(prompt);
-  const parsed = JSON.parse(cleanJson(raw));
-  return { correctedContent: parsed.correctedText || content, changedText: '' };
+  const parsed = safeParse(raw);
+  return { correctedContent: parsed?.correctedText || content, changedText: '' };
 };
 
 export const humaniseContent = async (content) => {
@@ -89,6 +103,6 @@ TEXT TO IMPROVE:
 ${content}`;
 
   const raw = await callModel(prompt);
-  const parsed = JSON.parse(cleanJson(raw));
-  return { correctedContent: parsed.correctedText || content, changedText: '' };
+  const parsed = safeParse(raw);
+  return { correctedContent: parsed?.correctedText || content, changedText: '' };
 };

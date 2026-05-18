@@ -9,7 +9,8 @@ export const useKeyboardShortcuts = (handlers) => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      const { handlers } = handlersRef.current;
+      const h = handlersRef.current;
+      const handlers = h?.handlers;
       if (!handlers) return;
 
       const isCtrl = e.ctrlKey || e.metaKey;

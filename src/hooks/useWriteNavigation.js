@@ -108,10 +108,10 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     const currentChapter = chapters.find(c => c.id === activeChapter);
     if (!currentChapter) return false;
     const activeSubs = currentChapter.subsections.filter(s => s.type !== 'references' && !s.deleted);
-    const referencesSub = currentChapter.subsections.find(s => s.type === 'references');
-    const allActiveGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
-    const refContent = generatedSubsections[activeChapter]?.references || generatedSubsections[activeChapter]?.['References'] || '';
-    const referencesGenerated = referencesSub?.generated || (refContent && refContent.length > 0);
+    const chContent = generatedSubsections[activeChapter] || {};
+    const allActiveGenerated = activeSubs.length > 0 && activeSubs.every(s => !!chContent[s.id]);
+    const refContent = chContent.references || chContent['References'] || '';
+    const referencesGenerated = refContent && refContent.length > 0;
     return allActiveGenerated && referencesGenerated;
   }, [chapters, activeChapter, generatedSubsections]);
 

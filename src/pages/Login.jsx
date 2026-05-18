@@ -44,6 +44,7 @@ const Login = () => {
         username: userData?.username || '',
         email: user.email,
         country: userData?.country || '',
+        university: userData?.university || '',
       }));
 
       navigate('/dashboard');
@@ -144,7 +145,7 @@ const Login = () => {
               <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: colors.primary }} />
               Remember me
             </label>
-            <button onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer', padding: 0 }}>
+            <button type="button" onClick={handleForgotPassword} style={{ background: 'none', border: 'none', color: colors.primary, textDecoration: 'none', fontSize: '14px', fontWeight: '500', cursor: 'pointer', padding: 0 }}>
               Forgot password?
             </button>
           </div>

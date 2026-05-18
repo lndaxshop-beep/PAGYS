@@ -29,7 +29,7 @@ const setCachedProgress = (projectId, progress) => {
   } catch { /* silent */ }
 };
 
-export const useDashboardData = ({ confirmAction, notify } = {}) => {
+export const useDashboardData = ({ confirmAction = () => Promise.resolve(false), notify = () => {} } = {}) => {
   const [projects, setProjects] = useState([]);
   const [deletedProjects, setDeletedProjects] = useState([]);
   const [projectsWithProgress, setProjectsWithProgress] = useState([]);

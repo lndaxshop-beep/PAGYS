@@ -112,11 +112,19 @@ const Dashboard = () => {
     if (!paymentProject) return;
     const success = await processPayment(paymentProject.id, paymentTier);
     if (success) {
+      if (!paymentIsUpgrade) {
+        try {
+          await saveProject(paymentProject);
+        } catch (e) {
+          notify('Project saved but payment recorded. Contact support if the project does not appear.', 'warning');
+        }
+      }
       setShowPaymentModal(false);
       setPaymentProject(null);
       setPaymentTier(null);
+      loadProjects();
       if (paymentIsUpgrade) {
-        loadProjects();
+        // reloaded via loadProjects()
       } else if (paymentTier === 'premium') {
         setShowSourceSetup(true);
       }
@@ -151,12 +159,9 @@ const Dashboard = () => {
     if (!confirmationProject) return;
     const project = confirmationProject;
     const tier = confirmationTier;
-    await saveProject(project);
-    notify(`Project created successfully!${project.useOrganization && project.organizationName ? ` Organization "${project.organizationName}" will be used as case study.` : ''}`, 'success');
     setConfirmationProject(null);
     setConfirmationTier(null);
     setShowNewProjectForm(false);
-    loadProjects();
     setCreatedProjectId(project.id);
     setCreatedProjectTier(tier);
     setPaymentProject(project);

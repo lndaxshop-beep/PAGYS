@@ -44,16 +44,14 @@ const getLastName = (author) => {
 
 const checkAgainstGroundedSources = (author, year, groundedSources) => {
   if (!groundedSources || groundedSources.length === 0) return false;
-  const lastName = getLastName(author);
+  const lastName = getLastName(author).toLowerCase();
   for (const source of groundedSources) {
     const title = (source.title || '').toLowerCase();
     const uri = (source.uri || '').toLowerCase();
-    if (title.includes(lastName) && (title.includes(year) || uri.includes(year))) {
-      return true;
-    }
-    if (uri.includes(lastName) && uri.includes(year)) {
-      return true;
-    }
+    const nameRegex = new RegExp(`\\b${lastName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    const yearStr = String(year);
+    if (nameRegex.test(title) && (title.includes(yearStr) || uri.includes(yearStr))) return true;
+    if (nameRegex.test(uri) && uri.includes(yearStr)) return true;
   }
   return false;
 };

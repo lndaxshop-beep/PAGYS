@@ -95,7 +95,7 @@ Examples:
   const handleSubmit = async (e, tier) => {
     e.preventDefault();
     const project = {
-      id: Date.now(), ...form,
+      id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...form,
       createdAt: new Date().toISOString(),
       lastEdited: new Date().toISOString(),
       progress: 0, status: 'active', unlocked: true,

@@ -7,12 +7,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   const [humanising, setHumanising] = useState(false);
   const [applyingSubFeedback, setApplyingSubFeedback] = useState(false);
 
-  const isPremium = project?.isPremium || (() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('thesisProjects') || '[]');
-      return stored.some(p => p.id.toString() === project?.id?.toString() && p.isPremium);
-    } catch { return false; }
-  })();
   const contentCache = useRef(new Map());
 
   const handleGenerateConceptualFramework = useCallback(async () => {
@@ -50,22 +44,22 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     setGeneratingVisual(true);
     try {
       const { generateDataTable } = await import('../services/geminiService');
-      const tableDataResult = await generateDataTable(currentSubsection.title, project);
+      const tableDataResult = await generateDataTable(currentSubsection.title, project, uploadedFindings);
       setGeneratingVisual(false);
       return { key: `${activeChapter}_${currentSubsection.id}`, data: tableDataResult };
     } catch (error) { setGeneratingVisual(false); throw error; }
-  }, [project]);
+  }, [project, uploadedFindings]);
 
   const handleGenerateChart = useCallback(async (chartType, currentSubsection, activeChapter) => {
     if (!currentSubsection) return;
     setGeneratingVisual(true);
     try {
       const { generateChartData } = await import('../services/geminiService');
-      const chartDataResult = await generateChartData(chartType, currentSubsection.title, project);
+      const chartDataResult = await generateChartData(chartType, currentSubsection.title, project, uploadedFindings);
       setGeneratingVisual(false);
       return { key: `${activeChapter}_${currentSubsection.id}_${chartType}`, data: chartDataResult };
     } catch (error) { setGeneratingVisual(false); throw error; }
-  }, [project]);
+  }, [project, uploadedFindings]);
 
   const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList) => {
     const ch = chapters.find(c => c.id === chapterId);
@@ -232,11 +226,11 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections, usedGrounding };
   }, [project, activeChapter, generatedSubsections, userSources, sourceMode]);
 
-  const autoGenerateReferences = useCallback(async (chapterId) => {
+  const autoGenerateReferences = useCallback(async (chapterId, skipCheck = false) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return null;
     const allSubsections = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-    const allGenerated = allSubsections.every(s => s.generated);
+    const allGenerated = skipCheck || (allSubsections.every(s => s.generated));
     if (!allGenerated || !allSubsections.length) return null;
     try {
       const existingRefs = generatedSubsections[chapterId]?.references;

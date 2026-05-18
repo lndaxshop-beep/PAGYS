@@ -25,7 +25,7 @@ Return ONLY valid JSON with this exact structure:
 
 If you cannot read the image content clearly, return null.`;
       const parts = [
-        { inlineData: { mimeType: 'image/png', data: text.replace(/^data:image\/\w+;base64,/, '') } },
+        { inlineData: { mimeType: text.match(/^data:([^;]+);/)?.[1] || 'image/png', data: text.replace(/^data:image\/\w+;base64,/, '') } },
         { text: prompt }
       ];
       const result = await model.generateContent({ contents: [{ role: 'user', parts }] });

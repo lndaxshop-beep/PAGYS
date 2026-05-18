@@ -8,7 +8,7 @@ const logError = (context, e) => {
 export const saveProject = async (project) => {
   try {
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) return;
+    if (!user) throw new Error('User not authenticated');
     await setDoc(doc(db, 'projects', project.id.toString()), {
       ...project,
       userId: user.uid,

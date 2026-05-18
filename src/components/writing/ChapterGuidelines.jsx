@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const ChapterGuidelines = ({ chapter, onUpdate }) => {
@@ -6,8 +6,14 @@ const ChapterGuidelines = ({ chapter, onUpdate }) => {
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState(chapter.guidelines || '');
 
+  useEffect(() => { setText(chapter.guidelines || ''); }, [chapter.guidelines]);
+
   const handleSave = () => {
-    onUpdate?.(chapter.id, text);
+    try {
+      onUpdate?.(chapter.id, text);
+    } catch (e) {
+      console.error('Failed to save guidelines:', e);
+    }
     setExpanded(false);
   };
 

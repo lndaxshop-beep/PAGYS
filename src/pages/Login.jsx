@@ -49,7 +49,7 @@ const Login = () => {
 
       navigate('/dashboard');
     } catch (err) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password. Please try again.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
@@ -57,7 +57,10 @@ const Login = () => {
         setError('Too many login attempts. Please wait and try again.');
       } else if (err.code === 'auth/network-request-failed') {
         setError('Network error. Please check your connection.');
+      } else if (err.code === 'auth/user-disabled') {
+        setError('This account has been disabled. Please contact support.');
       } else {
+        console.error('Login error:', err.code, err.message);
         setError('Login failed. Please try again.');
       }
     }

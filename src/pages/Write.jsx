@@ -355,7 +355,7 @@ const Write = () => {
           localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_${subsectionId}`]: rendered }));
         }
       });
-      autoGenerateReferences(activeChapter).then(refResult => {
+      autoGenerateReferences(activeChapter, true).then(refResult => {
         if (refResult && refResult.content) {
           setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
         }
@@ -530,7 +530,14 @@ const Write = () => {
     }
     setGeneratingAll(null);
     if (errorCount > 0) toastError(`${errorCount} subsection(s) failed to write.`);
-    else toastSuccess(`All ${subs.length} subsection(s) written successfully!`);
+    else {
+      toastSuccess(`All ${subs.length} subsection(s) written successfully!`);
+      autoGenerateReferences(chapterId, true).then(refResult => {
+        if (refResult && refResult.content) {
+          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+        }
+      });
+    }
   };
 
   const handleInstrumentsDownload = (downloadedTypes) => {
@@ -728,9 +735,24 @@ const Write = () => {
                      const pairs = (newData.labels || []).map((l, i) => `${l}: ${(newData.values || [])[i] || 0}`).join(', ');
                      const newMarker = `[CHART: ${newData.chartType} | ${newData.title} | ${pairs}]`;
                      newContent = currentContent.replace(block.originalText, newMarker);
-                   } else if (block.type === 'diagram' && block.originalText) {
-                     const newMarker = `[FRAMEWORK: ${newData.title || 'Diagram'}]`;
-                     newContent = currentContent.replace(block.originalText, newMarker);
+                    } else if (block.type === 'diagram' && block.originalText) {
+                      let newMarker = `[FRAMEWORK: ${newData.title || 'Diagram'}`;
+                      if (newData.independent?.length) newMarker += `\n  Independent: ${newData.independent.join(', ')}`;
+                      if (newData.dependent?.length) newMarker += `\n  Dependent: ${newData.dependent.join(', ')}`;
+                      if (newData.mediating?.length) newMarker += `\n  Mediating: ${newData.mediating.join(', ')}`;
+                      if (newData.moderating?.length) newMarker += `\n  Moderating: ${newData.moderating.join(', ')}`;
+                      if (newData.hierarchy?.length) {
+                        for (const edge of newData.hierarchy) {
+                          newMarker += `\n  Hierarchy: ${edge.from} → ${edge.to}`;
+                        }
+                      }
+                      if (newData.relationships?.length) {
+                        for (const rel of newData.relationships) {
+                          newMarker += `\n  H: ${rel.from} → ${rel.to}`;
+                        }
+                      }
+                      newMarker += '\n]';
+                      newContent = currentContent.replace(block.originalText, newMarker);
                    } else if (block.type === 'table' && block.originalText) {
                      const hdrs = (newData.headers || []).join(' | ');
                      const sep = (newData.headers || []).map(() => '---').join(' | ');

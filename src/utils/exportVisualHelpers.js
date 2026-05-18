@@ -211,7 +211,7 @@ export const renderDiagramToPng = (diagramData) => {
       ctx.textBaseline = 'middle';
       const displayText = text.length > 20 ? text.substring(0, 18) + '..' : text;
       ctx.fillText(displayText, x + boxW / 2, y + boxH / 2);
-      return { x: x + boxW / 2, y: y + boxH / 2 };
+      return { x: x + boxW / 2, y: y + boxH / 2, label: text };
     };
 
     const drawArrow = (fromX, fromY, toX, toY, label) => {

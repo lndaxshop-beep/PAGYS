@@ -14,6 +14,18 @@ const COUNTRY_CURRENCIES = {
   ZM: { symbol: 'ZK', code: 'ZMW', rate: 20, name: 'Zambian Kwacha' },
 };
 
+const COUNTRY_NAME_TO_ISO = {
+  'United States': 'US', 'USA': 'US', 'United Kingdom': 'GB', 'UK': 'GB',
+  'Canada': 'CA', 'Australia': 'AU', 'Germany': 'DE', 'France': 'FR',
+  'China': 'CN', 'India': 'IN', 'Brazil': 'BR', 'Nigeria': 'NG',
+  'South Africa': 'ZA', 'Kenya': 'KE', 'Ghana': 'GH', 'Egypt': 'EG',
+  'Morocco': 'MA', 'Tanzania': 'TZ', 'Uganda': 'UG', 'Rwanda': 'RW',
+  'Zimbabwe': 'ZW', 'Zambia': 'ZM', 'Botswana': 'BW', 'Namibia': 'NA',
+  'Mozambique': 'MZ', 'Angola': 'AO', 'Ethiopia': 'ET', 'Sudan': 'SD',
+  'Tunisia': 'TN', 'Algeria': 'DZ', 'Libya': 'LY', 'Mauritius': 'MU',
+  'Seychelles': 'SC', 'Malawi': 'MW', 'Lesotho': 'LS', 'Eswatini': 'SZ',
+};
+
 export const PRICES_USD = {
   regular: 2.40,
   premium: 3.20,
@@ -28,12 +40,13 @@ export const PRICES_USD = {
 export const getUserCountry = () => {
   try {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    return user?.country || 'GH';
-  } catch { return 'GH'; }
+    const raw = user?.country || '';
+    return COUNTRY_NAME_TO_ISO[raw] || raw || 'US';
+  } catch { return 'US'; }
 };
 
 export const getCurrency = (countryCode) => {
-  return COUNTRY_CURRENCIES[countryCode] || COUNTRY_CURRENCIES.GH;
+  return COUNTRY_CURRENCIES[countryCode] || COUNTRY_CURRENCIES.US;
 };
 
 export const convertPrice = (usdPrice, countryCode) => {

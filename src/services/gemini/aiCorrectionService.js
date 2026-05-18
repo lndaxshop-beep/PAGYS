@@ -50,7 +50,8 @@ Now process the above banned phrase and context.`;
   if (!replacement) return { correctedContent: content, changedText: '' };
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(escaped, 'gi');
-  const replacedContent = content.replace(regex, replacement);
+      const escapedReplacement = replacement.replace(/\$/g, '$$$$');
+      const replacedContent = content.replace(regex, escapedReplacement);
   return { correctedContent: replacedContent, changedText: replacement };
 };
 

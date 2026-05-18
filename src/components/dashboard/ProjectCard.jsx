@@ -57,7 +57,7 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgr
           </p>
         )}
         <p style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '8px' }}>
-          Last edited: {new Date(project.lastEdited).toLocaleDateString()}
+          Last edited: {project.lastEdited ? new Date(project.lastEdited).toLocaleDateString() : 'Recently'}
         </p>
       </div>
       <div style={{ marginBottom: '12px', marginTop: '8px' }}>

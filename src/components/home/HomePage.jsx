@@ -30,7 +30,7 @@ const HomePage = () => {
   }, []);
 
   const handleGetStarted = () => {
-    if (isLoggedIn) { setToast({ message: 'You are already logged in! Please logout first to create a new account.', type: 'info' }); }
+    if (isLoggedIn) { navigate('/dashboard'); }
     else { navigate('/signup'); }
   };
 

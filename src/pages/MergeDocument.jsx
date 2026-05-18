@@ -75,6 +75,21 @@ const MergeDocument = () => {
   const [processingAbstractPayment, setProcessingAbstractPayment] = useState(false);
   const abstractPaymentTimeoutRef = useRef(null);
 
+  const [dedicationNames, setDedicationNames] = useState(() => {
+    try { return localStorage.getItem(`dedicationNames_${projectId}`) || ''; } catch { return ''; }
+  });
+  const [acknowledgementNames, setAcknowledgementNames] = useState(() => {
+    try { return localStorage.getItem(`acknowledgementNames_${projectId}`) || ''; } catch { return ''; }
+  });
+  const [dedicationGenerated, setDedicationGenerated] = useState(() => {
+    return !!localStorage.getItem(`dedicationGenerated_${projectId}`);
+  });
+  const [acknowledgementGenerated, setAcknowledgementGenerated] = useState(() => {
+    return !!localStorage.getItem(`acknowledgementGenerated_${projectId}`);
+  });
+  const [generatingDedication, setGeneratingDedication] = useState(false);
+  const [generatingAcknowledgements, setGeneratingAcknowledgements] = useState(false);
+
   const getAbstractCacheKey = () => `abstract_${projectId}_${JSON.stringify(generatedSubsections).length.toString(36)}`;
 
   useEffect(() => {
@@ -87,12 +102,86 @@ const MergeDocument = () => {
   }, [projectId, generatedSubsections]);
 
   useEffect(() => {
-    return () => {
-      if (abstractPaymentTimeoutRef.current) {
-        clearTimeout(abstractPaymentTimeoutRef.current);
+    if (!projectId) return;
+    try {
+      const stored = localStorage.getItem(`dedicationCache_${projectId}`);
+      if (stored) {
+        const { names, text, generated } = JSON.parse(stored);
+        setDedicationNames(names || '');
+        if (text) setPlaceholders(prev => ({ ...prev, dedicationText: text }));
+        if (generated) setDedicationGenerated(true);
       }
-    };
-  }, []);
+      const storedAck = localStorage.getItem(`acknowledgementsCache_${projectId}`);
+      if (storedAck) {
+        const { names, text, generated } = JSON.parse(storedAck);
+        setAcknowledgementNames(names || '');
+        if (text) setPlaceholders(prev => ({ ...prev, acknowledgementsText: text }));
+        if (generated) setAcknowledgementGenerated(true);
+      }
+    } catch {}
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    try {
+      localStorage.setItem(`dedicationNames_${projectId}`, dedicationNames);
+      localStorage.setItem(`dedicationGenerated_${projectId}`, dedicationGenerated ? '1' : '');
+      if (dedicationGenerated) {
+        localStorage.setItem(`dedicationCache_${projectId}`, JSON.stringify({ names: dedicationNames, text: placeholders.dedicationText, generated: true }));
+      }
+    } catch {}
+  }, [projectId, dedicationNames, dedicationGenerated, placeholders.dedicationText]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    try {
+      localStorage.setItem(`acknowledgementNames_${projectId}`, acknowledgementNames);
+      localStorage.setItem(`acknowledgementGenerated_${projectId}`, acknowledgementGenerated ? '1' : '');
+      if (acknowledgementGenerated) {
+        localStorage.setItem(`acknowledgementsCache_${projectId}`, JSON.stringify({ names: acknowledgementNames, text: placeholders.acknowledgementsText, generated: true }));
+      }
+    } catch {}
+  }, [projectId, acknowledgementNames, acknowledgementGenerated, placeholders.acknowledgementsText]);
+
+  const handleGenerateDedication = async () => {
+    if (generatingDedication || dedicationGenerated || !dedicationNames.trim()) return;
+    setGeneratingDedication(true);
+    setError('');
+    try {
+      const { genAI, MODEL } = await import('../services/gemini/config');
+      const model = genAI.getGenerativeModel({ model: MODEL });
+      const prompt = `You are writing the dedication page for an academic thesis.\n\nProject Title: "${project?.title || ''}"\nField: ${project?.field || ''}\n\nDedicate to (in order of priority):\n${dedicationNames}\n\nWrite a formal, heartfelt dedication. Use first person. Keep it to one paragraph of 3-5 sentences. Return ONLY the dedication text.`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      if (text) {
+        setPlaceholders(prev => ({ ...prev, dedicationText: text }));
+        setDedicationGenerated(true);
+      }
+    } catch (e) {
+      setError('Failed to generate dedication: ' + (e.message || 'Unknown error'));
+    }
+    setGeneratingDedication(false);
+  };
+
+  const handleGenerateAcknowledgements = async () => {
+    if (generatingAcknowledgements || acknowledgementGenerated || !acknowledgementNames.trim()) return;
+    setGeneratingAcknowledgements(true);
+    setError('');
+    try {
+      const { genAI, MODEL } = await import('../services/gemini/config');
+      const model = genAI.getGenerativeModel({ model: MODEL });
+      const prompt = `You are writing the acknowledgements page for an academic thesis.\n\nProject Title: "${project?.title || ''}"\nField: ${project?.field || ''}\n\nThank the following people (in order of priority):\n${acknowledgementNames}\n\nWrite formal academic acknowledgements. Use first person. Keep it 2-3 short paragraphs. Return ONLY the acknowledgements text.`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      if (text) {
+        setPlaceholders(prev => ({ ...prev, acknowledgementsText: text }));
+        setAcknowledgementGenerated(true);
+      }
+    } catch (e) {
+      setError('Failed to generate acknowledgements: ' + (e.message || 'Unknown error'));
+    }
+    setGeneratingAcknowledgements(false);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -494,23 +583,69 @@ const MergeDocument = () => {
               ))}
             </div>
 
-            <div style={{ marginTop: '16px' }}>
-              <label style={labelStyle}>Dedication Text</label>
+          {/* Dedication Section */}
+            <div style={{ marginTop: '16px', padding: '16px', backgroundColor: isDarkMode ? '#1f2937' : '#fefce8', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+              <label style={{ fontWeight: '600', color: colors.text, marginBottom: '8px', display: 'block' }}>🙏 Dedication</label>
+              <p style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '8px' }}>List who you want to dedicate this work to (one per line, order of priority):</p>
               <textarea
-                style={textareaStyle}
+                style={{ ...textareaStyle, minHeight: '60px' }}
+                value={dedicationNames}
+                onChange={(e) => { setDedicationNames(e.target.value); setDedicationGenerated(false); }}
+                placeholder="My parents, Mr. &amp; Mrs. Mensah&#10;My supervisor, Dr. Kwame Asare&#10;My siblings"
+                disabled={dedicationGenerated}
+              />
+              <button
+                onClick={handleGenerateDedication}
+                disabled={generatingDedication || dedicationGenerated || !dedicationNames.trim()}
+                style={{
+                  marginTop: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                  backgroundColor: dedicationGenerated ? '#d1d5db' : (generatingDedication ? colors.border : colors.primary),
+                  color: dedicationGenerated ? '#6b7280' : 'white',
+                  border: 'none', borderRadius: '6px',
+                  cursor: dedicationGenerated ? 'not-allowed' : (generatingDedication ? 'not-allowed' : 'pointer'),
+                  opacity: dedicationGenerated ? 0.7 : 1,
+                }}
+              >
+                {generatingDedication ? '⏳ Generating...' : dedicationGenerated ? '✅ Generated' : '🤖 Generate Dedication'}
+              </button>
+              <textarea
+                style={{ ...textareaStyle, minHeight: '100px', marginTop: '12px' }}
                 value={placeholders.dedicationText || ''}
                 onChange={(e) => updatePlaceholder('dedicationText', e.target.value)}
-                placeholder="[Write your dedication here or leave blank for placeholder]"
+                placeholder="[Your dedication text will appear here after generation, or write your own]"
               />
             </div>
 
-            <div style={{ marginTop: '16px' }}>
-              <label style={labelStyle}>Acknowledgements Text</label>
+            {/* Acknowledgements Section */}
+            <div style={{ marginTop: '16px', padding: '16px', backgroundColor: isDarkMode ? '#1f2937' : '#f0fdf4', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+              <label style={{ fontWeight: '600', color: colors.text, marginBottom: '8px', display: 'block' }}>🙏 Acknowledgements</label>
+              <p style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '8px' }}>List who you want to acknowledge (one per line, order of priority):</p>
               <textarea
-                style={textareaStyle}
+                style={{ ...textareaStyle, minHeight: '60px' }}
+                value={acknowledgementNames}
+                onChange={(e) => { setAcknowledgementNames(e.target.value); setAcknowledgementGenerated(false); }}
+                placeholder="My supervisor, Dr. Kwame Asare&#10;My lecturers at the department&#10;My family and friends"
+                disabled={acknowledgementGenerated}
+              />
+              <button
+                onClick={handleGenerateAcknowledgements}
+                disabled={generatingAcknowledgements || acknowledgementGenerated || !acknowledgementNames.trim()}
+                style={{
+                  marginTop: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                  backgroundColor: acknowledgementGenerated ? '#d1d5db' : (generatingAcknowledgements ? colors.border : colors.primary),
+                  color: acknowledgementGenerated ? '#6b7280' : 'white',
+                  border: 'none', borderRadius: '6px',
+                  cursor: acknowledgementGenerated ? 'not-allowed' : (generatingAcknowledgements ? 'not-allowed' : 'pointer'),
+                  opacity: acknowledgementGenerated ? 0.7 : 1,
+                }}
+              >
+                {generatingAcknowledgements ? '⏳ Generating...' : acknowledgementGenerated ? '✅ Generated' : '🤖 Generate Acknowledgements'}
+              </button>
+              <textarea
+                style={{ ...textareaStyle, minHeight: '100px', marginTop: '12px' }}
                 value={placeholders.acknowledgementsText || ''}
                 onChange={(e) => updatePlaceholder('acknowledgementsText', e.target.value)}
-                placeholder="[Write your acknowledgements here or leave blank for placeholder]"
+                placeholder="[Your acknowledgements text will appear here after generation, or write your own]"
               />
             </div>
 

@@ -9,6 +9,7 @@ const DiagramRenderer = ({ diagramData, title, onEdit }) => {
   const canvasRef = useRef(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [editDiagramTitle, setEditDiagramTitle] = useState('');
   const [zoom, setZoom] = useState(100);
   const [dragNode, setDragNode] = useState(null);
   const [nodePositions, setNodePositions] = useState({});
@@ -255,12 +256,13 @@ const DiagramRenderer = ({ diagramData, title, onEdit }) => {
 
   const handleEdit = () => {
     setEditData(diagramData);
+    setEditDiagramTitle(title || '');
     setShowEditor(true);
   };
 
   const handleSaveEdit = () => {
     setShowEditor(false);
-    if (onEdit) onEdit(editData);
+    if (onEdit) onEdit({ ...editData, title: editDiagramTitle });
   };
 
   const handleDeleteNode = () => {
@@ -315,6 +317,12 @@ const DiagramRenderer = ({ diagramData, title, onEdit }) => {
           <span style={{ fontSize: '12px', color: colors.textSecondary, marginLeft: '4px' }}>{zoom}%</span>
         </div>
       </div>
+
+      {showEditor && (
+        <div style={{ marginBottom: '12px' }}>
+          <input value={editDiagramTitle} onChange={e => setEditDiagramTitle(e.target.value)} placeholder="Diagram title" style={{ width: '100%', padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text, fontSize: '14px' }} />
+        </div>
+      )}
 
       <div
         style={{

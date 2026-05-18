@@ -8,6 +8,7 @@ const TableRenderer = ({ headers, rows, title, caption, onEdit }) => {
   const [showEditor, setShowEditor] = useState(false);
   const [editHeaders, setEditHeaders] = useState('');
   const [editRows, setEditRows] = useState('');
+  const [editTitle, setEditTitle] = useState('');
 
   const handleSort = (columnIndex) => {
     if (sortColumn === columnIndex) {
@@ -31,6 +32,7 @@ const TableRenderer = ({ headers, rows, title, caption, onEdit }) => {
   };
 
   const handleEdit = () => {
+    setEditTitle(title || '');
     setEditHeaders((headers || []).join(' | '));
     setEditRows((rows || []).map(r => r.join(' | ')).join('\n'));
     setShowEditor(true);
@@ -40,7 +42,7 @@ const TableRenderer = ({ headers, rows, title, caption, onEdit }) => {
     const newHeaders = editHeaders.split('|').map(s => s.trim()).filter(Boolean);
     const newRows = editRows.split('\n').filter(l => l.trim()).map(l => l.split('|').map(s => s.trim()).filter(Boolean));
     if (onEdit && newHeaders.length > 0) {
-      onEdit({ headers: newHeaders, rows: newRows, title, caption });
+      onEdit({ headers: newHeaders, rows: newRows, title: editTitle, caption: editTitle });
     }
     setShowEditor(false);
   };
@@ -54,7 +56,7 @@ const TableRenderer = ({ headers, rows, title, caption, onEdit }) => {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          {title && <h4 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Table: {title}</h4>}
+          {title && <h4 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>{title}</h4>}
           {caption && <p style={{ fontSize: '14px', color: colors.textSecondary, fontStyle: 'italic' }}>{caption}</p>}
         </div>
         {onEdit && !showEditor && (
@@ -64,6 +66,10 @@ const TableRenderer = ({ headers, rows, title, caption, onEdit }) => {
 
       {showEditor && (
         <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: colors.background, borderRadius: '8px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Title</label>
+            <input value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ width: '100%', padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }} />
+          </div>
           <div style={{ marginBottom: '12px' }}>
             <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Headers (pipe-separated)</label>
             <input value={editHeaders} onChange={e => setEditHeaders(e.target.value)} style={{ width: '100%', padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }} />

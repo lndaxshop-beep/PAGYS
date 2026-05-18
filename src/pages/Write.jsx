@@ -14,7 +14,7 @@ import useWriteContent from '../hooks/useWriteContent';
 import useWriteNavigation from '../hooks/useWriteNavigation';
 import { useWriteModals } from '../hooks/useWriteModals';
 import { useWriteVisuals } from '../hooks/useWriteVisuals';
-import { calculateOverallProgress } from '../utils/writeHelpers.jsx';
+import { calculateOverallProgress, parseContentBlocks } from '../utils/writeHelpers.jsx';
 import WriteHeader from '../components/writing/WriteHeader';
 import CurrentSubsectionBanner from '../components/writing/CurrentSubsectionBanner';
 import ContentArea from '../components/writing/ContentArea';
@@ -718,7 +718,27 @@ const Write = () => {
                  highlightRanges={highlightRanges}
                  onEditVisual={(blockIndex, newData) => {
                    const blocks = parseContentBlocks(currentContent);
-                   /* edit applied via text area, not persisted yet */
+                   const block = blocks[blockIndex];
+                   if (!block || !currentSubsection) return;
+                   if (block.type === 'chart') {
+                     const labels = (newData.labels || []).join(', ');
+                     const values = (newData.values || []).join(', ');
+                     const pairs = newData.labels.map((l, i) => `${l}: ${newData.values[i]}`).join(', ');
+                     const newMarker = `[CHART: ${newData.chartType} | ${newData.title} | ${pairs}]`;
+                     if (block.originalText) {
+                       const newContent = currentContent.replace(block.originalText, newMarker);
+                       setCurrentContent(newContent);
+                       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: newContent } }));
+                     } else {
+                       const lines = currentContent.split('\n');
+                       const chartIdx = lines.findIndex(l => l.match(/^\[CHART:\s*(bar|line|pie|horizontalBar)\s*\|/i));
+                       if (chartIdx >= 0) { lines[chartIdx] = newMarker; const nc = lines.join('\n'); setCurrentContent(nc); setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: nc } })); }
+                     }
+                   } else if (block.type === 'diagram') {
+                     const newMarker = `[FRAMEWORK: ${newData.title || 'Diagram'}]`;
+                     const orig = block.originalText || currentContent.split('\n').find(l => l.match(/^\[FRAMEWORK:/i));
+                     if (orig) { const nc = currentContent.replace(orig, newMarker); setCurrentContent(nc); setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: nc } })); }
+                   }
                  }}
                />
 

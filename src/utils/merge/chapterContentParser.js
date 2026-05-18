@@ -276,31 +276,36 @@ export const collectFiguresAndTables = (generatedSubsections, selectedChapters) 
         figures.push({ chapterNum, seq: figSeq, title: title || 'Conceptual Framework', caption: title || 'Conceptual Framework' });
       }
 
-      const markdownTableHeader = text.match(/^\|.+\|$/m);
-      if (markdownTableHeader) {
-        const lines = text.split('\n');
-        let inMdTable = false;
-        let mdTableHeaders = '';
-        for (const line of lines) {
-          if (/^\|.+\|$/.test(line.trim())) {
-            if (!inMdTable) {
-              inMdTable = true;
-              mdTableHeaders = line.trim();
-            }
-          } else if (inMdTable) {
-            if (mdTableHeaders) {
-              tblSeq++;
-              const firstCell = mdTableHeaders.split('|').map(s => s.trim()).filter(Boolean)[0] || 'Table';
-              tables.push({ chapterNum, seq: tblSeq, title: firstCell, caption: firstCell });
-            }
-            mdTableHeaders = '';
-            inMdTable = false;
-          }
+      const lines = text.split('\n');
+      let inMdTable = false;
+      let mdTableLines = [];
+      for (let li = 0; li < lines.length; li++) {
+        const line = lines[li].trim();
+        if (/^\|.+\|$/.test(line) && li + 1 < lines.length && /^\|[-| ]+\|$/.test(lines[li + 1].trim())) {
+          if (!inMdTable) { inMdTable = true; mdTableLines = []; }
+          mdTableLines.push(line);
+          continue;
         }
-        if (inMdTable && mdTableHeaders) {
+        if (inMdTable && !/^\|.+\|$/.test(line)) {
+          inMdTable = false;
+          const parsed = parseMarkdownTable(mdTableLines);
+          if (parsed && parsed.headers.length > 0) {
+            let caption = parsed.caption || '';
+            if (!caption) {
+              const captionLineMatch = line.match(/^(Table\s+\d+\.\d+:\s*)?(.+)/i);
+              if (captionLineMatch && captionLineMatch[1]) caption = captionLineMatch[2].trim();
+            }
+            tblSeq++;
+            tables.push({ chapterNum, seq: tblSeq, title: caption || `Table ${chapterNum}.${tblSeq + 1}`, caption });
+          }
+          mdTableLines = [];
+        }
+      }
+      if (inMdTable && mdTableLines.length > 0) {
+        const parsed = parseMarkdownTable(mdTableLines);
+        if (parsed && parsed.headers.length > 0) {
           tblSeq++;
-          const firstCell = mdTableHeaders.split('|').map(s => s.trim()).filter(Boolean)[0] || 'Table';
-          tables.push({ chapterNum, seq: tblSeq, title: firstCell, caption: firstCell });
+          tables.push({ chapterNum, seq: tblSeq, title: parsed.caption || `Table ${chapterNum}.${tblSeq}`, caption: parsed.caption });
         }
       }
     });

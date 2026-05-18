@@ -46,19 +46,37 @@ export const parseContentBlocks = (content) => {
   let tableLines = [];
   let inFramework = false;
   let frameworkText = '';
+  let lastVisualTitle = '';
 
   const flushHtml = () => {
     if (currentHtml) {
-      blocks.push({ type: 'text', html: currentHtml.trim() });
+      const cleaned = currentHtml.trim();
+      if (cleaned) {
+        const strippedHtml = cleaned.replace(/<[^>]+>/g, '').trim();
+        if (!lastVisualTitle || strippedHtml.length < 5 || similarity(strippedHtml, lastVisualTitle) < 0.6) {
+          blocks.push({ type: 'text', html: cleaned });
+        }
+      }
       currentHtml = '';
     }
+  };
+
+  const similarity = (a, b) => {
+    if (!a || !b) return 0;
+    const wordsA = a.toLowerCase().split(/\s+/).filter(Boolean);
+    const wordsB = b.toLowerCase().split(/\s+/).filter(Boolean);
+    if (wordsA.length < 2 || wordsB.length < 2) return 0;
+    const common = wordsA.filter(w => wordsB.includes(w)).length;
+    return common / Math.max(wordsA.length, wordsB.length);
   };
 
   const flushTable = () => {
     if (tableLines.length >= 2) {
       const parsed = parseMarkdownTable(tableLines);
       if (parsed) {
-        blocks.push({ type: 'table', headers: parsed.headers, rows: parsed.rows, caption: parsed.caption, title: parsed.caption || 'Table' });
+        const title = parsed.caption || 'Table';
+        lastVisualTitle = title;
+        blocks.push({ type: 'table', headers: parsed.headers, rows: parsed.rows, caption: parsed.caption, title, originalText: tableLines.join('\n') });
       }
     }
     tableLines = [];
@@ -68,8 +86,9 @@ export const parseContentBlocks = (content) => {
   const flushFramework = () => {
     if (frameworkText) {
       const parsed = parseFrameworkBlock(frameworkText);
-      if (parsed && (parsed.independent.length > 0 || parsed.dependent.length > 0)) {
-        blocks.push({ type: 'diagram', data: parsed, title: parsed.title || 'Conceptual Framework' });
+      if (parsed && (parsed.independent.length > 0 || parsed.dependent.length > 0 || parsed.hierarchy?.length > 0)) {
+        lastVisualTitle = parsed.title;
+        blocks.push({ type: 'diagram', data: parsed, title: parsed.title || 'Conceptual Framework', originalText: frameworkText });
       }
       frameworkText = '';
       inFramework = false;
@@ -98,7 +117,8 @@ export const parseContentBlocks = (content) => {
       flushTable();
       const parsed = parseChartMarker(line);
       if (parsed) {
-        blocks.push({ type: 'chart', chartType: parsed.chartType, labels: parsed.labels, values: parsed.values, title: parsed.title, caption: parsed.caption });
+        lastVisualTitle = parsed.title;
+        blocks.push({ type: 'chart', chartType: parsed.chartType, labels: parsed.labels, values: parsed.values, title: parsed.title, caption: parsed.caption, originalText: line });
       }
       continue;
     }

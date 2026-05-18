@@ -11,6 +11,7 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
   const canvasRef = useRef(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editType, setEditType] = useState(chartType || 'bar');
+  const [editTitle, setEditTitle] = useState(title || '');
   const [editLabels, setEditLabels] = useState('');
   const [editValues, setEditValues] = useState('');
 
@@ -75,6 +76,7 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
 
   const handleEdit = () => {
     setEditType(chartType || 'bar');
+    setEditTitle(title || '');
     setEditLabels((data?.labels || []).join(', '));
     setEditValues((data?.values || []).join(', '));
     setShowEditor(true);
@@ -85,7 +87,7 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
     const newValues = editValues.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
     const minLen = Math.min(newLabels.length, newValues.length);
     if (onEdit && minLen > 0) {
-      onEdit({ chartType: editType, labels: newLabels.slice(0, minLen), values: newValues.slice(0, minLen), title, caption });
+      onEdit({ chartType: editType, title: editTitle, caption: editTitle, labels: newLabels.slice(0, minLen), values: newValues.slice(0, minLen) });
     }
     setShowEditor(false);
   };
@@ -107,6 +109,10 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
 
       {showEditor && (
         <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: colors.background, borderRadius: '8px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Title</label>
+            <input value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ width: '100%', padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }} />
+          </div>
           <div style={{ marginBottom: '12px' }}>
             <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Chart Type</label>
             <select value={editType} onChange={e => setEditType(e.target.value)} style={{ padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }}>

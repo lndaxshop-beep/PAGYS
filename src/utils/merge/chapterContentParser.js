@@ -56,18 +56,18 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
   const subsectionEntries = Object.entries(content)
     .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
 
-  const flushMarkdownTable = (lines) => {
+  const flushMarkdownTable = (lines, captionLine) => {
     if (lines.length < 2) return false;
     const parsed = parseMarkdownTable(lines);
     if (!parsed) return false;
-    const title = parsed.caption || 'Table';
-    children.push(makeTableLabel(title));
+    const captionText = captionLine?.replace(/^(Table|Figure)\s+\d+\.\d+:\s*/i, '').trim() || parsed.caption || 'Table';
+    children.push(makeTableLabel(captionText));
     children.push(buildDocxTable(parsed, format));
-    if (parsed.caption) {
+    if (captionText && captionText !== 'Table') {
       children.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: 240 },
-        children: [new TextRun({ text: sanitizeXmlText(parsed.caption), italics: true, size: 22, font: fontFamily })]
+        children: [new TextRun({ text: sanitizeXmlText(captionText), italics: true, size: 22, font: fontFamily })]
       }));
     }
     return true;
@@ -115,8 +115,8 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     let frameworkBuffer = null;
     let inFramework = false;
 
-    const flushTable = () => {
-      if (tableBuffer.length >= 2) flushMarkdownTable(tableBuffer);
+    const flushTable = (captionLine) => {
+      if (tableBuffer.length >= 2) flushMarkdownTable(tableBuffer, captionLine);
       tableBuffer = [];
       inTable = false;
     };
@@ -183,7 +183,7 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
         tableBuffer.push(trimmed);
         continue;
       } else if (inTable) {
-        flushTable();
+        flushTable(trimmed);
       }
 
       const headingMatch = trimmed.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);

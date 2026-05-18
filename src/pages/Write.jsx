@@ -706,17 +706,21 @@ const Write = () => {
             <>
               <CurrentSubsectionBanner subsection={currentSubsection} currentIndex={currentSubsectionIndex} totalCount={activeSubsections.length} isViewingReferences={isViewingReferences} />
 
-              <ContentArea
-                content={currentContent}
-                isPreviewMode={isPreviewMode}
-                onTogglePreview={setIsPreviewMode}
-                onSaveEdit={handleSaveEdit}
-                onChange={setCurrentContent}
-                currentSubsection={currentSubsection}
-                showReferenceInTextarea={showReferenceInTextarea}
-                generatingReferences={generatingReferences}
-                highlightRanges={highlightRanges}
-              />
+               <ContentArea
+                 content={currentContent}
+                 isPreviewMode={isPreviewMode}
+                 onTogglePreview={setIsPreviewMode}
+                 onSaveEdit={handleSaveEdit}
+                 onChange={setCurrentContent}
+                 currentSubsection={currentSubsection}
+                 showReferenceInTextarea={showReferenceInTextarea}
+                 generatingReferences={generatingReferences}
+                 highlightRanges={highlightRanges}
+                 onEditVisual={(blockIndex, newData) => {
+                   const blocks = parseContentBlocks(currentContent);
+                   /* edit applied via text area, not persisted yet */
+                 }}
+               />
 
               <ContentButtons
                 isViewingReferences={isViewingReferences}

@@ -3,7 +3,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual
 }) => {
   const { colors } = useTheme();
   const previewRef = useRef(null);
@@ -78,7 +78,7 @@ const ContentArea = ({
             </div>
           ) : (
             <div ref={previewRef}>
-              <ContentRenderer content={content} colors={colors} />
+              <ContentRenderer content={content} colors={colors} onEditVisual={onEditVisual} />
             </div>
           )
         ) : (

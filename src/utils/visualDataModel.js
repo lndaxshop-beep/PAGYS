@@ -33,10 +33,13 @@ export const parseChartMarker = (marker) => {
     const kv = part.split(':');
     if (kv.length >= 2) {
       const label = kv[0].trim();
-      const val = parseFloat(kv[1].trim());
+      const rawVal = kv.slice(1).join(':').trim().replace(/%/g, '');
+      const val = parseFloat(rawVal);
       if (!isNaN(val)) { labels.push(label); values.push(val); }
     }
   }
+  if (labels.length < 2 && chartType !== 'pie') return null;
+  if (labels.length < 1 && chartType === 'pie') return null;
   return makeChart(chartType, title, labels, values, title);
 };
 
@@ -129,16 +132,36 @@ export const parseMarkdownTable = (lines) => {
   if (!lines || lines.length < 2) return null;
   const headerLine = lines[0];
   const separatorLine = lines[1];
-  if (!/^\|.+\|$/.test(headerLine) || !/^\|[-| ]+\|$/.test(separatorLine)) return null;
-  const headers = headerLine.split('|').map(s => s.trim()).filter(Boolean);
+  if (!/^\|.+\|$/.test(headerLine)) return null;
+  const splitPipe = (line) => line.split('|').map(s => s.trim());
+  const headers = splitPipe(headerLine).filter(Boolean);
+  if (headers.length === 0) return null;
+  const hasSeparator = /^\|[-| ]+\|$/.test(separatorLine);
   const rows = [];
-  for (let i = 2; i < lines.length; i++) {
+  const startIdx = hasSeparator ? 2 : 1;
+  for (let i = startIdx; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line || !line.startsWith('|')) continue;
-    const cells = line.split('|').map(s => s.trim()).filter(Boolean);
-    if (cells.length === headers.length) rows.push(cells);
+    const rawCells = splitPipe(line);
+    const outer = rawCells.length >= 2 && rawCells[0] === '' && rawCells[rawCells.length - 1] === '';
+    const inner = outer ? rawCells.slice(1, -1) : rawCells;
+    const cells = [];
+    let col = 0;
+    for (let c = 0; c < inner.length && col < headers.length; c++) {
+      if (inner[c] === '' && c > 0 && inner[c - 1] !== '') {
+        cells.push('');
+        col++;
+      } else {
+        cells.push(inner[c]);
+        col++;
+      }
+    }
+    while (cells.length < headers.length) cells.push('');
+    if (cells.length === headers.length) {
+      const allEmpty = cells.every(c => !c);
+      if (!allEmpty) rows.push(cells);
+    }
   }
-  if (headers.length === 0) return null;
   return makeTable(headers, rows, '');
 };
 

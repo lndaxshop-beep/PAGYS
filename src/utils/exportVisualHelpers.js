@@ -24,6 +24,9 @@ const canvasToPngBuffer = (canvas) => {
 
 export const renderChartToPng = async (chartData) => {
   try {
+    if ((chartData.values || []).length < 2 && (chartData.chartType || 'bar') !== 'pie') return null;
+    if ((chartData.chartType || '') === 'pie' && (chartData.values || []).length < 1) return null;
+
     const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
     Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
 

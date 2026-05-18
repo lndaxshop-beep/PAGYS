@@ -8,6 +8,7 @@ import {
 import { collectFiguresAndTables } from './chapterContentParser.js';
 import { buildInstrumentAppendix, loadInstruments } from './instrumentExporter.js';
 import { renderChartToPng } from '../exportVisualHelpers.js';
+import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock } from '../visualDataModel.js';
 
 const CHART_INLINE_RE = /\[CHART:\{(.*?)\}\]/;
 
@@ -248,6 +249,37 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
 
       const trimmed = rawLine.trim();
       if (!trimmed) continue;
+
+      const chartMatch = trimmed.match(CHART_MARKER_RE);
+      if (chartMatch) {
+        try {
+          const parsed = parseChartMarker(trimmed);
+          if (parsed && parsed.labels.length > 0) {
+            const pngBuf = await renderChartToPng(parsed);
+            if (pngBuf) {
+              htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="${escapeHtml(parsed.title || 'Chart')}" />`);
+              if (parsed.caption) htmlParts.push(`<p class="caption">${escapeHtml(parsed.caption)}</p>`);
+            }
+          }
+        } catch { /* skip */ }
+        continue;
+      }
+
+      const frameworkMatch = trimmed.match(FRAMEWORK_MARKER_RE);
+      if (frameworkMatch) {
+        try {
+          const diagramData = parseFrameworkBlock(trimmed);
+          if (diagramData) {
+            const { renderDiagramToPng } = await import('../exportVisualHelpers.js');
+            const pngBuf = renderDiagramToPng(diagramData);
+            if (pngBuf) {
+              htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="${escapeHtml(diagramData.title || 'Diagram')}" />`);
+              if (diagramData.title) htmlParts.push(`<p class="caption">${escapeHtml(diagramData.title)}</p>`);
+            }
+          }
+        } catch { /* skip */ }
+        continue;
+      }
 
       const chartInline = trimmed.match(CHART_INLINE_RE);
       if (chartInline) {

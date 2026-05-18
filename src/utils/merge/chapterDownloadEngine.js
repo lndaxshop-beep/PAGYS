@@ -40,7 +40,7 @@ export const generateChapterDocument = async ({ chapter, content, formatConfig, 
     })
   );
 
-  const parsedChildren = await parseChapterContent(content || {}, chapter.id, fmt, chapterIndex);
+  const parsedChildren = await parseChapterContent(content || {}, chapter.id, fmt, chapterIndex, chapter.subsections);
   children.push(...parsedChildren);
 
   if (content?.references) {

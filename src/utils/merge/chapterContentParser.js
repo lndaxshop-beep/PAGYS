@@ -5,6 +5,7 @@ import {
 import { renderChartToPng, renderDiagramToPng, buildDocxTable, buildImageParagraph } from '../exportVisualHelpers.js';
 import { sanitizeXmlText } from '../sanitizeText.js';
 import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable, detectPlainTextHierarchy } from '../visualDataModel.js';
+import { orderContentBySubsections } from '../contentOrderUtils.js';
 
 const getHeadingLevel = (title, prevHeading) => {
   const match = title.trim().match(/^(\d+)\.(\d+)(\.(\d+))?\s+/);
@@ -18,7 +19,7 @@ const getHeadingLevel = (title, prevHeading) => {
   return HeadingLevel.HEADING_3;
 };
 
-export const parseChapterContent = async (content, chapterId, format, chapterIndex = 1) => {
+export const parseChapterContent = async (content, chapterId, format, chapterIndex = 1, subsections = null) => {
   const children = [];
   if (!content) return children;
 
@@ -53,8 +54,7 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     });
   };
 
-  const subsectionEntries = Object.entries(content)
-    .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
+  const subsectionEntries = orderContentBySubsections(content, subsections);
 
   const flushMarkdownTable = (lines, captionLine) => {
     if (lines.length < 2) return false;

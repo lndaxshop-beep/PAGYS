@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@makozi/paystack-react-pay": "^1.0.5",
+    "chart.js": "^4.5.1",
     "country-flag-icons": "^1.6.15",
     "docx": "^8.6.0",
     "file-saver": "^2.0.5",

@@ -1,0 +1,114 @@
+export const VISUAL_TYPES = { TABLE: 'table', CHART: 'chart', DIAGRAM: 'diagram' };
+
+export const CHART_TYPES = { BAR: 'bar', LINE: 'line', PIE: 'pie', HORIZONTAL_BAR: 'horizontalBar' };
+
+export const DIAGRAM_TYPES = { FRAMEWORK: 'framework', FLOWCHART: 'flowchart' };
+
+export const makeTable = (headers, rows, caption) => ({ type: VISUAL_TYPES.TABLE, headers, rows, caption: caption || '' });
+
+export const makeChart = (chartType, title, labels, values, caption) => ({
+  type: VISUAL_TYPES.CHART, chartType: chartType || CHART_TYPES.BAR, title: title || '',
+  labels: labels || [], values: values || [], caption: caption || ''
+});
+
+export const makeDiagram = (diagramType, title, independent, dependent, mediating, moderating, relationships) => ({
+  type: VISUAL_TYPES.DIAGRAM, diagramType: diagramType || DIAGRAM_TYPES.FRAMEWORK, title: title || '',
+  independent: independent || [], dependent: dependent || [],
+  mediating: mediating || [], moderating: moderating || [],
+  relationships: relationships || []
+});
+
+export const CHART_MARKER_RE = /\[CHART:\s*(bar|line|pie|horizontalBar)\s*\|\s*([^|]*)\s*\|\s*(.+?)\s*\]/i;
+
+export const parseChartMarker = (marker) => {
+  const m = marker.match(CHART_MARKER_RE);
+  if (!m) return null;
+  const chartType = m[1].toLowerCase();
+  const title = m[2].trim();
+  const dataStr = m[3];
+  const labels = [];
+  const values = [];
+  const parts = dataStr.split(',').map(s => s.trim()).filter(Boolean);
+  for (const part of parts) {
+    const kv = part.split(':');
+    if (kv.length >= 2) {
+      const label = kv[0].trim();
+      const val = parseFloat(kv[1].trim());
+      if (!isNaN(val)) { labels.push(label); values.push(val); }
+    }
+  }
+  return makeChart(chartType, title, labels, values, title);
+};
+
+export const FRAMEWORK_MARKER_RE = /\[FRAMEWORK:\s*(.*?)\]/i;
+
+export const parseFrameworkBlock = (text) => {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let title = '', independent = [], dependent = [], mediating = [], moderating = [], relationships = [];
+  let currentSection = '';
+  for (const line of lines) {
+    const headerMatch = line.match(/^\[FRAMEWORK:\s*(.+?)\]$/i);
+    if (headerMatch) { title = headerMatch[1].trim(); continue; }
+    if (line.startsWith('Title:')) { title = line.replace('Title:', '').trim(); continue; }
+    if (line.startsWith('Independent:')) { currentSection = 'independent'; independent = line.replace('Independent:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Dependent:')) { currentSection = 'dependent'; dependent = line.replace('Dependent:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Mediating:')) { currentSection = 'mediating'; mediating = line.replace('Mediating:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Moderating:')) { currentSection = 'moderating'; moderating = line.replace('Moderating:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Hypothesis:') || line.startsWith('H') && line.includes(':')) {
+      const hl = line.replace(/^H\d+[:\s]*/i, '').trim();
+      const arrowParts = hl.split('→').map(s => s.trim()).filter(Boolean);
+      if (arrowParts.length >= 2) relationships.push({ from: arrowParts[0], to: arrowParts[arrowParts.length - 1], label: '' });
+      continue;
+    }
+  }
+  if (relationships.length === 0) {
+    for (const iv of independent) {
+      for (const dv of dependent) relationships.push({ from: iv, to: dv, label: '' });
+    }
+    for (const mv of mediating) {
+      for (const dv of dependent) relationships.push({ from: mv, to: dv, label: '' });
+    }
+  }
+  return makeDiagram(DIAGRAM_TYPES.FRAMEWORK, title, independent, dependent, mediating, moderating, relationships);
+};
+
+export const markdownTableRe = /^\|.+\|$/;
+
+export const parseMarkdownTable = (lines) => {
+  if (!lines || lines.length < 2) return null;
+  const headerLine = lines[0];
+  const separatorLine = lines[1];
+  if (!/^\|.+\|$/.test(headerLine) || !/^\|[-| ]+\|$/.test(separatorLine)) return null;
+  const headers = headerLine.split('|').map(s => s.trim()).filter(Boolean);
+  const rows = [];
+  for (let i = 2; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || !line.startsWith('|')) continue;
+    const cells = line.split('|').map(s => s.trim()).filter(Boolean);
+    if (cells.length === headers.length) rows.push(cells);
+  }
+  if (headers.length === 0) return null;
+  return makeTable(headers, rows, '');
+};
+
+export const parseTableBlock = (text) => {
+  const lines = text.split('\n').filter(l => l.trim());
+  let tableLines = [];
+  let tableStart = -1;
+  let caption = '';
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\|.+\|$/.test(lines[i].trim())) {
+      if (tableStart === -1) tableStart = i;
+      tableLines.push(lines[i]);
+    } else if (tableStart >= 0) {
+      const trimmed = lines[i].trim();
+      if (trimmed.startsWith('Table:') || trimmed.startsWith('Caption:')) {
+        caption = trimmed.replace(/^(Table|Caption):\s*/i, '').trim();
+      }
+    }
+  }
+  if (tableLines.length < 2) return null;
+  const result = parseMarkdownTable(tableLines);
+  if (result) result.caption = caption;
+  return result;
+};

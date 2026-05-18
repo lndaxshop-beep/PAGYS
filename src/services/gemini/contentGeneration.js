@@ -1,6 +1,6 @@
 import { genAI, MODEL } from './config';
 import { cleanOutput, extractJSONArray } from './utils';
-import { MERMAID_RULES, TABLE_RULES } from './writingRules';
+import { TABLE_RULES } from './writingRules';
 
 export const generateSubtopics = async (promptData) => {
   try {
@@ -153,27 +153,51 @@ You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above c
 - Follow proper academic structure: introduce the analysis, present the data, highlight key observations.
 - Every paragraph should connect to a specific finding from the data.` : ''}
 
-## VISUAL EMBEDDING — USE YOUR JUDGEMENT
-Throughout the thesis, embed a diagram, chart, or table wherever a visual element conveys information more effectively than text alone. Use your judgement — some chapters benefit from several visuals, others from few or none.
+## VISUALS — YOU MUST INCLUDE THEM WHERE APPROPRIATE
 
-- In the Literature Review: conceptual framework diagrams, theoretical framework diagrams, comparison tables of literature.
-- In the Methodology: research design flowcharts, sampling procedure diagrams, data collection process maps.
-- In the Results/Analysis: charts showing distributions, tables presenting demographic profiles, diagrams illustrating patterns.
-- In the Discussion: comparison tables or charts contrasting findings with prior research.
-- In any chapter: mermaid flowcharts, sequence diagrams, or relationship diagrams where they clarify complex concepts.
+You MUST include proper tables, charts, and diagrams throughout the thesis. Use the following chapter-specific guidelines:
 
-Use code fences to embed visuals inline where they naturally fit:
-- \`\`\`chart blocks for charts: followed by a JSON line with title, type (bar/pie/line), data (labels + values), and caption
-- \`\`\`table blocks for tables: followed by a JSON line with title, headers, rows, and caption
-- \`\`\`mermaid blocks for diagrams: followed by mermaid code
-- Inline [CHART:{"title":"...","type":"bar","data":{"labels":[...],"values":[...]},"caption":"..."}] for simple single-value charts
+**Chapter 2 (Literature Review):** Include at least one conceptual framework diagram showing independent, dependent, mediating, and moderating variables. Include comparison tables of literature. Use [FRAMEWORK: ...] for conceptual frameworks.
 
-Rules:
-- Embed a visual only when it genuinely adds clarity — do not force visuals where text suffices.
-- Place each visual block on its own line between paragraphs.
-- Reference each visual in the surrounding text: "As Figure X shows", "Table Y presents", "The chart below illustrates".
-- Use accurate captions with chapter-scoped numbers: "Figure X.Y: Descriptive caption" or "Table X.Z: Descriptive caption".
-- Charts, tables, and diagrams must contain REAL data — never fabricate numbers.
+**Chapter 3 (Methodology):** Include a research design flowchart. Use [FRAMEWORK: flowchart | ...] for methodologies.
+
+**Chapter 4 (Results/Analysis):** This chapter MUST have:
+- A demographic profile table of respondents
+- Descriptive statistics tables for each research question
+- Charts showing distributions — use [CHART: bar | title | Label1: value, Label2: value, ...] for categorical data
+- Use [CHART: pie | title | data] for percentage/proportion data
+- Use [CHART: line | title | data] for trend data
+- Tables at appropriate places showing frequencies, means, correlations
+
+**Chapter 5 (Discussion/Conclusion):** Include comparison tables contrasting findings with prior research.
+
+**FORMAT FOR TABLES:** Write natural markdown tables:
+| Variable | Frequency | Percentage |
+|----------|-----------|-----------|
+| Male | 45 | 45.0% |
+| Female | 55 | 55.0% |
+
+**FORMAT FOR CHARTS:** Use this simple inline format:
+[CHART: type | Title | Label1: value, Label2: value, Label3: value, ...]
+Types: bar, line, pie, horizontalBar
+Example: [CHART: bar | Satisfaction Levels | Very Satisfied: 45, Satisfied: 30, Neutral: 15, Dissatisfied: 10]
+
+**FORMAT FOR CONCEPTUAL FRAMEWORKS:** Use this format:
+[FRAMEWORK: Title of Framework
+  Independent: Variable1, Variable2
+  Dependent: Variable3
+  Mediating: Variable4
+  Moderating: Variable5
+  H1: Variable1 → Variable3
+  H2: Variable2 → Variable4
+]
+
+**GUIDELINES:**
+- Place each visual on its own line between paragraphs
+- Reference each visual in the text: "As Table X shows", "Figure Y illustrates"
+- All data in tables and charts must come from the research findings provided
+- For Chapter 4 especially: every claim should be backed by a table or chart showing the actual data
+- Do NOT use code fences (\`\`\`) for visuals — use the formats above
 
 ${structureInstruction}
 ${promptData.childrenTopics?.length > 0 ? `
@@ -241,9 +265,10 @@ You must NEVER use the following:
 - Plain text only. NO markdown headings (###, ##), NO HTML tags.
 - Do NOT write "(Word Count: X words)" or any word count footnote.
 - Use a single blank line between paragraphs, never more (except before tables/diagrams).
+- For tables, use natural markdown table format: | Header 1 | Header 2 |
+- For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
+- For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
 ${TABLE_RULES}
-${MERMAID_RULES}
-- For charts, use the format [CHART:{"title":"...","type":"bar","data":{"labels":["A","B"],"values":[10,20]},"caption":"..."}].
 
 ## VISUAL GUIDANCE
 If the user has provided screenshots, images, or reference files:

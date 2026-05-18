@@ -7,7 +7,7 @@ import {
 } from './frontMatterGenerator.js';
 import { collectFiguresAndTables } from './chapterContentParser.js';
 import { buildInstrumentAppendix, loadInstruments } from './instrumentExporter.js';
-import { renderChartToPng, renderMermaidToPng } from '../exportVisualHelpers.js';
+import { renderChartToPng } from '../exportVisualHelpers.js';
 
 const CHART_INLINE_RE = /\[CHART:\{(.*?)\}\]/;
 
@@ -216,16 +216,6 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
               htmlParts.push(`<p class="caption">${escapeHtml(parsed.caption || parsed.title)}</p>`);
             }
           }
-        } else if (type === 'mermaid') {
-          const result = await renderMermaidToPng(raw);
-          if (result && result.pngBuffer) {
-            const titleMatch = raw.match(/%%\s*title:\s*(.+)/i);
-            const caption = titleMatch ? titleMatch[1].trim() : null;
-            htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(result.pngBuffer)}" alt="Diagram" />`);
-            if (caption) {
-              htmlParts.push(`<p class="caption">${escapeHtml(caption)}</p>`);
-            }
-          }
         }
       } catch {
         htmlParts.push(`<pre class="pre-wrap">${escapeHtml(raw)}</pre>`);
@@ -236,7 +226,7 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
       const rawLine = lines[i];
       i++;
 
-      const fenceOpen = rawLine.match(/^```(chart|mermaid|table|diagram|graph)\s*$/i);
+      const fenceOpen = rawLine.match(/^```(chart|table|diagram|graph)\s*$/i);
       if (fenceOpen) {
         await flushVisual(visualType, visualLines);
         visualType = fenceOpen[1].toLowerCase();

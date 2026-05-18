@@ -2,8 +2,9 @@ import {
   Paragraph, TextRun, AlignmentType, HeadingLevel,
   Table, TableRow, TableCell, WidthType, PageBreak, SimpleField
 } from 'docx';
-import { renderChartToPng, renderMermaidToPng, buildDocxTable, buildImageParagraph } from '../exportVisualHelpers.js';
+import { renderChartToPng, renderDiagramToPng, buildDocxTable, buildImageParagraph } from '../exportVisualHelpers.js';
 import { sanitizeXmlText } from '../sanitizeText.js';
+import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable } from '../visualDataModel.js';
 
 const getHeadingLevel = (title, prevHeading) => {
   const match = title.trim().match(/^(\d+)\.(\d+)(\.(\d+))?\s+/);
@@ -16,19 +17,6 @@ const getHeadingLevel = (title, prevHeading) => {
   if (depth === 2) return HeadingLevel.HEADING_2;
   return HeadingLevel.HEADING_3;
 };
-
-const CHART_INLINE_RE = /\[CHART:\{(.*?)\}\]/;
-
-const makeFallbackCodeBlock = (raw, fontFamily) => new Paragraph({
-  spacing: { before: 120, after: 120 },
-  children: [new TextRun({ text: sanitizeXmlText(raw), font: 'Courier New', size: 18 })]
-});
-
-const makeCaption = (text, fontFamily) => new Paragraph({
-  alignment: AlignmentType.CENTER,
-  spacing: { after: 240 },
-  children: [new TextRun({ text: sanitizeXmlText(text), italics: true, size: 22, font: fontFamily })]
-});
 
 export const parseChapterContent = async (content, chapterId, format, chapterIndex = 1) => {
   const children = [];
@@ -65,55 +53,52 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     });
   };
 
-  const makeChartDataTable = (parsed) => {
-    const data = parsed.data || parsed;
-    const labels = data.labels || [];
-    const values = data.values || [];
-    const rows = labels.map((label, i) => [String(label || ''), String(values[i] != null ? values[i] : '')]);
-    return buildDocxTable({ headers: ['Category', 'Value'], rows }, format);
-  };
-
   const subsectionEntries = Object.entries(content)
     .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
 
-  const flushVisual = async (type, lines) => {
-    if (!type || lines.length === 0) return;
-
-    const raw = lines.join('\n').trim();
-    if (!raw) return;
-
-    try {
-      if (type === 'table') {
-        const parsed = JSON.parse(raw);
-        const title = parsed.caption || parsed.title || 'Table';
-        children.push(makeTableLabel(title));
-        children.push(buildDocxTable(parsed, format));
-        if (parsed.caption) children.push(makeCaption(parsed.caption, fontFamily));
-      } else if (type === 'chart' || type === 'diagram' || type === 'graph') {
-        const parsed = JSON.parse(raw);
-        const pngBuffer = renderChartToPng(parsed);
-        if (pngBuffer) {
-          const title = parsed.title || parsed.caption || 'Chart';
-          children.push(makeTableLabel('Data for ' + title));
-          children.push(makeChartDataTable(parsed));
-          const caption = parsed.caption || parsed.title || null;
-          children.push(makeFigureLabel(caption || title));
-          children.push(...buildImageParagraph(pngBuffer, caption, format));
-        }
-      } else if (type === 'mermaid') {
-        const result = await renderMermaidToPng(raw);
-        if (result && result.pngBuffer) {
-          const titleMatch = raw.match(/%%\s*title:\s*(.+)/i);
-          const title = titleMatch ? titleMatch[1].trim() : 'Diagram';
-          const caption = title;
-          children.push(makeFigureLabel(title));
-          children.push(...buildImageParagraph(result.pngBuffer, caption, format, result.height / result.width));
-        }
-      }
-    } catch (e) {
-      console.warn('Visual block render failed, inserting as code:', e);
-      children.push(makeFallbackCodeBlock(raw, fontFamily));
+  const flushMarkdownTable = (lines) => {
+    if (lines.length < 2) return false;
+    const parsed = parseMarkdownTable(lines);
+    if (!parsed) return false;
+    const title = parsed.caption || 'Table';
+    children.push(makeTableLabel(title));
+    children.push(buildDocxTable(parsed, format));
+    if (parsed.caption) {
+      children.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 240 },
+        children: [new TextRun({ text: sanitizeXmlText(parsed.caption), italics: true, size: 22, font: fontFamily })]
+      }));
     }
+    return true;
+  };
+
+  const processChartMarker = async (marker) => {
+    const parsed = parseChartMarker(marker);
+    if (!parsed) return false;
+    const pngBuffer = await renderChartToPng(parsed);
+    if (!pngBuffer) return false;
+    const title = parsed.title || 'Chart';
+    children.push(makeFigureLabel(title));
+    children.push(...buildImageParagraph(pngBuffer, parsed.caption || null, format));
+    return true;
+  };
+
+  const processFrameworkText = async (text) => {
+    const parsed = parseFrameworkBlock(text);
+    if (!parsed || (parsed.independent.length === 0 && parsed.dependent.length === 0)) return false;
+    const pngBuffer = renderDiagramToPng(parsed);
+    if (!pngBuffer) return false;
+    const title = parsed.title || 'Conceptual Framework';
+    children.push(makeFigureLabel(title));
+    children.push(...buildImageParagraph(pngBuffer, title, format));
+    return true;
+  };
+
+  const processInlineChart = async (line) => {
+    const match = line.match(CHART_MARKER_RE);
+    if (!match) return false;
+    return processChartMarker(line);
   };
 
   for (const [, text] of subsectionEntries) {
@@ -121,52 +106,80 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
 
     const lines = text.split('\n');
     let i = 0;
-    let visualType = null;
-    let visualLines = [];
+    let tableBuffer = [];
+    let inTable = false;
+    let frameworkBuffer = null;
+    let inFramework = false;
 
-    const flushCurrent = () => flushVisual(visualType, visualLines).then(() => {
-      visualType = null;
-      visualLines = [];
-    });
+    const flushTable = () => {
+      if (tableBuffer.length >= 2) flushMarkdownTable(tableBuffer);
+      tableBuffer = [];
+      inTable = false;
+    };
 
     while (i < lines.length) {
       const rawLine = lines[i];
       i++;
 
-      const fenceOpen = rawLine.match(/^```(chart|mermaid|table|diagram|graph)\s*$/i);
-      if (fenceOpen) {
-        await flushCurrent();
-        visualType = fenceOpen[1].toLowerCase();
-        continue;
-      }
+      const trimmed = rawLine.trimEnd();
 
-      if (visualType && rawLine.trim() === '```') {
-        await flushCurrent();
-        continue;
-      }
-
-      if (visualType) {
-        visualLines.push(rawLine);
-        continue;
-      }
-
-      const trimmed = rawLine.trim();
-      if (!trimmed) continue;
-
-      const chartInline = trimmed.match(CHART_INLINE_RE);
-      if (chartInline) {
-        try {
-          const parsed = JSON.parse(`{${chartInline[1]}}`);
-          const pngBuffer = renderChartToPng(parsed);
-          if (pngBuffer) {
-            const title = parsed.title || parsed.caption || 'Chart';
-            children.push(makeFigureLabel(title));
-            children.push(...buildImageParagraph(pngBuffer, null, format));
-          }
-        } catch (e) {
-          console.warn('Inline chart render failed:', e);
+      if (!trimmed) {
+        if (inTable) {
+          flushTable();
+        }
+        if (inFramework) {
+          await processFrameworkText(frameworkBuffer);
+          frameworkBuffer = null;
+          inFramework = false;
         }
         continue;
+      }
+
+      if (inFramework) {
+        if (trimmed.match(/^\[FRAMEWORK:/i) && frameworkBuffer) {
+          await processFrameworkText(frameworkBuffer);
+          frameworkBuffer = trimmed;
+        } else {
+          if (!frameworkBuffer) frameworkBuffer = '';
+          frameworkBuffer += '\n' + trimmed;
+          if (trimmed.match(/\]\s*$/)) {
+            await processFrameworkText(frameworkBuffer);
+            frameworkBuffer = null;
+            inFramework = false;
+          }
+        }
+        continue;
+      }
+
+      const frameworkStart = trimmed.match(/^\[FRAMEWORK:\s*(.*?)$/i);
+      if (frameworkStart) {
+        flushTable();
+        frameworkBuffer = trimmed;
+        inFramework = true;
+        if (trimmed.match(/\]\s*$/)) {
+          await processFrameworkText(frameworkBuffer);
+          frameworkBuffer = null;
+          inFramework = false;
+        }
+        continue;
+      }
+
+      const chartMatch = trimmed.match(CHART_MARKER_RE);
+      if (chartMatch) {
+        flushTable();
+        await processInlineChart(trimmed);
+        continue;
+      }
+
+      if (markdownTableRe.test(trimmed)) {
+        if (!inTable) {
+          inTable = true;
+          tableBuffer = [];
+        }
+        tableBuffer.push(trimmed);
+        continue;
+      } else if (inTable) {
+        flushTable();
       }
 
       const headingMatch = trimmed.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);
@@ -212,7 +225,10 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
       }));
     }
 
-    await flushCurrent();
+    flushTable();
+    if (inFramework && frameworkBuffer) {
+      await processFrameworkText(frameworkBuffer);
+    }
   }
 
   return children;
@@ -242,44 +258,46 @@ export const collectFiguresAndTables = (generatedSubsections, selectedChapters) 
     Object.values(content).forEach(text => {
       if (!text || typeof text !== 'string') return;
 
-      // Fenced chart/diagram
-      const fencedChartRe = /```(?:chart|diagram|graph)\s*\n?\s*\{[^}]*"title"\s*:\s*"([^"]*)/gi;
+      const chartRe = /\[CHART:\s*(bar|line|pie|horizontalBar)\s*\|\s*([^|]*)\s*\|/gi;
       let m;
-      while ((m = fencedChartRe.exec(text)) !== null) {
-        figSeq++;
-        figures.push({ chapterNum, seq: figSeq, title: m[1], caption: m[1] });
-      }
-
-      // Inline [CHART:{...}]
-      const inlineChartRe = /\[CHART:\{(?:[^}]*"title"\s*:\s*"([^"]*))?/g;
-      while ((m = inlineChartRe.exec(text)) !== null) {
-        if (m[1]) {
-          figSeq++;
-          figures.push({ chapterNum, seq: figSeq, title: m[1], caption: m[1] });
-        }
-      }
-
-      // Fenced table
-      const fencedTableRe = /```table\s*\n?\s*\{[^}]*"title"\s*:\s*"([^"]*)/gi;
-      while ((m = fencedTableRe.exec(text)) !== null) {
-        if (m[1]) {
-          tblSeq++;
-          tables.push({ chapterNum, seq: tblSeq, title: m[1], caption: m[1] });
-        }
-      }
-
-      // Figure N: caption patterns
-      const figureRe = /Figure\s+(\d+)[:\s]+([^\n]+)/g;
-      while ((m = figureRe.exec(text)) !== null) {
+      while ((m = chartRe.exec(text)) !== null) {
         figSeq++;
         figures.push({ chapterNum, seq: figSeq, title: m[2].trim(), caption: m[2].trim() });
       }
 
-      // Mermaid figure detection (title from %% comment)
-      const mermaidTitleRe = /```mermaid[\s\S]*?%%\s*title:\s*(.+)/gi;
-      while ((m = mermaidTitleRe.exec(text)) !== null) {
+      const frameworkRe = /\[FRAMEWORK:\s*(.*?)\]/gi;
+      while ((m = frameworkRe.exec(text)) !== null) {
         figSeq++;
-        figures.push({ chapterNum, seq: figSeq, title: m[1].trim(), caption: m[1].trim() });
+        const title = m[1].split('\n')[0].trim();
+        figures.push({ chapterNum, seq: figSeq, title: title || 'Conceptual Framework', caption: title || 'Conceptual Framework' });
+      }
+
+      const markdownTableHeader = text.match(/^\|.+\|$/m);
+      if (markdownTableHeader) {
+        const lines = text.split('\n');
+        let inMdTable = false;
+        let mdTableHeaders = '';
+        for (const line of lines) {
+          if (/^\|.+\|$/.test(line.trim())) {
+            if (!inMdTable) {
+              inMdTable = true;
+              mdTableHeaders = line.trim();
+            }
+          } else if (inMdTable) {
+            if (mdTableHeaders) {
+              tblSeq++;
+              const firstCell = mdTableHeaders.split('|').map(s => s.trim()).filter(Boolean)[0] || 'Table';
+              tables.push({ chapterNum, seq: tblSeq, title: firstCell, caption: firstCell });
+            }
+            mdTableHeaders = '';
+            inMdTable = false;
+          }
+        }
+        if (inMdTable && mdTableHeaders) {
+          tblSeq++;
+          const firstCell = mdTableHeaders.split('|').map(s => s.trim()).filter(Boolean)[0] || 'Table';
+          tables.push({ chapterNum, seq: tblSeq, title: firstCell, caption: firstCell });
+        }
       }
     });
   });

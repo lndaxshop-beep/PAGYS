@@ -1,282 +1,145 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { CHART_TYPES } from '../utils/visualDataModel.js';
 
-const ChartRenderer = ({ type, data, title, caption }) => {
+const ACADEMIC_COLORS = ['#2C3E50', '#3498DB', '#27AE60', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E', '#16A085'];
+
+let chartInstance = null;
+
+const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
   const { colors, isDarkMode } = useTheme();
   const canvasRef = useRef(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [editType, setEditType] = useState(chartType || 'bar');
+  const [editLabels, setEditLabels] = useState('');
+  const [editValues, setEditValues] = useState('');
 
   useEffect(() => {
-    if (data && canvasRef.current) {
-      drawChart();
+    if (canvasRef.current && data) {
+      renderChart();
     }
-  }, [data, type, isDarkMode]);
+    return () => { if (chartInstance) { chartInstance.destroy(); chartInstance = null; } };
+  }, [data, chartType, isDarkMode]);
 
-  const drawChart = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    // Set canvas dimensions
-    canvas.width = canvas.offsetWidth;
-    canvas.height = 400;
-    
-    const width = canvas.width;
-    const height = canvas.height;
-    const padding = 60;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-    
-    // Set colors based on theme
-    const textColor = isDarkMode ? '#f3f4f6' : '#1f2937';
-    const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
-    const barColors = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
-    
-    if (type === 'bar' || type === 'column') {
-      drawBarChart(ctx, width, height, padding, data, textColor, gridColor, barColors);
-    } else if (type === 'line') {
-      drawLineChart(ctx, width, height, padding, data, textColor, gridColor);
-    } else if (type === 'pie') {
-      drawPieChart(ctx, width, height, data, barColors);
+  const renderChart = async () => {
+    try {
+      const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
+      Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
+
+      if (chartInstance) { chartInstance.destroy(); }
+
+      const labels = data?.labels || [];
+      const values = data?.values || [];
+      const type = (chartType || 'bar').toLowerCase();
+      const isHoriz = type === 'horizontalBar';
+
+      const config = {
+        type: isHoriz ? 'bar' : type,
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: type === 'pie' ? ACADEMIC_COLORS.slice(0, values.length) : (isHoriz || type === 'bar' ? ACADEMIC_COLORS.slice(0, values.length) : ACADEMIC_COLORS[0]),
+            borderColor: type === 'pie' ? '#ffffff' : ACADEMIC_COLORS[0],
+            borderWidth: type === 'pie' ? 2 : 0,
+            pointBackgroundColor: ACADEMIC_COLORS[0],
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderRadius: isHoriz || type === 'bar' ? 4 : 0,
+            barThickness: isHoriz || type === 'bar' ? 50 : undefined,
+          }]
+        },
+        options: {
+          indexAxis: isHoriz ? 'y' : 'x',
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: type === 'pie', position: 'right', labels: { font: { family: 'Times New Roman, serif', size: 13 }, usePointStyle: true, color: colors.text } },
+            title: { display: false },
+            tooltip: { backgroundColor: colors.surface, titleColor: colors.text, bodyColor: colors.text, borderColor: colors.border, borderWidth: 1 }
+          },
+          scales: type !== 'pie' ? {
+            x: { grid: { display: true, color: isDarkMode ? '#374151' : '#e5e7eb' }, ticks: { font: { family: 'Times New Roman, serif', size: 12 }, color: colors.text } },
+            y: { beginAtZero: true, grid: { display: true, color: isDarkMode ? '#374151' : '#e5e7eb' }, ticks: { font: { family: 'Times New Roman, serif', size: 12 }, color: colors.text } }
+          } : {}
+        }
+      };
+
+      chartInstance = new Chart(canvasRef.current, config);
+    } catch (err) {
+      console.error('Chart render error:', err);
     }
   };
 
-  const drawBarChart = (ctx, width, height, padding, data, textColor, gridColor, colors) => {
-    const chartWidth = width - 2 * padding;
-    const chartHeight = height - 2 * padding;
-    
-    const labels = data.labels || [];
-    const values = data.values || [];
-    
-    const maxValue = Math.max(...values) * 1.1;
-    const barWidth = (chartWidth / values.length) * 0.7;
-    const barSpacing = (chartWidth / values.length) * 0.3;
-    
-    // Draw axes
-    ctx.beginPath();
-    ctx.strokeStyle = textColor;
-    ctx.lineWidth = 2;
-    
-    // Y-axis
-    ctx.moveTo(padding, padding);
-    ctx.lineTo(padding, height - padding);
-    
-    // X-axis
-    ctx.moveTo(padding, height - padding);
-    ctx.lineTo(width - padding, height - padding);
-    ctx.stroke();
-    
-    // Draw grid lines and Y-axis labels
-    ctx.textAlign = 'right';
-    ctx.fillStyle = textColor;
-    ctx.font = '12px Inter, sans-serif';
-    
-    for (let i = 0; i <= 5; i++) {
-      const y = height - padding - (i / 5) * chartHeight;
-      const value = (i / 5) * maxValue;
-      
-      ctx.beginPath();
-      ctx.strokeStyle = gridColor;
-      ctx.lineWidth = 0.5;
-      ctx.moveTo(padding, y);
-      ctx.lineTo(width - padding, y);
-      ctx.stroke();
-      
-      ctx.fillText(value.toFixed(0), padding - 10, y + 4);
-    }
-    
-    // Draw bars
-    values.forEach((value, index) => {
-      const x = padding + index * (barWidth + barSpacing) + barSpacing / 2;
-      const barHeight = (value / maxValue) * chartHeight;
-      const y = height - padding - barHeight;
-      
-      ctx.fillStyle = colors[index % colors.length];
-      ctx.fillRect(x, y, barWidth, barHeight);
-      
-      // Bar value label
-      ctx.fillStyle = textColor;
-      ctx.textAlign = 'center';
-      ctx.font = '11px Inter, sans-serif';
-      ctx.fillText(value, x + barWidth / 2, y - 5);
-      
-      // X-axis label
-      ctx.fillStyle = textColor;
-      ctx.font = '11px Inter, sans-serif';
-      ctx.fillText(labels[index] || `Item ${index + 1}`, x + barWidth / 2, height - padding + 20);
-    });
+  const handleEdit = () => {
+    setEditType(chartType || 'bar');
+    setEditLabels((data?.labels || []).join(', '));
+    setEditValues((data?.values || []).join(', '));
+    setShowEditor(true);
   };
 
-  const drawLineChart = (ctx, width, height, padding, data, textColor, gridColor) => {
-    const chartWidth = width - 2 * padding;
-    const chartHeight = height - 2 * padding;
-    
-    const labels = data.labels || [];
-    const values = data.values || [];
-    
-    const maxValue = Math.max(...values) * 1.1;
-    const xStep = chartWidth / (values.length - 1);
-    
-    // Draw axes
-    ctx.beginPath();
-    ctx.strokeStyle = textColor;
-    ctx.lineWidth = 2;
-    ctx.moveTo(padding, padding);
-    ctx.lineTo(padding, height - padding);
-    ctx.moveTo(padding, height - padding);
-    ctx.lineTo(width - padding, height - padding);
-    ctx.stroke();
-    
-    // Draw grid
-    for (let i = 0; i <= 5; i++) {
-      const y = height - padding - (i / 5) * chartHeight;
-      
-      ctx.beginPath();
-      ctx.strokeStyle = gridColor;
-      ctx.lineWidth = 0.5;
-      ctx.moveTo(padding, y);
-      ctx.lineTo(width - padding, y);
-      ctx.stroke();
+  const handleSaveEdit = () => {
+    const newLabels = editLabels.split(',').map(s => s.trim()).filter(Boolean);
+    const newValues = editValues.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+    const minLen = Math.min(newLabels.length, newValues.length);
+    if (onEdit && minLen > 0) {
+      onEdit({ chartType: editType, labels: newLabels.slice(0, minLen), values: newValues.slice(0, minLen), title, caption });
     }
-    
-    // Draw line
-    ctx.beginPath();
-    ctx.strokeStyle = '#7c3aed';
-    ctx.lineWidth = 3;
-    
-    values.forEach((value, index) => {
-      const x = padding + index * xStep;
-      const y = height - padding - (value / maxValue) * chartHeight;
-      
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    ctx.stroke();
-    
-    // Draw points
-    values.forEach((value, index) => {
-      const x = padding + index * xStep;
-      const y = height - padding - (value / maxValue) * chartHeight;
-      
-      ctx.beginPath();
-      ctx.fillStyle = '#7c3aed';
-      ctx.arc(x, y, 5, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Value label
-      ctx.fillStyle = textColor;
-      ctx.textAlign = 'center';
-      ctx.font = '11px Inter, sans-serif';
-      ctx.fillText(value, x, y - 12);
-    });
-  };
-
-  const drawPieChart = (ctx, width, height, data, colors) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) / 2 - 60;
-    
-    const labels = data.labels || [];
-    const values = data.values || [];
-    
-    const total = values.reduce((sum, val) => sum + val, 0);
-    let startAngle = 0;
-    
-    values.forEach((value, index) => {
-      const sliceAngle = (value / total) * 2 * Math.PI;
-      
-      ctx.beginPath();
-      ctx.fillStyle = colors[index % colors.length];
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Percentage label
-      const percentage = ((value / total) * 100).toFixed(1);
-      const labelAngle = startAngle + sliceAngle / 2;
-      const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
-      const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${percentage}%`, labelX, labelY);
-      
-      startAngle += sliceAngle;
-    });
-    
-    // Draw legend
-    const legendX = width - 150;
-    let legendY = 40;
-    
-    labels.forEach((label, index) => {
-      ctx.fillStyle = colors[index % colors.length];
-      ctx.fillRect(legendX, legendY, 15, 15);
-      
-      ctx.fillStyle = isDarkMode ? '#f3f4f6' : '#1f2937';
-      ctx.font = '12px Inter, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${label} (${values[index]})`, legendX + 25, legendY + 7);
-      
-      legendY += 25;
-    });
+    setShowEditor(false);
   };
 
   return (
     <div style={{
-      backgroundColor: colors.surface,
-      borderRadius: '12px',
-      padding: '24px',
-      marginBottom: '24px',
-      border: `1px solid ${colors.border}`
+      backgroundColor: colors.surface, borderRadius: '12px', padding: '24px',
+      marginBottom: '24px', border: `1px solid ${colors.border}`
     }}>
-      {title && (
-        <h4 style={{
-          fontSize: '18px',
-          fontWeight: '600',
-          color: colors.text,
-          marginBottom: '4px'
-        }}>
-          {title}
-        </h4>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          {title && <h4 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>{title}</h4>}
+          {caption && <p style={{ fontSize: '14px', color: colors.textSecondary, fontStyle: 'italic' }}>{caption}</p>}
+        </div>
+        {onEdit && !showEditor && (
+          <button onClick={handleEdit} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, cursor: 'pointer', fontSize: '13px' }}>✏️ Edit</button>
+        )}
+      </div>
+
+      {showEditor && (
+        <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: colors.background, borderRadius: '8px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Chart Type</label>
+            <select value={editType} onChange={e => setEditType(e.target.value)} style={{ padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }}>
+              {Object.values(CHART_TYPES).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Labels (comma-separated)</label>
+            <input value={editLabels} onChange={e => setEditLabels(e.target.value)} style={{ width: '100%', padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }} />
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: colors.text, display: 'block', marginBottom: '4px' }}>Values (comma-separated)</label>
+            <input value={editValues} onChange={e => setEditValues(e.target.value)} style={{ width: '100%', padding: '8px', border: `1px solid ${colors.inputBorder}`, borderRadius: '6px', backgroundColor: colors.input, color: colors.text }} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSaveEdit} style={{ padding: '8px 16px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Apply</button>
+            <button onClick={() => setShowEditor(false)} style={{ padding: '8px 16px', backgroundColor: 'transparent', border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
       )}
-      {caption && (
-        <p style={{
-          fontSize: '14px',
-          color: colors.textSecondary,
-          fontStyle: 'italic',
-          marginBottom: '20px'
-        }}>
-          {caption}
-        </p>
-      )}
-      <div style={{ overflow: 'auto' }}>
-        <canvas
-          ref={canvasRef}
-          style={{
-            width: '100%',
-            height: '400px',
-            display: 'block'
-          }}
-        />
+
+      <div style={{ position: 'relative' }}>
+        <canvas ref={canvasRef} style={{ width: '100%', maxHeight: '400px' }} />
+        {(!data || !data.labels || data.labels.length === 0) && (
+          <p style={{ textAlign: 'center', color: colors.textSecondary, padding: '40px' }}>No chart data</p>
+        )}
       </div>
     </div>
   );
 };
 
-// Export chart as base64 image
 export const captureChartAsImage = (canvasRef) => {
-  if (canvasRef && canvasRef.current) {
-    return canvasRef.current.toDataURL('image/png');
-  }
+  if (canvasRef?.current) return canvasRef.current.toDataURL('image/png');
   return null;
 };
 

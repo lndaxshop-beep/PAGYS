@@ -6,9 +6,11 @@ export const useWriteVisuals = (handleGenerateConceptualFramework, handleGenerat
   const generateConceptualFramework = useCallback(async (setDiagramData) => {
     setGeneratingVisual(true);
     try {
-      const mermaidCode = await handleGenerateConceptualFramework();
-      setDiagramData(prev => ({ ...prev, conceptualFramework: { code: mermaidCode, title: 'Conceptual Framework', caption: 'Figure 2.1: Conceptual Framework of the Study' } }));
-      toastSuccess?.('Conceptual framework generated!');
+      const text = await handleGenerateConceptualFramework();
+      if (text) {
+        setDiagramData(prev => ({ ...prev, conceptualFramework: { text, title: 'Conceptual Framework', caption: 'Figure 2.1: Conceptual Framework of the Study' } }));
+        toastSuccess?.('Conceptual framework generated!');
+      }
     } catch (error) { toastError?.('Error generating conceptual framework'); }
     finally { setGeneratingVisual(false); }
   }, [handleGenerateConceptualFramework, toastSuccess, toastError]);
@@ -16,9 +18,11 @@ export const useWriteVisuals = (handleGenerateConceptualFramework, handleGenerat
   const generateTheoreticalFramework = useCallback(async (setDiagramData) => {
     setGeneratingVisual(true);
     try {
-      const mermaidCode = await handleGenerateTheoreticalFramework();
-      setDiagramData(prev => ({ ...prev, theoreticalFramework: { code: mermaidCode, title: 'Theoretical Framework', caption: 'Figure 2.2: Theoretical Framework of the Study' } }));
-      toastSuccess?.('Theoretical framework generated!');
+      const text = await handleGenerateTheoreticalFramework();
+      if (text) {
+        setDiagramData(prev => ({ ...prev, theoreticalFramework: { text, title: 'Theoretical Framework', caption: 'Figure 2.2: Theoretical Framework of the Study' } }));
+        toastSuccess?.('Theoretical framework generated!');
+      }
     } catch (error) { toastError?.('Error generating theoretical framework'); }
     finally { setGeneratingVisual(false); }
   }, [handleGenerateTheoreticalFramework, toastSuccess, toastError]);
@@ -26,9 +30,11 @@ export const useWriteVisuals = (handleGenerateConceptualFramework, handleGenerat
   const generateResearchDesign = useCallback(async (setDiagramData) => {
     setGeneratingVisual(true);
     try {
-      const mermaidCode = await handleGenerateResearchDesign();
-      setDiagramData(prev => ({ ...prev, researchDesign: { code: mermaidCode, title: 'Research Design', caption: 'Figure 3.1: Research Design Flowchart' } }));
-      toastSuccess?.('Research design generated!');
+      const text = await handleGenerateResearchDesign();
+      if (text) {
+        setDiagramData(prev => ({ ...prev, researchDesign: { text, title: 'Research Design', caption: 'Figure 3.1: Research Design Flowchart' } }));
+        toastSuccess?.('Research design generated!');
+      }
     } catch (error) { toastError?.('Error generating research design'); }
     finally { setGeneratingVisual(false); }
   }, [handleGenerateResearchDesign, toastSuccess, toastError]);

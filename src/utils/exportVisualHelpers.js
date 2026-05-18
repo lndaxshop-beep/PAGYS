@@ -3,189 +3,13 @@ import {
   Paragraph, TextRun, AlignmentType, ImageRun
 } from 'docx';
 import { sanitizeXmlText } from './sanitizeText.js';
+import { VISUAL_TYPES, CHART_TYPES } from './visualDataModel.js';
 
-const CHART_WIDTH = 1200;
-const CHART_HEIGHT = 800;
 const PIXELS_PER_INCH = 96;
 const TARGET_IMAGE_WIDTH_INCHES = 5.5;
-
-const CHART_COLORS = ['#4F81BD', '#C0504D', '#9BBB59', '#8064A2', '#F79646', '#4BACC6', '#1F497D', '#953735', '#6B8F37', '#57398D'];
-
-const drawBarChart = (ctx, width, height, padding, data, textColor, gridColor) => {
-  const chartWidth = width - 2 * padding;
-  const chartHeight = height - 2 * padding;
-  const labels = data.labels || [];
-  const values = data.values || [];
-  const maxValue = Math.max(...values) * 1.1;
-  const barWidth = (chartWidth / values.length) * 0.7;
-  const barSpacing = (chartWidth / values.length) * 0.3;
-
-  ctx.beginPath();
-  ctx.strokeStyle = '#333333';
-  ctx.lineWidth = 2;
-  ctx.moveTo(padding, padding);
-  ctx.lineTo(padding, height - padding);
-  ctx.moveTo(padding, height - padding);
-  ctx.lineTo(width - padding, height - padding);
-  ctx.stroke();
-
-  ctx.textAlign = 'right';
-  ctx.fillStyle = textColor;
-  ctx.font = '22px Times New Roman, serif';
-  for (let i = 0; i <= 5; i++) {
-    const y = height - padding - (i / 5) * chartHeight;
-    const value = (i / 5) * maxValue;
-    ctx.beginPath();
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 0.5;
-    ctx.setLineDash([4, 4]);
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillText(Number.isInteger(value) ? value.toString() : value.toFixed(1), padding - 12, y + 7);
-  }
-
-  values.forEach((value, index) => {
-    const x = padding + index * (barWidth + barSpacing) + barSpacing / 2;
-    const barHeight = (value / maxValue) * chartHeight;
-    const y = height - padding - barHeight;
-    ctx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
-    ctx.fillRect(x, y, barWidth, barHeight);
-    ctx.fillStyle = textColor;
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 22px Times New Roman, serif';
-    ctx.fillText(value.toString(), x + barWidth / 2, y - 8);
-    ctx.fillStyle = textColor;
-    ctx.font = '20px Times New Roman, serif';
-    ctx.fillText(labels[index] || `Item ${index + 1}`, x + barWidth / 2, height - padding + 35);
-  });
-};
-
-const drawLineChart = (ctx, width, height, padding, data, textColor, gridColor) => {
-  const chartWidth = width - 2 * padding;
-  const chartHeight = height - 2 * padding;
-  const labels = data.labels || [];
-  const values = data.values || [];
-  const maxValue = Math.max(...values) * 1.1;
-  const xStep = chartWidth / Math.max(values.length - 1, 1);
-
-  ctx.beginPath();
-  ctx.strokeStyle = '#333333';
-  ctx.lineWidth = 2;
-  ctx.moveTo(padding, padding);
-  ctx.lineTo(padding, height - padding);
-  ctx.moveTo(padding, height - padding);
-  ctx.lineTo(width - padding, height - padding);
-  ctx.stroke();
-
-  ctx.textAlign = 'right';
-  ctx.fillStyle = textColor;
-  ctx.font = '22px Times New Roman, serif';
-  for (let i = 0; i <= 5; i++) {
-    const y = height - padding - (i / 5) * chartHeight;
-    const value = (i / 5) * maxValue;
-    ctx.beginPath();
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 0.5;
-    ctx.setLineDash([4, 4]);
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillText(Number.isInteger(value) ? value.toString() : value.toFixed(1), padding - 12, y + 7);
-  }
-
-  ctx.beginPath();
-  ctx.strokeStyle = '#4F81BD';
-  ctx.lineWidth = 4;
-  values.forEach((value, index) => {
-    const x = padding + index * xStep;
-    const y = height - padding - (value / maxValue) * chartHeight;
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  values.forEach((value, index) => {
-    const x = padding + index * xStep;
-    const y = height - padding - (value / maxValue) * chartHeight;
-    ctx.beginPath();
-    ctx.fillStyle = '#4F81BD';
-    ctx.arc(x, y, 8, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.fillStyle = textColor;
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 20px Times New Roman, serif';
-    ctx.fillText(value.toString(), x, y - 18);
-  });
-
-  ctx.fillStyle = textColor;
-  ctx.textAlign = 'center';
-  ctx.font = '20px Times New Roman, serif';
-  labels.forEach((label, index) => {
-    const x = padding + index * xStep;
-    ctx.fillText(label, x, height - padding + 35);
-  });
-};
-
-const drawPieChart = (ctx, width, height, data) => {
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const radius = Math.min(width, height) / 2 - 120;
-  const labels = data.labels || [];
-  const values = data.values || [];
-  const total = values.reduce((sum, val) => sum + val, 0);
-  let startAngle = 0;
-
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 3;
-  values.forEach((value, index) => {
-    const sliceAngle = (value / total) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    const percentage = ((value / total) * 100).toFixed(1);
-    const labelAngle = startAngle + sliceAngle / 2;
-    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.65);
-    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.65);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px Times New Roman, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`${percentage}%`, labelX, labelY);
-    startAngle += sliceAngle;
-  });
-
-  const legendX = width - 300;
-  let legendY = 60;
-  ctx.fillStyle = '#333333';
-  ctx.font = 'bold 22px Times New Roman, serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('Legend', legendX, legendY - 30);
-  labels.forEach((label, index) => {
-    ctx.fillStyle = CHART_COLORS[index % CHART_COLORS.length];
-    ctx.fillRect(legendX, legendY, 22, 22);
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(legendX, legendY, 22, 22);
-    ctx.fillStyle = '#333333';
-    ctx.font = '20px Times New Roman, serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`${label} (${values[index]})`, legendX + 32, legendY + 11);
-    legendY += 36;
-  });
-};
+const CHART_WIDTH = 2000;
+const CHART_HEIGHT = 1200;
+const ACADEMIC_COLORS = ['#2C3E50', '#3498DB', '#27AE60', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E', '#16A085'];
 
 const canvasToPngBuffer = (canvas) => {
   const dataUrl = canvas.toDataURL('image/png');
@@ -198,88 +22,240 @@ const canvasToPngBuffer = (canvas) => {
   return bytes;
 };
 
-export const renderChartToPng = (chartData) => {
+export const renderChartToPng = async (chartData) => {
   try {
+    const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
+    Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
+
     const canvas = document.createElement('canvas');
     canvas.width = CHART_WIDTH;
     canvas.height = CHART_HEIGHT;
     const ctx = canvas.getContext('2d');
 
-    const padding = 120;
-    const textColor = '#333333';
-    const gridColor = '#d9d9d9';
-
-    ctx.clearRect(0, 0, CHART_WIDTH, CHART_HEIGHT);
-
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, CHART_WIDTH, CHART_HEIGHT);
 
-    if (chartData.title) {
-      ctx.fillStyle = textColor;
-      ctx.font = 'bold 32px Times New Roman, serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(chartData.title, CHART_WIDTH / 2, 45);
+    const labels = chartData.labels || [];
+    const values = chartData.values || [];
+    const type = (chartData.chartType || 'bar').toLowerCase();
+    const title = chartData.title || '';
+
+    const config = {
+      type: type === 'horizontalBar' ? 'bar' : type,
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: type === 'pie' ? ACADEMIC_COLORS.slice(0, values.length) : ACADEMIC_COLORS[0],
+          borderColor: type === 'pie' ? '#ffffff' : ACADEMIC_COLORS[0],
+          borderWidth: type === 'pie' ? 2 : 0,
+          pointBackgroundColor: ACADEMIC_COLORS[0],
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+        }]
+      },
+      options: {
+        indexAxis: type === 'horizontalBar' ? 'y' : 'x',
+        responsive: false,
+        animation: false,
+        plugins: {
+          legend: { display: type === 'pie', position: 'right', labels: { font: { family: 'Times New Roman', size: 14 }, usePointStyle: true } },
+          title: { display: !!title, text: title, font: { family: 'Times New Roman', size: 18, weight: 'bold' }, padding: { bottom: 20 }, color: '#2C3E50' },
+          tooltip: { enabled: false }
+        },
+        scales: type !== 'pie' ? {
+          x: { grid: { display: true, color: '#e5e7eb' }, ticks: { font: { family: 'Times New Roman', size: 13 }, color: '#333' } },
+          y: { beginAtZero: true, grid: { display: true, color: '#e5e7eb' }, ticks: { font: { family: 'Times New Roman', size: 13 }, color: '#333' } }
+        } : {}
+      }
+    };
+
+    if (type === 'bar' || type === 'horizontalBar') {
+      config.data.datasets[0].backgroundColor = ACADEMIC_COLORS.slice(0, values.length);
+      config.data.datasets[0].borderRadius = 4;
     }
 
-    const type = (chartData.type || 'bar').toLowerCase();
-    if (type === 'bar' || type === 'column') {
-      drawBarChart(ctx, CHART_WIDTH, CHART_HEIGHT, padding, chartData.data || chartData, textColor, gridColor);
-    } else if (type === 'line') {
-      drawLineChart(ctx, CHART_WIDTH, CHART_HEIGHT, padding, chartData.data || chartData, textColor, gridColor);
-    } else if (type === 'pie') {
-      drawPieChart(ctx, CHART_WIDTH, CHART_HEIGHT, chartData.data || chartData);
-    }
+    const chart = new Chart(ctx, config);
+    chart.draw();
 
-    return canvasToPngBuffer(canvas);
+    const buffer = canvasToPngBuffer(canvas);
+    chart.destroy();
+    return buffer;
   } catch (err) {
     console.error('Chart render failed:', err);
     return null;
   }
 };
 
-export const renderMermaidToPng = async (code) => {
+export const renderDiagramToPng = (diagramData) => {
   try {
-    const mod = await import('mermaid');
-    const mermaid = mod.default || mod;
-    await mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      securityLevel: 'loose',
-      fontFamily: 'Times New Roman, serif',
-      themeVariables: {
-        primaryColor: '#4F81BD',
-        primaryTextColor: '#333333',
-        primaryBorderColor: '#4F81BD',
-        lineColor: '#666666',
-        secondaryColor: '#f3f4f6',
-        tertiaryColor: '#f9fafb',
-        fontSize: '14px'
-      }
-    });
-    const { svg } = await mermaid.render('export-diagram', code);
-
     const canvas = document.createElement('canvas');
+    canvas.width = CHART_WIDTH;
+    canvas.height = Math.max(800, diagramData.independent.length * 120 + diagramData.dependent.length * 120 + 300);
     const ctx = canvas.getContext('2d');
-    const img = await new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    const title = diagramData.title || 'Conceptual Framework';
+    ctx.fillStyle = '#2C3E50';
+    ctx.font = 'bold 30px Times New Roman, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, w / 2, 50);
+
+    const ivX = w * 0.08;
+    const dvX = w * 0.75;
+    const medX = w * 0.40;
+    const boxW = w * 0.15;
+    const boxH = 50;
+    const startY = 130;
+
+    const nodeColors = { independent: '#3498DB', dependent: '#27AE60', mediating: '#F39C12', moderating: '#E74C3C' };
+
+    const drawBox = (x, y, text, color) => {
+      ctx.fillStyle = color;
+      ctx.shadowColor = 'rgba(0,0,0,0.1)';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.roundRect(x, y, boxW, boxH, 6);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px Times New Roman, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const displayText = text.length > 20 ? text.substring(0, 18) + '..' : text;
+      ctx.fillText(displayText, x + boxW / 2, y + boxH / 2);
+      return { x: x + boxW / 2, y: y + boxH / 2 };
+    };
+
+    const drawArrow = (fromX, fromY, toX, toY, label) => {
+      ctx.beginPath();
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 2;
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      const arrowLen = 12;
+      ctx.beginPath();
+      ctx.fillStyle = '#666';
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - arrowLen * Math.cos(angle - 0.4), toY - arrowLen * Math.sin(angle - 0.4));
+      ctx.lineTo(toX - arrowLen * Math.cos(angle + 0.4), toY - arrowLen * Math.sin(angle + 0.4));
+      ctx.closePath();
+      ctx.fill();
+      if (label) {
+        const midX = (fromX + toX) / 2;
+        const midY = (fromY + toY) / 2;
+        ctx.fillStyle = '#666';
+        ctx.font = '12px Times New Roman, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, midX, midY - 6);
+      }
+      return { midX: (fromX + toX) / 2, midY: (fromY + toY) / 2 };
+    };
+
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 14px Times New Roman, serif';
+    ctx.fillStyle = nodeColors.independent;
+    ctx.textAlign = 'left';
+
+    const ivs = diagramData.independent || [];
+    const dvs = diagramData.dependent || [];
+    const meds = diagramData.mediating || [];
+    const mods = diagramData.moderating || [];
+
+    const ivNodes = [];
+    ivs.forEach((name, i) => {
+      const y = startY + i * (boxH + 30);
+      const node = drawBox(ivX, y, name, nodeColors.independent);
+      ivNodes.push(node);
+      ctx.fillStyle = '#2C3E50';
+      ctx.font = '11px Times New Roman, serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('IV', ivX, y - 18);
+      ctx.fillStyle = nodeColors.independent;
     });
 
-    const scale = 3;
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    ctx.scale(scale, scale);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, img.width, img.height);
-    ctx.drawImage(img, 0, 0);
+    const dvNodes = [];
+    dvs.forEach((name, i) => {
+      const y = startY + i * (boxH + 30);
+      const node = drawBox(dvX, y, name, nodeColors.dependent);
+      dvNodes.push(node);
+      ctx.fillStyle = '#2C3E50';
+      ctx.font = '11px Times New Roman, serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('DV', dvX + boxW, y - 18);
+      ctx.fillStyle = nodeColors.dependent;
+    });
 
-    return { pngBuffer: canvasToPngBuffer(canvas), width: img.width, height: img.height };
+    const medNodes = [];
+    meds.forEach((name, i) => {
+      const y = startY + (ivs.length > 0 ? Math.max(ivs.length, dvs.length) : dvs.length) / 2 * (boxH + 30) + i * (boxH + 40);
+      const node = drawBox(medX, y, name, nodeColors.mediating);
+      medNodes.push(node);
+      ctx.fillStyle = '#2C3E50';
+      ctx.font = '11px Times New Roman, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Mediating', medX + boxW / 2, y - 18);
+      ctx.fillStyle = nodeColors.mediating;
+    });
+
+    const modNodes = [];
+    const modY = startY - 80;
+    mods.forEach((name, i) => {
+      const x = w * 0.30 + i * (boxW + 40);
+      const node = drawBox(x, modY, name, nodeColors.moderating);
+      modNodes.push(node);
+      ctx.fillStyle = '#2C3E50';
+      ctx.font = '11px Times New Roman, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Moderating', x + boxW / 2, modY - 18);
+      ctx.fillStyle = nodeColors.moderating;
+    });
+
+    const relationships = diagramData.relationships || [];
+    if (relationships.length > 0) {
+      for (const rel of relationships) {
+        const from = findNodeCenter(ivNodes, rel.from) || findNodeCenter(medNodes, rel.from);
+        const to = findNodeCenter(dvNodes, rel.to) || findNodeCenter(medNodes, rel.to);
+        if (from && to) drawArrow(from.x + boxW / 2, from.y, to.x - boxW / 2, to.y, rel.label);
+      }
+    } else {
+      for (const iv of ivNodes) {
+        for (const dv of dvNodes) drawArrow(iv.x + boxW / 2, iv.y, dv.x - boxW / 2, dv.y, '');
+      }
+      for (const iv of ivNodes) {
+        for (const mv of medNodes) drawArrow(iv.x + boxW / 2, iv.y, mv.x - boxW / 2, mv.y, '');
+      }
+      for (const mv of medNodes) {
+        for (const dv of dvNodes) drawArrow(mv.x + boxW / 2, mv.y, dv.x - boxW / 2, dv.y, '');
+      }
+      for (const mod of modNodes) {
+        for (const dv of dvNodes) {
+          ctx.setLineDash([6, 4]);
+          drawArrow(mod.x + boxW / 2, mod.y + boxH, dv.x + boxW / 2, dv.y, '');
+          ctx.setLineDash([]);
+        }
+      }
+    }
+
+    return canvasToPngBuffer(canvas);
   } catch (err) {
-    console.error('Mermaid render failed for export:', err);
+    console.error('Diagram render failed:', err);
     return null;
   }
+};
+
+const findNodeCenter = (nodes, name) => {
+  return nodes.find(n => {
+    return true;
+  });
 };
 
 export const buildDocxTable = (tableData, format) => {
@@ -288,20 +264,23 @@ export const buildDocxTable = (tableData, format) => {
   const fontFamily = format.fontFamily || 'Times New Roman';
 
   const headerCells = headers.map(h => new TableCell({
-    shading: { type: 'clear', fill: 'F3F4F6' },
+    shading: { type: 'clear', fill: '2C3E50' },
+    width: { size: Math.round(100 / headers.length), type: WidthType.PERCENTAGE },
     children: [new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 60 },
-      children: [new TextRun({ text: sanitizeXmlText(String(h)), bold: true, size: 24, font: fontFamily })]
+      spacing: { after: 40 },
+      children: [new TextRun({ text: sanitizeXmlText(String(h)), bold: true, size: 22, font: fontFamily, color: 'FFFFFF' })]
     })]
   }));
 
   const dataRows = rows.map((row, ri) => new TableRow({
     children: row.map(cell => new TableCell({
-      shading: ri % 2 === 1 ? { type: 'clear', fill: 'FAFAFA' } : undefined,
+      shading: ri % 2 === 1 ? { type: 'clear', fill: 'F8FAFC' } : undefined,
+      width: { size: Math.round(100 / row.length), type: WidthType.PERCENTAGE },
       children: [new Paragraph({
-        spacing: { after: 60 },
-        children: [new TextRun({ text: sanitizeXmlText(String(cell)), size: 24, font: fontFamily })]
+        spacing: { after: 40 },
+        alignment: AlignmentType.LEFT,
+        children: [new TextRun({ text: sanitizeXmlText(String(cell)), size: 22, font: fontFamily })]
       })]
     }))
   }));
@@ -309,10 +288,7 @@ export const buildDocxTable = (tableData, format) => {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
-      new TableRow({
-        tableHeader: true,
-        children: headerCells
-      }),
+      new TableRow({ tableHeader: true, children: headerCells }),
       ...dataRows
     ]
   });
@@ -322,7 +298,6 @@ export const buildImageParagraph = (pngBuffer, caption, format, customAspectRati
   const aspectRatio = customAspectRatio || (CHART_HEIGHT / CHART_WIDTH);
   const targetWidthPx = Math.round(TARGET_IMAGE_WIDTH_INCHES * PIXELS_PER_INCH);
   const targetHeightPx = Math.round(targetWidthPx * aspectRatio);
-
   const children = [];
 
   children.push(
@@ -350,4 +325,8 @@ export const buildImageParagraph = (pngBuffer, caption, format, customAspectRati
   }
 
   return children;
+};
+
+export const renderFlowchartToPng = (diagramData) => {
+  return renderDiagramToPng(diagramData);
 };

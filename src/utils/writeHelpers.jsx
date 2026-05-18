@@ -1,7 +1,8 @@
 import React from 'react';
-import DiagramRenderer from '../components/DiagramRenderer';
 import ChartRenderer from '../components/ChartRenderer';
 import TableRenderer from '../components/TableRenderer';
+import DiagramRenderer from '../components/DiagramRenderer';
+import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable } from './visualDataModel.js';
 
 export const calculateOverallProgress = (chapters, generatedSubsections) => {
   let total = 0, generated = 0;
@@ -24,9 +25,9 @@ const ContentRenderer = ({ content }) => {
   return (
     <div>
       {blocks.map((block, i) => {
-        if (block.type === 'diagram') return <DiagramRenderer key={i} code={block.code} title={block.title} caption={block.caption} />;
-        if (block.type === 'chart') return <ChartRenderer key={i} data={block.data} />;
-        if (block.type === 'table') return <TableRenderer key={i} data={block.data} />;
+        if (block.type === 'diagram') return <DiagramRenderer key={i} diagramData={block.data} title={block.title} />;
+        if (block.type === 'chart') return <ChartRenderer key={i} chartType={block.chartType} data={{ labels: block.labels, values: block.values }} title={block.title} caption={block.caption} />;
+        if (block.type === 'table') return <TableRenderer key={i} headers={block.headers} rows={block.rows} title={block.title} caption={block.caption} />;
         return <div key={i} dangerouslySetInnerHTML={{ __html: block.html || '' }} style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify', marginBottom: '16px' }} />;
       })}
     </div>
@@ -38,38 +39,82 @@ export const parseContentBlocks = (content) => {
   const lines = content.split('\n');
   const blocks = [];
   let currentHtml = '';
-  let inDiagram = false, inChart = false, inTable = false;
-  let diagramCode = '', diagramTitle = '', diagramCaption = '';
-  let chartDataStr = '', tableDataStr = '';
+  let inTable = false;
+  let tableLines = [];
+  let inFramework = false;
+  let frameworkText = '';
+
+  const flushHtml = () => {
+    if (currentHtml) {
+      blocks.push({ type: 'text', html: currentHtml.trim() });
+      currentHtml = '';
+    }
+  };
+
+  const flushTable = () => {
+    if (tableLines.length >= 2) {
+      const parsed = parseMarkdownTable(tableLines);
+      if (parsed) {
+        blocks.push({ type: 'table', headers: parsed.headers, rows: parsed.rows, caption: parsed.caption, title: parsed.caption || 'Table' });
+      }
+    }
+    tableLines = [];
+    inTable = false;
+  };
+
+  const flushFramework = () => {
+    if (frameworkText) {
+      const parsed = parseFrameworkBlock(frameworkText);
+      if (parsed && (parsed.independent.length > 0 || parsed.dependent.length > 0)) {
+        blocks.push({ type: 'diagram', data: parsed, title: parsed.title || 'Conceptual Framework' });
+      }
+      frameworkText = '';
+      inFramework = false;
+    }
+  };
 
   for (const line of lines) {
-    if (line.startsWith('```mermaid')) { inDiagram = true; diagramCode = ''; diagramTitle = ''; diagramCaption = ''; continue; }
-    if (line.startsWith('```chart')) { inChart = true; chartDataStr = ''; continue; }
-    if (line.startsWith('```table')) { inTable = true; tableDataStr = ''; continue; }
-    if (line === '```') {
-      if (inDiagram && diagramCode) { blocks.push({ type: 'diagram', code: diagramCode.trim(), title: diagramTitle, caption: diagramCaption }); inDiagram = false; }
-      else if (inChart && chartDataStr) { try { blocks.push({ type: 'chart', data: JSON.parse(chartDataStr.trim()) }); } catch { blocks.push({ type: 'text', html: `<p>Invalid chart data</p>` }); } inChart = false; }
-      else if (inTable && tableDataStr) { try { blocks.push({ type: 'table', data: JSON.parse(tableDataStr.trim()) }); } catch { blocks.push({ type: 'text', html: `<p>Invalid table data</p>` }); } inTable = false; }
+    if (/^\[FRAMEWORK:/i.test(line)) {
+      flushHtml();
+      flushTable();
+      if (inFramework) flushFramework();
+      inFramework = true;
+      frameworkText = line;
+      if (/\]\s*$/.test(line)) flushFramework();
       continue;
     }
-    if (inDiagram) {
-      if (line.startsWith('%% title:')) diagramTitle = line.replace('%% title:', '').trim();
-      else if (line.startsWith('%% caption:')) diagramCaption = line.replace('%% caption:', '').trim();
-      else diagramCode += line + '\n';
+    if (inFramework) {
+      frameworkText += '\n' + line;
+      if (/\]\s*$/.test(line)) flushFramework();
       continue;
     }
-    if (inChart) { chartDataStr += line + '\n'; continue; }
-    if (inTable) { tableDataStr += line + '\n'; continue; }
-    const chartInlineMatch = line.match(/\[CHART:\{.*\}\]/);
-    if (chartInlineMatch) {
-      if (currentHtml) { blocks.push({ type: 'text', html: currentHtml.trim() }); currentHtml = ''; }
-      try {
-        const chartData = JSON.parse(chartInlineMatch[0].replace('[CHART:', '').replace(']', ''));
-        blocks.push({ type: 'chart', data: chartData });
-      } catch { blocks.push({ type: 'text', html: `<p>[Chart data]</p>` }); }
+
+    const chartMatch = line.match(CHART_MARKER_RE);
+    if (chartMatch) {
+      flushHtml();
+      flushTable();
+      const parsed = parseChartMarker(line);
+      if (parsed) {
+        blocks.push({ type: 'chart', chartType: parsed.chartType, labels: parsed.labels, values: parsed.values, title: parsed.title, caption: parsed.caption });
+      }
       continue;
     }
-    if (line.trim() === '') { if (currentHtml) { blocks.push({ type: 'text', html: currentHtml.trim() }); currentHtml = ''; } continue; }
+
+    if (markdownTableRe.test(line)) {
+      flushHtml();
+      if (!inTable) { inTable = true; tableLines = []; }
+      tableLines.push(line);
+      continue;
+    } else if (inTable) {
+      flushTable();
+    }
+
+    if (line.trim() === '') {
+      if (inTable) flushTable();
+      flushHtml();
+      continue;
+    }
+
     if (line.startsWith('# ')) currentHtml += `<h1>${line.slice(2)}</h1>`;
     else if (line.startsWith('## ')) currentHtml += `<h2>${line.slice(3)}</h2>`;
     else if (line.startsWith('### ')) currentHtml += `<h3>${line.slice(4)}</h3>`;
@@ -78,24 +123,23 @@ export const parseContentBlocks = (content) => {
     else if (line.startsWith('**') && line.endsWith('**')) currentHtml += `<strong>${line.slice(2, -2)}</strong><br/>`;
     else currentHtml += `<p>${line}</p>`;
   }
-  if (currentHtml) blocks.push({ type: 'text', html: currentHtml.trim() });
+
+  flushTable();
+  if (inFramework) flushFramework();
+  flushHtml();
   return blocks;
 };
 
 export default ContentRenderer;
 
-export const getChapterDisplayTitle = (chapter) => {
-  return chapter?.customTitle || chapter?.title || '';
-};
+export const getChapterDisplayTitle = (chapter) => chapter?.customTitle || chapter?.title || '';
 
 export const getChapterOrdinal = (chapter, chapters) => {
   const index = chapters.findIndex(ch => ch.id === chapter.id);
   return chapter?.id === 'proposal' ? 1 : index;
 };
 
-export const getChapterGuidelines = (chapter) => {
-  return chapter?.guidelines || '';
-};
+export const getChapterGuidelines = (chapter) => chapter?.guidelines || '';
 
 export const getWordCountPresets = (level) => {
   const presets = {
@@ -117,72 +161,40 @@ export const getFallbackSubtopics = (chapterId, chapterTitle) => {
   };
   if (subtopics[chapterId]) return subtopics[chapterId].map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
   const displayTitle = chapterTitle || chapterId;
-  return [
-    'Introduction',
-    `Overview of ${displayTitle}`,
-    `Key Concepts in ${displayTitle}`,
-    `Analysis and Discussion`,
-    `Summary`
-  ].map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
+  return ['Introduction', `Overview of ${displayTitle}`, `Key Concepts in ${displayTitle}`, `Analysis and Discussion`, `Summary`].map((title, i) => ({ id: `${chapterId}_sub_${i + 1}`, title, generated: false }));
 };
 
 export const renumberSubsections = (subsections, chapterId, chapterNumber) => {
   const chapterNum = chapterNumber || chapterId.replace('chapter', '');
   return subsections.map((sub, i) => {
     const newNumber = `${chapterNum}.${i + 1}`;
-    const newTitle = sub.type === 'references'
-      ? sub.title
+    const newTitle = sub.type === 'references' ? sub.title
       : sub.title.match(/^[pP\d]+(\.\d+)*\s+/)
         ? sub.title.replace(/^[pP\d]+(\.\d+)*\s+/, `${newNumber} `)
         : `${newNumber} ${sub.title}`;
     const newChildren = (sub.children || []).map((child, ci) => {
       const childNum = `${newNumber}.${ci + 1}`;
-      return {
-        ...child,
-        number: childNum,
-        title: child.title.match(/^[\d.]+\.\d+\s+/)
-          ? child.title.replace(/^[\d.]+\.\d+\s+/, `${childNum} `)
-          : `${childNum} ${child.title}`
-      };
+      return { ...child, number: childNum, title: child.title.match(/^[\d.]+\.\d+\s+/) ? child.title.replace(/^[\d.]+\.\d+\s+/, `${childNum} `) : `${childNum} ${child.title}` };
     });
-    return {
-      ...sub,
-      number: newNumber,
-      title: newTitle,
-      children: newChildren,
-    };
+    return { ...sub, number: newNumber, title: newTitle, children: newChildren };
   });
 };
 
 export const distributeWordCount = (min, max, subsections, currentTitle) => {
   const count = subsections.length;
   if (count === 0) return { min: 0, max: 0 };
-
   const analyticalKeywords = ['framework', 'review', 'analysis', 'findings', 'discussion', 'design', 'methodology', 'conceptual', 'theoretical', 'empirical', 'data', 'results'];
   const structuralKeywords = ['objectives', 'scope', 'significance', 'definitions', 'limitations', 'ethics', 'background', 'introduction', 'summary', 'conclusion', 'recommendations', 'problem statement'];
-
   const weights = subsections.map((sub, index) => {
     if (count === 1) return 1.0;
     const title = sub.title.toLowerCase();
-    if (index === 0 || index === count - 1) {
-      const isAnalytical = analyticalKeywords.some(kw => title.includes(kw));
-      return isAnalytical ? 1.0 : 0.6;
-    }
-    const isAnalytical = analyticalKeywords.some(kw => title.includes(kw));
-    if (isAnalytical) return 1.3;
-    const isStructural = structuralKeywords.some(kw => title.includes(kw));
-    if (isStructural) return 0.7;
-    return 1.0;
+    if (index === 0 || index === count - 1) { return analyticalKeywords.some(kw => title.includes(kw)) ? 1.0 : 0.6; }
+    return analyticalKeywords.some(kw => title.includes(kw)) ? 1.3 : structuralKeywords.some(kw => title.includes(kw)) ? 0.7 : 1.0;
   });
-
   const totalWeight = weights.reduce((sum, w) => sum + w, 0);
   const currentIndex = subsections.findIndex(s => s.title === currentTitle);
   const weight = weights[currentIndex >= 0 ? currentIndex : 0] || 1.0;
-
-  return {
-    min: Math.floor((min / totalWeight) * weight),
-    max: Math.floor((max / totalWeight) * weight)
-  };
+  return { min: Math.floor((min / totalWeight) * weight), max: Math.floor((max / totalWeight) * weight) };
 };
 
 export const extractCitations = (content) => {
@@ -219,48 +231,16 @@ export const formatGroundedReference = (source, style) => {
   if (!source || !source.uri) return null;
   const url = source.uri;
   let domain = '';
-  try {
-    const hostname = new URL(url).hostname;
-    domain = hostname.replace('www.', '').replace(/^([a-z]{2}\.)*/, '');
-  } catch {
-    domain = url.slice(0, 40);
-  }
+  try { const hostname = new URL(url).hostname; domain = hostname.replace('www.', '').replace(/^([a-z]{2}\.)*/, ''); } catch { domain = url.slice(0, 40); }
   const title = source.title || domain.charAt(0).toUpperCase() + domain.slice(1);
   const sourceType = detectSourceType(domain, url);
   const hasUrl = sourceType === 'web';
-
   const cleanDomain = domain.charAt(0).toUpperCase() + domain.slice(1);
-
-  if (style === 'apa') {
-    if (hasUrl) {
-      return `${cleanDomain}. (n.d.). ${title}. ${url}`;
-    }
-    return `${cleanDomain}. (n.d.). ${title}.`;
-  }
-  if (style === 'mla') {
-    if (hasUrl) {
-      return `"${title}." ${cleanDomain}, ${url}.`;
-    }
-    return `"${title}." ${cleanDomain}.`;
-  }
-  if (style === 'harvard') {
-    if (hasUrl) {
-      return `${cleanDomain} (n.d.). ${title}. Available at: ${url}.`;
-    }
-    return `${cleanDomain} (n.d.). ${title}.`;
-  }
-  if (style === 'chicago') {
-    if (hasUrl) {
-      return `"${title}." ${cleanDomain}. ${url}.`;
-    }
-    return `"${title}." ${cleanDomain}.`;
-  }
-  if (style === 'ieee') {
-    if (hasUrl) {
-      return `"${title}," ${cleanDomain}. [Online]. Available: ${url}`;
-    }
-    return `"${title}," ${cleanDomain}.`;
-  }
+  if (style === 'apa') return hasUrl ? `${cleanDomain}. (n.d.). ${title}. ${url}` : `${cleanDomain}. (n.d.). ${title}.`;
+  if (style === 'mla') return hasUrl ? `"${title}." ${cleanDomain}, ${url}.` : `"${title}." ${cleanDomain}.`;
+  if (style === 'harvard') return hasUrl ? `${cleanDomain} (n.d.). ${title}. Available at: ${url}.` : `${cleanDomain} (n.d.). ${title}.`;
+  if (style === 'chicago') return hasUrl ? `"${title}." ${cleanDomain}. ${url}.` : `"${title}." ${cleanDomain}.`;
+  if (style === 'ieee') return hasUrl ? `"${title}," ${cleanDomain}. [Online]. Available: ${url}` : `"${title}," ${cleanDomain}.`;
   if (hasUrl) return `${cleanDomain}. ${title}. ${url}`;
   return `${cleanDomain}. ${title}.`;
 };

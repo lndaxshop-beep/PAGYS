@@ -215,6 +215,8 @@ const MyFiles = () => {
       loading={false}
       matrix={sl.matrix}
       generatingMatrix={sl.generatingMatrix}
+      pendingMatrixRegen={sl.pendingMatrixRegen}
+      processingMatrixPayment={sl.processingMatrixPayment}
       onAddFile={handleFileUpload}
       onRemoveSource={sl.removeSource}
       onGenerateMatrix={() => sl.generateMatrix(project)}

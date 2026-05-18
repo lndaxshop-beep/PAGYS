@@ -40,9 +40,14 @@ export const cleanOutput = (text) => {
   }
   cleaned = cleaned.replace(/\s*—\s*/g, ', ');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = stripCodeFenceArt(cleaned);
   cleaned = stripAsciiArt(cleaned);
   cleaned = cleaned.trim();
   return cleaned;
+};
+
+const stripCodeFenceArt = (text) => {
+  return text.replace(/```(mermaid|chart|table|diagram|graph)\s*[\s\S]*?```\s*/gi, '');
 };
 
 const ASCII_ART_CHARS = new Set(['/', '\\', '|', '^', '_', '-', '=', '*']);

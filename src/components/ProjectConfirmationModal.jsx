@@ -1,10 +1,13 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../hooks/useCurrency';
+import { PRICES_USD } from '../constants/pricing';
 
 const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }) => {
   const { colors, isDarkMode } = useTheme();
+  const { fmt } = useCurrency();
   const isPremium = tier === 'premium';
-  const amount = isPremium ? 40 : 30;
+  const amount = isPremium ? PRICES_USD.premium : PRICES_USD.regular;
 
   const rowStyle = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -84,7 +87,7 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
             borderTop: `2px solid ${colors.primary}`, paddingTop: '14px'
           }}>
             <span style={{ color: colors.text, fontSize: '16px', fontWeight: '700' }}>Amount to Pay</span>
-            <span style={{ color: colors.primary, fontSize: '20px', fontWeight: '700' }}>₵{amount}</span>
+            <span style={{ color: colors.primary, fontSize: '20px', fontWeight: '700' }}>{fmt(amount)}</span>
           </div>
         </div>
 
@@ -104,7 +107,7 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
             backgroundColor: colors.primary, color: 'white', padding: '14px',
             border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer',
             fontSize: '15px'
-          }}>Confirm & Pay ₵{amount}</button>
+          }}>Confirm & Pay {fmt(amount)}</button>
           <button onClick={onEdit} style={{
             backgroundColor: 'transparent', color: colors.text,
             padding: '12px', border: `1px solid ${colors.border}`, borderRadius: '8px',

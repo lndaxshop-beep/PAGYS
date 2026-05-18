@@ -1,5 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrency } from '../../hooks/useCurrency';
+import { PRICES_USD } from '../../constants/pricing';
 
 const NewProjectForm = ({
   form, onChange, useOrganization, setUseOrganization,
@@ -7,6 +9,7 @@ const NewProjectForm = ({
   onGenerateQuestions, onSubmit, onCancel, selectedTier, onTierChange
 }) => {
   const { colors, isDarkMode } = useTheme();
+  const { fmt } = useCurrency();
   const inputStyle = {
     width: '100%', padding: '12px', border: `2px solid ${colors.inputBorder}`,
     borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text
@@ -105,7 +108,7 @@ const NewProjectForm = ({
                 onMouseLeave={(e) => { if (selectedTier !== 'regular') e.currentTarget.style.borderColor = colors.border; }}
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
-                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — ₵30</div>
+                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(PRICES_USD.regular)}</div>
                 <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
                   <li>Humanise (10 uses per chapter)</li>
                   <li>Feedback (6 uses per chapter)</li>
@@ -128,7 +131,7 @@ const NewProjectForm = ({
                 onMouseLeave={(e) => { if (selectedTier !== 'premium') e.currentTarget.style.borderColor = colors.border; }}
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
-                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — ₵40</div>
+                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(PRICES_USD.premium)}</div>
                 <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
                   <li>Humanise (15 uses per chapter)</li>
                   <li>Feedback (12 uses per chapter)</li>

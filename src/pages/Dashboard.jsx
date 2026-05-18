@@ -14,6 +14,8 @@ import ProjectConfirmationModal from '../components/ProjectConfirmationModal';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
+import { useCurrency } from '../hooks/useCurrency';
+import { PRICES_USD } from '../constants/pricing';
 import OnboardingWizard from '../components/OnboardingWizard';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import SourceSetupModal from '../components/SourceSetupModal';
@@ -278,7 +280,7 @@ const Dashboard = () => {
         <PaymentModal
           project={paymentProject}
           tier={paymentTier}
-          amount={paymentIsUpgrade ? 10 : (paymentTier === 'premium' ? 40 : 30)}
+          amount={paymentIsUpgrade ? PRICES_USD.upgrade : (paymentTier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular)}
           isUpgrade={paymentIsUpgrade}
           processingPayment={processingPayment}
           onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}

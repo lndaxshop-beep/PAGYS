@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../hooks/useCurrency';
+import { PRICES_USD } from '../constants/pricing';
 import LeftPane from '../components/writing/LeftPane';
 import DataCollectionModal from '../components/instruments/DataCollectionModal';
 import UploadFindings from '../components/UploadFindings';
@@ -38,6 +40,7 @@ const Write = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { colors, isDarkMode } = useTheme();
+  const { fmt } = useCurrency();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
@@ -839,7 +842,7 @@ const Write = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵2</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_USD.humaniseReset)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -849,7 +852,7 @@ const Write = () => {
                 fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingReset ? 0.7 : 1
               }}>
-                {processingReset ? 'Processing...' : 'Pay ₵2'}
+                {processingReset ? 'Processing...' : `Pay ${fmt(PRICES_USD.humaniseReset)}`}
               </button>
               <button onClick={() => setResetModalType(null)} disabled={processingReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,

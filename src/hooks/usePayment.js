@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { formatPrice, getUserCountry, PRICES_USD } from '../constants/pricing';
 
 const usePayment = (onNotify) => {
   const [processing, setProcessing] = useState(false);
@@ -40,7 +41,7 @@ const usePayment = (onNotify) => {
         tier: 'premium',
         isPremium: true,
       });
-      if (onNotify) onNotify('Project upgraded to Premium (₵10)! All features unlocked.', 'success');
+      if (onNotify) onNotify(`Project upgraded to Premium (${formatPrice(PRICES_USD.upgrade, getUserCountry(), false)})! All features unlocked.`, 'success');
       window.dispatchEvent(new CustomEvent('projectUpgraded', {
         detail: { projectId }
       }));

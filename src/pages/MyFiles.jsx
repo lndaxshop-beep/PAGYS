@@ -10,10 +10,13 @@ import useSourceLibrary from '../hooks/useSourceLibrary';
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { generateChapterDocument } from '../utils/merge/chapterDownloadEngine.js';
 import { computeThesisScores } from '../utils/aiScoreUtils.js';
+import { useCurrency } from '../hooks/useCurrency';
+import { PRICES_USD } from '../constants/pricing';
 
 const MyFiles = () => {
   const { colors, isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const { fmt } = useCurrency();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -433,7 +436,7 @@ const MyFiles = () => {
                 <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>🎯 Download Defence Questions</button>
                   <button onClick={handleDefenceRegen} disabled={loadingDefence} style={{ backgroundColor: 'transparent', color: defenceRegenLeft > 0 ? colors.primary : '#dc2626', padding: '10px 20px', border: `1px solid ${defenceRegenLeft > 0 ? colors.primary : '#dc2626'}`, borderRadius: '8px', cursor: loadingDefence ? 'not-allowed' : 'pointer', fontWeight: '500', fontSize: '13px' }}>
-                    {defenceRegenLeft > 0 ? `🔄 Regenerate (${defenceRegenLeft} left)` : '🔄 Reset Regenerate (₵1)'}
+                    {defenceRegenLeft > 0 ? `🔄 Regenerate (${defenceRegenLeft} left)` : `🔄 Reset Regenerate (${fmt(PRICES_USD.defenceRegen)})`}
                   </button>
                 </div>
               </div>
@@ -556,7 +559,7 @@ const MyFiles = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵1</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_USD.defenceRegen, false)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -566,7 +569,7 @@ const MyFiles = () => {
                 fontWeight: '600', cursor: processingRegenReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingRegenReset ? 0.7 : 1
               }}>
-                {processingRegenReset ? 'Processing...' : 'Pay ₵1'}
+                {processingRegenReset ? 'Processing...' : `Pay ${fmt(PRICES_USD.defenceRegen, false)}`}
               </button>
               <button onClick={() => setShowRegenResetModal(false)} disabled={processingRegenReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,

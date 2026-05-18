@@ -1,9 +1,11 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrency } from '../../hooks/useCurrency';
+import { PRICES_USD } from '../../constants/pricing';
 
-const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgrade }) => {
+const ProjectCard = ({ project, progress, progressLoading, onContinue, onDelete, onUpgrade, isDeleting }) => {
   const { colors, isDarkMode } = useTheme();
-  const progress = project.progress || 0;
+  const { fmt } = useCurrency();
   const isComplete = progress === 100 && project.status === 'complete';
   const isPremium = project.tier === 'premium' || project.isPremium;
 
@@ -73,7 +75,7 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgr
           border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer',
           fontSize: '12px'
         }}>
-          ⚡ Upgrade to Premium (+₵10)
+          ⚡ Upgrade to Premium (+{fmt(PRICES_USD.upgrade, false)})
         </button>
       )}
       <button onClick={() => onContinue(project.id)} style={{

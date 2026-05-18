@@ -1,11 +1,14 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../hooks/useCurrency';
+import { PRICES_USD } from '../constants/pricing';
 
 const PaymentModal = ({
   project, tier, amount, isUpgrade,
   processingPayment, onConfirm, onCancel
 }) => {
   const { colors } = useTheme();
+  const { fmt } = useCurrency();
   const label = tier === 'premium' ? 'Premium' : 'Regular';
 
   return (
@@ -47,13 +50,13 @@ const PaymentModal = ({
           </div>
           <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-            <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>₵{amount}</span>
+            <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(amount)}</span>
           </div>
         </div>
 
         <p style={{ textAlign: 'center', fontSize: '12px', color: colors.textSecondary, margin: '0 0 20px' }}>
           {isUpgrade
-            ? 'You will be charged ₵10 for the upgrade. This is a one-time payment.'
+            ? `You will be charged ${fmt(PRICES_USD.upgrade)} for the upgrade. This is a one-time payment.`
             : 'Payment is processed securely. This is a one-time payment per project.'
           }
         </p>
@@ -69,7 +72,7 @@ const PaymentModal = ({
               fontSize: '15px', opacity: processingPayment ? 0.7 : 1
             }}
           >
-            {processingPayment ? 'Processing...' : `Pay ₵${amount}`}
+            {processingPayment ? 'Processing...' : `Pay ${fmt(amount)}`}
           </button>
           <button
             onClick={onCancel}

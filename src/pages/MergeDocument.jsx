@@ -10,6 +10,8 @@ import generatePdfDocument from '../utils/merge/pdfExportEngine.js';
 import generateLatexDocument from '../utils/merge/latexExportEngine.js';
 import generateMarkdownDocument from '../utils/merge/markdownExportEngine.js';
 import { PageSkeleton } from '../components/Skeleton';
+import { useCurrency } from '../hooks/useCurrency';
+import { PRICES_USD } from '../constants/pricing';
 
 const PLACEHOLDER_FIELDS = [
   { key: 'fullName', label: 'Full Name', default: '' },
@@ -40,6 +42,7 @@ const MergeDocument = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { colors, isDarkMode } = useTheme();
+  const { fmt } = useCurrency();
 
   const [project, setProject] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -409,14 +412,14 @@ const MergeDocument = () => {
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
             <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', textAlign: 'center', minWidth: '320px' }}>
               <p style={{ color: colors.text, fontWeight: '600', fontSize: '16px', marginBottom: '16px' }}>
-                {processingAbstractPayment ? 'Processing payment...' : 'Pay ₵2 to regenerate abstract?'}
+                {processingAbstractPayment ? 'Processing payment...' : `Pay ${fmt(PRICES_USD.abstractRegen)} to regenerate abstract?`}
               </p>
               {processingAbstractPayment ? (
                 <div style={{ width: '48px', height: '48px', border: `4px solid ${colors.primary}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
               ) : (
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                   <button onClick={handleAbstractPaymentCancel} style={{ padding: '10px 24px', backgroundColor: colors.border, color: colors.text, border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay ₵2</button>
+                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_USD.abstractRegen, false)}</button>
                 </div>
               )}
             </div>

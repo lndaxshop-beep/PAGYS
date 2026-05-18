@@ -32,27 +32,33 @@ const HomePage = () => {
   };
 
   const features = [
-    { icon: '🚀', title: 'Write a Full Thesis in Minutes', description: 'From introduction to conclusion — we guide you chapter by chapter with properly structured academic content tailored to your field.' },
-    { icon: '📚', title: 'Citations That Impress', description: 'Real references from Crossref, auto-formatted in APA, MLA, Harvard & more. Your supervisor will love the bibliography.' },
-    { icon: '✨', title: 'Sound Like Yourself', description: 'One click to humanise AI text into your natural academic voice. No robotic phrases, no awkward wording.' },
-    { icon: '📄', title: 'Export-Ready, One Click Away', description: 'Professional .docx, .pdf, .tex & .md files — complete with title page, table of contents, figures, and references.' },
-    { icon: '🔍', title: 'Your Research Command Center', description: 'Search literature, upload papers, verify citations, and build a source library — all in one place.' },
-    { icon: '🎯', title: 'Graduate on Time', description: 'Progress tracking, smart outlines, structured workflow — we keep you moving so you cross that finish line.' },
+    { icon: '📖', title: 'From Blank Page to Full Thesis', description: 'Guided chapter-by-chapter writing from Proposal through Chapter 5. Each section builds on the last — introduction, lit review, methodology, results, discussion, and conclusion.' },
+    { icon: '📋', title: 'Smart Chapter Outlines', description: 'Tell us your topic, field, and methodology. We generate a complete, properly numbered subsection structure for every chapter — exactly what your supervisor expects.' },
+    { icon: '📚', title: 'Real Citations, Auto-Formatted', description: 'Every citation verified from real academic sources. APA, MLA, Harvard, Chicago, or IEEE — formatted perfectly so your bibliography is submission-ready.' },
+    { icon: '🎯', title: 'Research Findings Built In', description: 'Upload your survey data and we build Chapter 4 with proper demographic tables, descriptive statistics, bar charts, pie charts, and line graphs — all referencing your actual numbers.' },
+    { icon: '📊', title: 'Professional Tables, Charts & Diagrams', description: 'Your thesis includes proper markdown tables, professional bar/line/pie charts, and conceptual framework diagrams — all numbered and captioned correctly.' },
+    { icon: '🔬', title: 'Data Collection Instruments', description: 'Generate questionnaires, interview guides, observation checklists, focus group protocols, and more — all tailored to your research design and methodology.' },
+    { icon: '🏛️', title: 'Your Personal Source Library', description: 'Upload research papers, extract their metadata automatically, build a literature matrix, and cross-reference everything from one place.' },
+    { icon: '⚡', title: 'Apply Supervisor Feedback Instantly', description: 'Got corrections from your supervisor? Paste their feedback and we update the section while preserving your citations, data, and structure.' },
+    { icon: '📄', title: 'One-Click Thesis Assembly', description: 'Merge all chapters into a complete .docx with title page, declaration, dedication, abstract, table of contents, list of figures, references, and appendices. Export as .docx, .pdf, .tex, or .md.' },
+    { icon: '🔍', title: 'Self-Review That Fixes Your Writing', description: 'Every subsection goes through an academic quality check — fixing banned phrases, improving sentence rhythm, and ensuring proper academic tone throughout.' },
+    { icon: '🛡️', title: 'Defence Preparation', description: 'Generate potential defence questions with model answers for every chapter. Practice with confidence and walk into your viva prepared.' },
+    { icon: '✅', title: 'Progress Tracking & Version History', description: 'See exactly how far along each chapter is. Every edit is saved — compare versions, restore previous drafts, and never lose your work.' },
   ];
 
   const testimonials = [
-    { name: 'Dr. Kwame Asare', role: 'PhD Graduate, KNUST', content: 'PAGYS took my thesis from scattered notes to a defendable draft in two weeks. The chapter structure feature alone saved me a whole semester.' },
-    { name: 'Grace Osei', role: 'MPhil Student, University of Ghana', content: 'I was stuck on my literature review for months. With PAGYS, I finished Chapter 2 in one weekend. The auto-citations are a lifesaver.' },
-    { name: 'Samuel Adeyemi', role: 'MSc Candidate, University of Lagos', content: 'My supervisor kept rejecting my drafts until I used PAGYS. The academic tone and proper referencing finally got me a green light.' },
-    { name: 'Ama Serwaa Bonsu', role: 'PhD Candidate, UPSA', content: 'Balancing work and thesis was impossible until I found this. The guided writing kept me on track and I submitted on time.' },
-    { name: 'Chidiebere Obi', role: 'Master\'s Student, University of Ibadan', content: 'Writing methodology chapter was a nightmare. PAGYS generated a solid quantitative framework that needed only minor tweaks.' },
-    { name: 'Nana Yaa Asantewaa', role: 'Final Year, Pentecost University', content: 'The humanise feature is pure gold. It turned robotic AI text into something that actually sounds like me.' },
-    { name: 'Emeka Okafor', role: 'PhD Researcher, Obafemi Awolowo University', content: 'I uploaded my messy chapter outline and PAGYS turned it into a structured thesis with proper headings and flow. Incredible.' },
-    { name: 'Mensah Nyarko', role: 'MPhil Student, University of Cape Coast', content: 'The citation verification tool caught errors I would have missed. My bibliography was acceptance-ready in minutes.' },
-    { name: 'Folake Adeleke', role: 'Master\'s Candidate, Covenant University', content: 'Exporting to PDF with all figures and references intact was seamless. My panel was impressed by the formatting.' },
-    { name: 'Kwesi Boateng', role: 'PhD Candidate, University of Ghana', content: 'From introduction to conclusion, PAGYS helped me write each chapter with confidence. I graduated with distinction. Worth every pesewa.' },
-    { name: 'Dr. Yakubu Ibrahim', role: 'Lecturer, Ahmadu Bello University', content: 'I recommend PAGYS to all my final-year students. It teaches them proper thesis structure while accelerating their writing.' },
-    { name: 'Akosua Manu', role: 'MPhil Graduate, KNUST', content: 'Three months of writer\'s block vanished after I started using PAGYS. The progressive writing approach kept me going every day.' },
+    { name: 'Anthony Mensah', role: 'PhD Graduate, KNUST', content: 'PAGYS took my thesis from scattered notes to a defendable draft in two weeks. The chapter structure alone saved me a full semester of work.' },
+    { name: 'Daniel Kekeli Glover', role: 'MPhil Student, University of Ghana', content: 'I was stuck on my literature review for months. I finished Chapter 2 in one weekend. The citation system is a lifesaver.' },
+    { name: 'Mary Osowochi', role: 'MSc Graduate, University of Lagos', content: 'My supervisor kept rejecting my drafts until I used PAGYS. The academic quality finally got me a green light on my first full submission.' },
+    { name: 'Patricia Amankwah', role: 'PhD Candidate, UPSA', content: 'Balancing full-time work with a thesis was impossible until I found this. The guided writing kept me on track and I submitted on time.' },
+    { name: 'Michael Ofori-Atta', role: "Master's Graduate, University of Ibadan", content: 'Writing the methodology chapter was a nightmare. This tool generated a solid quantitative framework that needed only minor tweaks.' },
+    { name: 'Sarah Aboagye', role: 'Final Year, Pentecost University', content: 'The text refinement feature is pure gold. It turned my rough drafts into something that actually reads like a proper academic paper.' },
+    { name: 'Emmanuel Asare', role: 'PhD Researcher, Obafemi Awolowo University', content: 'I uploaded my messy chapter outline and PAGYS turned it into a properly structured thesis with correct headings and logical flow. Incredible.' },
+    { name: 'Elizabeth Nartey', role: 'MPhil Student, University of Cape Coast', content: 'The citation verification caught errors I would have missed. My bibliography was acceptance-ready in minutes.' },
+    { name: 'Joseph Adjei', role: "Master's Graduate, Covenant University", content: 'Exporting to PDF with all figures, tables, and references intact was seamless. My panel was impressed by the formatting.' },
+    { name: 'Grace Lartey', role: 'PhD Candidate, University of Ghana', content: 'From introduction to conclusion, I wrote each chapter with confidence. Graduated with distinction. Worth every pesewa.' },
+    { name: 'Francis Nkrumah', role: 'Lecturer, Ahmadu Bello University', content: 'I recommend PAGYS to all my final-year students. It teaches proper thesis structure while dramatically accelerating the writing process.' },
+    { name: 'Linda Mensah-Bonsu', role: 'MPhil Graduate, KNUST', content: 'Three months of writer\'s block vanished after I started. The step-by-step approach kept me writing every single day until completion.' },
   ];
 
   const stats = [
@@ -87,7 +93,7 @@ const HomePage = () => {
             <span key={isDarkMode ? 'dark' : 'light'} style={{ background: `linear-gradient(135deg, ${colors.primary}, #9583b988)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>Like A Pro</span>
           </h1>
           <p style={{ fontSize: '18px', color: colors.textSecondary, maxWidth: '700px', margin: '0 auto 32px', lineHeight: '1.6' }}>
-            We help you write complete, well-structured thesis drafts tailored to your topic, field, and academic level. Save months of research and writing time.
+            From your research topic to a complete, submission-ready thesis — PAGYS walks you through every step. Structured outlines, verified academic references, professional tables and charts, and one-click document assembly. Everything you need, nothing you don't.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={handleGetStarted} style={heroButtonStyle}
@@ -114,8 +120,8 @@ const HomePage = () => {
 
       <div id="features" style={{ padding: '80px 20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>Everything You Need to Write Your Thesis</h2>
-          <p style={{ fontSize: '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '600px', margin: '0 auto 48px', lineHeight: '1.6' }}>No fluff, no clutter — just the tools that actually get your thesis done.</p>
+          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>Your Complete Thesis Toolkit</h2>
+          <p style={{ fontSize: '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '640px', margin: '0 auto 48px', lineHeight: '1.6' }}>Twelve features designed to take you from your research topic to a submission-ready thesis — no gaps, no guesswork.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '28px' }}>
             {features.map((feature, index) => (
               <FeatureCard key={index} icon={feature.icon} title={feature.title} description={feature.description} colors={colors} isDarkMode={isDarkMode} index={index} />

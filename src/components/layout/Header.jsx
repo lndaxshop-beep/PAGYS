@@ -7,7 +7,7 @@ import ProfileMenu from '../ProfileMenu';
 import useAppAuth from '../../hooks/useAppAuth';
 
 const Header = () => {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const { isLoggedIn, user, showProfileMenu, setShowProfileMenu, handleLogout } = useAppAuth();
 
   return (
@@ -24,7 +24,7 @@ const Header = () => {
       zIndex: 100,
       height: '72px'
     }}>
-      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0, margin: '0 0 0 -12px' }}><img src={logo} alt="PAGYS" style={{ height: '72px', width: 'auto', display: 'block' }} /></Link>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', flexShrink: 0, margin: '0 0 0 -12px' }}><img src={logo} alt="PAGYS" style={{ height: '72px', width: 'auto', display: 'block', filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /></Link>
       <div style={{ display: 'flex', gap: '24px', alignItems: 'center', height: '100%' }}>
         {isLoggedIn && (
           <>

@@ -4,86 +4,86 @@ import { CHART_TYPES } from '../utils/visualDataModel.js';
 
 const ACADEMIC_COLORS = ['#2C3E50', '#3498DB', '#27AE60', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E', '#16A085'];
 
-let chartInstance = null;
-
 const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
   const { colors, isDarkMode } = useTheme();
   const canvasRef = useRef(null);
+  const chartRef = useRef(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editType, setEditType] = useState(chartType || 'bar');
   const [editTitle, setEditTitle] = useState(title || '');
   const [editLabels, setEditLabels] = useState('');
   const [editValues, setEditValues] = useState('');
+  const [renderError, setRenderError] = useState(null);
+
+  const labels = data?.labels || [];
+  const values = data?.values || [];
+  const type = (chartType || 'bar').toLowerCase();
+  const dataKey = JSON.stringify({ labels, values, type });
 
   useEffect(() => {
-    if (canvasRef.current && data) {
-      renderChart();
-    }
-    return () => { if (chartInstance) { chartInstance.destroy(); chartInstance = null; } };
-  }, [data, chartType, isDarkMode]);
+    if (!canvasRef.current) return;
+    setRenderError(null);
+    if (type !== 'pie' && values.length < 2) { setRenderError('Need at least 2 data points'); return; }
+    if (type === 'pie' && values.length < 1) { setRenderError('Need at least 1 data point'); return; }
 
-  const renderChart = async () => {
-    const labels = data?.labels || [];
-    const values = data?.values || [];
-    const type = (chartType || 'bar').toLowerCase();
-    if (type !== 'pie' && values.length < 2) return;
-    if (type === 'pie' && values.length < 1) return;
-    try {
-      const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
-      Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
+    let cancelled = false;
+    const render = async () => {
+      try {
+        const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
+        Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
 
-      if (chartInstance) { chartInstance.destroy(); }
+        if (cancelled) return;
+        if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
 
-      const labels = data?.labels || [];
-      const values = data?.values || [];
-      const type = (chartType || 'bar').toLowerCase();
-      const isHoriz = type === 'horizontalBar';
-
-      const config = {
-        type: isHoriz ? 'bar' : type,
-        data: {
-          labels,
-          datasets: [{
-            data: values,
-            backgroundColor: type === 'pie' ? ACADEMIC_COLORS.slice(0, values.length) : (isHoriz || type === 'bar' ? ACADEMIC_COLORS.slice(0, values.length) : ACADEMIC_COLORS[0]),
-            borderColor: type === 'pie' ? '#ffffff' : ACADEMIC_COLORS[0],
-            borderWidth: type === 'pie' ? 2 : 0,
-            pointBackgroundColor: ACADEMIC_COLORS[0],
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            borderRadius: isHoriz || type === 'bar' ? 4 : 0,
-            barThickness: isHoriz || type === 'bar' ? 50 : undefined,
-          }]
-        },
-        options: {
-          indexAxis: isHoriz ? 'y' : 'x',
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: type === 'pie', position: 'right', labels: { font: { family: 'Times New Roman, serif', size: 13 }, usePointStyle: true, color: colors.text } },
-            title: { display: false },
-            tooltip: { backgroundColor: colors.surface, titleColor: colors.text, bodyColor: colors.text, borderColor: colors.border, borderWidth: 1 }
+        const isHoriz = type === 'horizontalBar';
+        const config = {
+          type: isHoriz ? 'bar' : type,
+          data: {
+            labels,
+            datasets: [{
+              data: values,
+              backgroundColor: type === 'pie' ? ACADEMIC_COLORS.slice(0, values.length) : (isHoriz || type === 'bar' ? ACADEMIC_COLORS.slice(0, values.length) : ACADEMIC_COLORS[0]),
+              borderColor: type === 'pie' ? '#ffffff' : ACADEMIC_COLORS[0],
+              borderWidth: type === 'pie' ? 2 : 0,
+              pointBackgroundColor: ACADEMIC_COLORS[0],
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderRadius: isHoriz || type === 'bar' ? 4 : 0,
+              barThickness: isHoriz || type === 'bar' ? 50 : undefined,
+            }]
           },
-          scales: type !== 'pie' ? {
-            x: { grid: { display: true, color: isDarkMode ? '#374151' : '#e5e7eb' }, ticks: { font: { family: 'Times New Roman, serif', size: 12 }, color: colors.text } },
-            y: { beginAtZero: true, grid: { display: true, color: isDarkMode ? '#374151' : '#e5e7eb' }, ticks: { font: { family: 'Times New Roman, serif', size: 12 }, color: colors.text } }
-          } : {}
-        }
-      };
+          options: {
+            indexAxis: isHoriz ? 'y' : 'x',
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { display: type === 'pie', position: 'right', labels: { font: { family: 'Times New Roman, serif', size: 13 }, usePointStyle: true, color: colors.text } },
+              title: { display: false },
+              tooltip: { backgroundColor: colors.surface, titleColor: colors.text, bodyColor: colors.text, borderColor: colors.border, borderWidth: 1 }
+            },
+            scales: type !== 'pie' ? {
+              x: { grid: { display: true, color: isDarkMode ? '#374151' : '#e5e7eb' }, ticks: { font: { family: 'Times New Roman, serif', size: 12 }, color: colors.text } },
+              y: { beginAtZero: true, grid: { display: true, color: isDarkMode ? '#374151' : '#e5e7eb' }, ticks: { font: { family: 'Times New Roman, serif', size: 12 }, color: colors.text } }
+            } : {}
+          }
+        };
 
-      chartInstance = new Chart(canvasRef.current, config);
-    } catch (err) {
-      console.error('Chart render error:', err);
-    }
-  };
+        if (!cancelled) chartRef.current = new Chart(canvasRef.current, config);
+      } catch (err) {
+        if (!cancelled) { console.error('Chart render error:', err); setRenderError(err.message); }
+      }
+    };
+    render();
+    return () => { cancelled = true; if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
+  }, [dataKey, isDarkMode, colors.text]);
 
   const handleEdit = () => {
     setEditType(chartType || 'bar');
     setEditTitle(title || '');
-    setEditLabels((data?.labels || []).join(', '));
-    setEditValues((data?.values || []).join(', '));
+    setEditLabels((labels || []).join(', '));
+    setEditValues((values || []).join(', '));
     setShowEditor(true);
   };
 
@@ -98,10 +98,7 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
   };
 
   return (
-    <div style={{
-      backgroundColor: colors.surface, borderRadius: '12px', padding: '24px',
-      marginBottom: '24px', border: `1px solid ${colors.border}`
-    }}>
+    <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div>
           {title && <h4 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '4px' }}>{title}</h4>}
@@ -139,10 +136,22 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
         </div>
       )}
 
-      <div style={{ position: 'relative' }}>
-        <canvas ref={canvasRef} style={{ width: '100%', maxHeight: '400px' }} />
-        {(!data || !data.labels || data.labels.length === 0) && (
-          <p style={{ textAlign: 'center', color: colors.textSecondary, padding: '40px' }}>No chart data</p>
+      <div style={{ position: 'relative', minHeight: '100px' }}>
+        {renderError ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: isDarkMode ? '#9ca3af' : '#6b7280' }}>
+            <p style={{ margin: '0 0 12px', fontWeight: '500' }}>📊 {title || 'Chart'}</p>
+            <table style={{ margin: '0 auto', fontSize: '13px', borderCollapse: 'collapse' }}>
+              <thead><tr>{labels.map((l, i) => <th key={i} style={{ padding: '4px 12px', borderBottom: '1px solid #d1d5db', fontWeight: '600' }}>{l}</th>)}</tr></thead>
+              <tbody><tr>{values.map((v, i) => <td key={i} style={{ padding: '4px 12px', textAlign: 'center' }}>{v}</td>)}</tr></tbody>
+            </table>
+          </div>
+        ) : (
+          <>
+            <canvas ref={canvasRef} style={{ width: '100%', maxHeight: '400px' }} />
+            {labels.length === 0 && (
+              <p style={{ textAlign: 'center', color: colors.textSecondary, padding: '40px' }}>No chart data</p>
+            )}
+          </>
         )}
       </div>
     </div>

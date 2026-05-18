@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { DIAGRAM_TYPES } from '../utils/visualDataModel.js';
 
-const NODE_COLORS = { independent: '#3498DB', dependent: '#27AE60', mediating: '#F39C12', moderating: '#E74C3C' };
+const NODE_COLORS = { independent: '#3498DB', dependent: '#27AE60', mediating: '#F39C12', moderating: '#E74C3C', default: '#3498DB' };
 
 const DiagramRenderer = ({ diagramData, title, onEdit }) => {
   const { colors, isDarkMode } = useTheme();
@@ -23,6 +23,43 @@ const DiagramRenderer = ({ diagramData, title, onEdit }) => {
 
   const getAutoLayout = useCallback(() => {
     if (!data) return {};
+
+    if (data.diagramType === 'hierarchy' && data.hierarchy?.length > 0) {
+      const hierarchy = data.hierarchy;
+      const allNodes = [...new Set(hierarchy.flatMap(e => [e.from, e.to]))];
+      const children = {};
+      const parents = {};
+      for (const edge of hierarchy) {
+        (children[edge.from] = children[edge.from] || []).push(edge.to);
+        parents[edge.to] = edge.from;
+      }
+      const roots = allNodes.filter(n => !parents[n]);
+      const levels = [];
+      const assignLevel = (node, depth) => {
+        if (!levels[depth]) levels[depth] = [];
+        levels[depth].push(node);
+        for (const child of (children[node] || [])) assignLevel(child, depth + 1);
+      };
+      for (const root of roots) assignLevel(root, 0);
+
+      const w = 180;
+      const h = 50;
+      const levelGap = 120;
+      const startY = 30;
+      const positions = {};
+
+      for (let li = 0; li < levels.length; li++) {
+        const nodes = levels[li];
+        const totalW = nodes.length * w + (nodes.length - 1) * 30;
+        let startX = Math.max(10, (800 - totalW) / 2);
+        for (const node of nodes) {
+          positions[`node_${node}`] = { x: startX, y: startY + li * levelGap, label: node, type: 'default', w, h };
+          startX += w + 30;
+        }
+      }
+      return positions;
+    }
+
     const positions = {};
     const w = 200;
     const h = 50;
@@ -143,6 +180,14 @@ const DiagramRenderer = ({ diagramData, title, onEdit }) => {
       }
       for (const mv of medPos) {
         for (const dv of dvPos) drawArrow(mv.x + mv.w / 2, mv.y + mv.h / 2, dv.x + dv.w / 2, dv.y + dv.h / 2);
+      }
+    }
+
+    if (data.hierarchy?.length > 0) {
+      for (const edge of data.hierarchy) {
+        const from = Object.values(positions).find(p => p.label === edge.from);
+        const to = Object.values(positions).find(p => p.label === edge.to);
+        if (from && to) drawArrow(from.x + from.w / 2, from.y + from.h, to.x + to.w / 2, to.y);
       }
     }
 

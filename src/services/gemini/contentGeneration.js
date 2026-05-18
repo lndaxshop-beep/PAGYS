@@ -192,12 +192,19 @@ Example: [CHART: bar | Satisfaction Levels | Very Satisfied: 45, Satisfied: 30, 
   H2: Variable2 → Variable4
 ]
 
+For hierarchical structures (org charts, governance, classifications), use:
+[FRAMEWORK: Title
+  Hierarchy: Parent → Child1, Child2
+  Hierarchy: Child1 → Grandchild
+]
+
 **GUIDELINES:**
 - Place each visual on its own line between paragraphs
 - Reference each visual in the text: "As Table X shows", "Figure Y illustrates"
 - All data in tables and charts must come from the research findings provided
 - For Chapter 4 especially: every claim should be backed by a table or chart showing the actual data
 - Do NOT use code fences (\`\`\`) for visuals — use the formats above
+- **CRITICAL: NEVER draw text-based diagrams using ASCII characters (├, ──, └, │, etc.). If a visual format does not fit your content, describe the relationship in plain text instead.**
 
 ${structureInstruction}
 ${promptData.childrenTopics?.length > 0 ? `

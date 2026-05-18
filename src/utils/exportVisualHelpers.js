@@ -101,11 +101,89 @@ export const renderDiagramToPng = (diagramData) => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
 
-    const title = diagramData.title || 'Conceptual Framework';
+    const title = diagramData.title || 'Diagram';
     ctx.fillStyle = '#2C3E50';
     ctx.font = 'bold 30px Times New Roman, serif';
     ctx.textAlign = 'center';
     ctx.fillText(title, w / 2, 50);
+
+    if (diagramData.diagramType === 'hierarchy' && diagramData.hierarchy?.length > 0) {
+      const hierarchy = diagramData.hierarchy;
+      const allNodes = [...new Set(hierarchy.flatMap(e => [e.from, e.to]))];
+      const children = {};
+      const parents = {};
+      for (const edge of hierarchy) {
+        (children[edge.from] = children[edge.from] || []).push(edge.to);
+        parents[edge.to] = edge.from;
+      }
+      const roots = allNodes.filter(n => !parents[n]);
+      const levels = [];
+      const assignLevel = (node, depth) => {
+        if (!levels[depth]) levels[depth] = [];
+        levels[depth].push(node);
+        for (const child of (children[node] || [])) assignLevel(child, depth + 1);
+      };
+      for (const root of roots) assignLevel(root, 0);
+
+      const boxW = Math.min(200, w * 0.22);
+      const boxH = 44;
+      const levelGap = 120;
+      const startY = 100;
+      const nodePositions = {};
+
+      for (let li = 0; li < levels.length; li++) {
+        const nodes = levels[li];
+        const totalW = nodes.length * boxW + (nodes.length - 1) * 30;
+        let startX = (w - totalW) / 2;
+        for (const node of nodes) {
+          nodePositions[node] = { x: startX, y: startY + li * levelGap, w: boxW, h: boxH };
+          startX += boxW + 30;
+        }
+      }
+
+      ctx.textBaseline = 'middle';
+      for (const [node, pos] of Object.entries(nodePositions)) {
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#3498DB';
+        ctx.beginPath();
+        ctx.roundRect(pos.x, pos.y, pos.w, pos.h, 6);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 15px Times New Roman, serif';
+        ctx.textAlign = 'center';
+        const label = node.length > 25 ? node.substring(0, 23) + '..' : node;
+        ctx.fillText(label, pos.x + pos.w / 2, pos.y + pos.h / 2);
+      }
+
+      const drawArrow = (x1, y1, x2, y2) => {
+        ctx.beginPath();
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.fillStyle = '#666';
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 10 * Math.cos(angle - 0.4), y2 - 10 * Math.sin(angle - 0.4));
+        ctx.lineTo(x2 - 10 * Math.cos(angle + 0.4), y2 - 10 * Math.sin(angle + 0.4));
+        ctx.closePath();
+        ctx.fill();
+      };
+
+      for (const edge of hierarchy) {
+        const from = nodePositions[edge.from];
+        const to = nodePositions[edge.to];
+        if (from && to) {
+          drawArrow(from.x + from.w / 2, from.y + from.h, to.x + to.w / 2, to.y);
+        }
+      }
+
+      return canvasToPngBuffer(canvas);
+    }
 
     const ivX = w * 0.08;
     const dvX = w * 0.75;

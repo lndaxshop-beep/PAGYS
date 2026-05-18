@@ -2,7 +2,7 @@ export const VISUAL_TYPES = { TABLE: 'table', CHART: 'chart', DIAGRAM: 'diagram'
 
 export const CHART_TYPES = { BAR: 'bar', LINE: 'line', PIE: 'pie', HORIZONTAL_BAR: 'horizontalBar' };
 
-export const DIAGRAM_TYPES = { FRAMEWORK: 'framework', FLOWCHART: 'flowchart' };
+export const DIAGRAM_TYPES = { FRAMEWORK: 'framework', FLOWCHART: 'flowchart', HIERARCHY: 'hierarchy' };
 
 export const makeTable = (headers, rows, caption) => ({ type: VISUAL_TYPES.TABLE, headers, rows, caption: caption || '' });
 
@@ -11,11 +11,11 @@ export const makeChart = (chartType, title, labels, values, caption) => ({
   labels: labels || [], values: values || [], caption: caption || ''
 });
 
-export const makeDiagram = (diagramType, title, independent, dependent, mediating, moderating, relationships) => ({
+export const makeDiagram = (diagramType, title, independent, dependent, mediating, moderating, relationships, hierarchy) => ({
   type: VISUAL_TYPES.DIAGRAM, diagramType: diagramType || DIAGRAM_TYPES.FRAMEWORK, title: title || '',
   independent: independent || [], dependent: dependent || [],
   mediating: mediating || [], moderating: moderating || [],
-  relationships: relationships || []
+  relationships: relationships || [], hierarchy: hierarchy || []
 });
 
 export const CHART_MARKER_RE = /\[CHART:\s*(bar|line|pie|horizontalBar)\s*\|\s*([^|]*)\s*\|\s*(.+?)\s*\]/i;
@@ -44,23 +44,30 @@ export const FRAMEWORK_MARKER_RE = /\[FRAMEWORK:\s*(.*?)\]/i;
 
 export const parseFrameworkBlock = (text) => {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  let title = '', independent = [], dependent = [], mediating = [], moderating = [], relationships = [];
-  let currentSection = '';
+  let title = '', independent = [], dependent = [], mediating = [], moderating = [], relationships = [], hierarchy = [];
   for (const line of lines) {
     const headerMatch = line.match(/^\[FRAMEWORK:\s*(.+?)\]$/i);
     if (headerMatch) { title = headerMatch[1].trim(); continue; }
     if (line.startsWith('Title:')) { title = line.replace('Title:', '').trim(); continue; }
-    if (line.startsWith('Independent:')) { currentSection = 'independent'; independent = line.replace('Independent:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
-    if (line.startsWith('Dependent:')) { currentSection = 'dependent'; dependent = line.replace('Dependent:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
-    if (line.startsWith('Mediating:')) { currentSection = 'mediating'; mediating = line.replace('Mediating:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
-    if (line.startsWith('Moderating:')) { currentSection = 'moderating'; moderating = line.replace('Moderating:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
-    if (line.startsWith('Hypothesis:') || line.startsWith('H') && line.includes(':')) {
+    if (line.startsWith('Hierarchy:')) {
+      const parts = line.replace('Hierarchy:', '').split('→').map(s => s.trim()).filter(Boolean);
+      for (let i = 0; i < parts.length - 1; i++) {
+        hierarchy.push({ from: parts[i], to: parts[i + 1] });
+      }
+      continue;
+    }
+    if (line.startsWith('Independent:')) { independent = line.replace('Independent:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Dependent:')) { dependent = line.replace('Dependent:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Mediating:')) { mediating = line.replace('Mediating:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Moderating:')) { moderating = line.replace('Moderating:', '').split(',').map(s => s.trim()).filter(Boolean); continue; }
+    if (line.startsWith('Hypothesis:') || (line.startsWith('H') && line.includes(':'))) {
       const hl = line.replace(/^H\d+[:\s]*/i, '').trim();
       const arrowParts = hl.split('→').map(s => s.trim()).filter(Boolean);
       if (arrowParts.length >= 2) relationships.push({ from: arrowParts[0], to: arrowParts[arrowParts.length - 1], label: '' });
       continue;
     }
   }
+  if (hierarchy.length > 0) return makeDiagram(DIAGRAM_TYPES.HIERARCHY, title, [], [], [], [], [], hierarchy);
   if (relationships.length === 0) {
     for (const iv of independent) {
       for (const dv of dependent) relationships.push({ from: iv, to: dv, label: '' });

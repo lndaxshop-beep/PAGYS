@@ -5,11 +5,14 @@ import { getWelcomeMessage } from '../../utils/dashboardHelpers';
 
 const DashboardHeader = ({ user, showRecycleBin, onToggleRecycleBin, onCreateProject, deletedCount }) => {
   const { colors } = useTheme();
+  const welcome = getWelcomeMessage(user);
+  const message = typeof welcome === 'object' ? welcome.text : welcome;
+  const isFirstVisit = typeof welcome === 'object' ? welcome.isFirstVisit : true;
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
       <div>
         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>
-          {getWelcomeMessage(user)}
+          {message}
         </h1>
         <p style={{ color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
           {user?.country && (
@@ -19,7 +22,7 @@ const DashboardHeader = ({ user, showRecycleBin, onToggleRecycleBin, onCreatePro
               <span style={{ margin: '0 8px', color: colors.border }}>•</span>
             </>
           )}
-          Continue your thesis from where you left off.
+          {isFirstVisit ? 'Start a new project.' : 'Continue from where you left off.'}
         </p>
       </div>
       <div style={{ display: 'flex', gap: '12px' }}>

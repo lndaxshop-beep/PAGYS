@@ -23,7 +23,8 @@ export const getDisplayName = (user) => {
 
 export const getWelcomeMessage = (user) => {
   const name = getDisplayName(user);
-  const visited = localStorage.getItem('hasVisitedBefore');
-  if (!visited) { localStorage.setItem('hasVisitedBefore', 'true'); return `Welcome, ${name}! 🎉`; }
-  return `Welcome back, ${name}! 👋`;
+  if (!user?.uid) return `Welcome, ${name}! 👋`;
+  const visited = localStorage.getItem(`hasVisitedBefore_${user.uid}`);
+  if (!visited) { localStorage.setItem(`hasVisitedBefore_${user.uid}`, 'true'); return { text: `You're welcome, ${name}!`, isFirstVisit: true }; }
+  return { text: `Welcome back, ${name}!`, isFirstVisit: false };
 };

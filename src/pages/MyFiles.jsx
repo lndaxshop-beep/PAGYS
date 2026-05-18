@@ -85,7 +85,8 @@ const MyFiles = () => {
         subsections: content[ch.id] ? Object.keys(content[ch.id]).filter(k => !['references','complete','fullChapter'].includes(k)) : [],
         references: refs[ch.id]?.citations || [],
         hasReferences: content[ch.id]?.references ? true : false,
-        generated: hasGeneratedContent(content[ch.id])
+        generated: hasGeneratedContent(content[ch.id]),
+        completed: ch.completed || false
       });
       setChapters(savedChapters.map(mkChapter));
     } catch (e) { console.error('Error loading chapters for project:', e); }
@@ -355,14 +356,15 @@ const MyFiles = () => {
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                           {ch.id === 'proposal' && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#5b21b6' : '#ede9fe', color: isDarkMode ? '#ddd6fe' : '#6d28d9' }}>Proposal</span>}
                           {!ch.generated && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#92400e' : '#fef3c7', color: isDarkMode ? '#fde68a' : '#b45309' }}>Not generated</span>}
-                          {ch.generated && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#064e3b' : '#d1fae5', color: isDarkMode ? '#a7f3d0' : '#047857' }}>✓ Ready to download</span>}
+                          {ch.generated && !ch.completed && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#92400e' : '#fef3c7', color: isDarkMode ? '#fde68a' : '#b45309' }}>In progress</span>}
+                          {ch.completed && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '999px', backgroundColor: isDarkMode ? '#064e3b' : '#d1fae5', color: isDarkMode ? '#a7f3d0' : '#047857' }}>✓ Completed</span>}
                           <span style={{ fontSize: '11px', color: colors.textSecondary }}>📝 {ch.wordCount} words</span>
                           {ch.subsections.length > 0 && <span>📄 {ch.subsections.length} subsections</span>}
                           {ch.hasReferences && <span style={{ color: '#059669' }}>📚 References</span>}
                         </div>
                       </div>
                     </div>
-                    {ch.generated && <button onClick={(e) => { e.stopPropagation(); downloadChapter(ch); }} disabled={preparingDownload} style={{ backgroundColor: colors.primary, color: 'white', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>📄 Download</button>}
+                    {ch.completed && <button onClick={(e) => { e.stopPropagation(); downloadChapter(ch); }} disabled={preparingDownload} style={{ backgroundColor: colors.primary, color: 'white', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>📄 Download</button>}
                   </div>
                   {expandedChapter === ch.id && (
                     <div style={{ padding: '16px', backgroundColor: colors.background }}>

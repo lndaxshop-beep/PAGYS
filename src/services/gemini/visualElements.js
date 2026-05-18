@@ -33,7 +33,7 @@ export const generateResearchDesignFlowchart = async (projectData) => {
 export const generateDataTable = async (subsectionTitle, projectData, findings) => {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
-    const findingsContext = findings ? `\n\nREAL RESEARCH FINDINGS:\n${JSON.stringify(findings).substring(0, 5000)}` : '';
+    const findingsContext = findings ? `\n\nREAL RESEARCH FINDINGS:\n${JSON.stringify(findings).substring(0, 20000)}` : '';
     const prompt = `Generate realistic data for a results table.\n\nTopic: ${projectData?.topic || projectData?.title}\nSubsection: ${subsectionTitle}\nMethodology: ${projectData?.methodology || 'quantitative'}${findingsContext}\n\n${TABLE_RULES}\n\nReturn a markdown table with 4-6 rows of realistic data based on the research findings provided. Use proper column headers and realistic values.`;
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
@@ -43,7 +43,7 @@ export const generateDataTable = async (subsectionTitle, projectData, findings) 
 export const generateChartData = async (chartType, subsectionTitle, projectData, findings) => {
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
-    const findingsContext = findings ? `\n\nREAL RESEARCH FINDINGS:\n${JSON.stringify(findings).substring(0, 5000)}` : '';
+    const findingsContext = findings ? `\n\nREAL RESEARCH FINDINGS:\n${JSON.stringify(findings).substring(0, 20000)}` : '';
     const prompt = `Generate data for a ${chartType} chart.\n\nTopic: ${projectData?.topic || projectData?.title}\nSubsection: ${subsectionTitle}${findingsContext}\n\nReturn in this exact format:\n[CHART: ${chartType} | Chart Title | Label1: value, Label2: value, Label3: value, ...]\n\nUse REAL data values from the research findings. For pie charts, values should sum to 100.`;
     const result = await model.generateContent(prompt);
     return result.response.text().trim();

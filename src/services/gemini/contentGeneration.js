@@ -98,16 +98,17 @@ export const generateAcademicContent = async (promptData) => {
         theoreticalFramework: s.theoreticalFramework
       })), null, 2);
       sourceModeInstruction = `
-## USER-PROVIDED SOURCES (MANDATORY — USE ONLY THESE)
-The student has uploaded the following papers to be used as sources. You MUST use ONLY these sources for ALL citations in your response.
+## USER-PROVIDED SOURCES (MANDATORY)
+The student has uploaded the following papers. These are the ONLY sources you may cite.
 ${sourcesJson.substring(0, 15000)}
 
 ### USER SOURCE RULES
-- EVERY citation MUST come from these user-provided sources — do NOT use Google Search Grounding.
-- Reference each source by the author and year as listed above.
-- When discussing a finding or concept, cite the specific source that contains it.
-- If no user source covers a needed point, make the argument without a citation rather than fabricating one.
-- At least 2 different user sources should be cited across the subsection.`;
+- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
+- You MUST find and cite from the REAL published paper — not just the title and authors listed here.
+- If Google Search Grounding cannot find a specific paper after trying, do NOT cite it.
+- At least 2 different sources must be cited across the subsection.
+- When discussing a concept or finding, reference the specific source: (Author, Year).
+- Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`;
     } else if (promptData.sourceMode === 'combine' && promptData.userSources?.length > 0) {
       const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
         title: s.title, authors: s.authors, year: s.year,
@@ -120,10 +121,10 @@ The student has uploaded the following papers. PRIORITIZE these sources for cita
 ${sourcesJson.substring(0, 15000)}
 
 ### COMBINED SOURCE RULES
-- FIRST check the user-provided sources for each claim.
-- If the user sources cover a point, cite them.
-- Supplement with Google Search Grounding only where user sources do not provide sufficient support.
-- At least 60% of citations should come from user-provided sources.`;
+- Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
+- Supplement with additional sources found via Google Search Grounding where user sources do not provide sufficient coverage.
+- At least 60% of citations should come from the user's papers.
+- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`;
     }
 
     const prompt = `You are an advanced academic writing assistant helping a ${promptData.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.

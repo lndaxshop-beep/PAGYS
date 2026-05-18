@@ -3,9 +3,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrency } from '../../hooks/useCurrency';
 import { PRICES_USD } from '../../constants/pricing';
 
-const ProjectCard = ({ project, progress, progressLoading, onContinue, onDelete, onUpgrade, isDeleting }) => {
+const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgrade }) => {
   const { colors, isDarkMode } = useTheme();
   const { fmt } = useCurrency();
+  const progress = project.progress || 0;
   const isComplete = progress === 100 && project.status === 'complete';
   const isPremium = project.tier === 'premium' || project.isPremium;
 

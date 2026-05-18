@@ -53,7 +53,7 @@ export const parseContentBlocks = (content) => {
       const cleaned = currentHtml.trim();
       if (cleaned) {
         const strippedHtml = cleaned.replace(/<[^>]+>/g, '').trim();
-        if (!lastVisualTitle || strippedHtml.length < 5 || similarity(strippedHtml, lastVisualTitle) < 0.6) {
+        if (!lastVisualTitle || strippedHtml.length < 5 || similarity(strippedHtml, lastVisualTitle) < 0.85) {
           blocks.push({ type: 'text', html: cleaned });
         }
       }
@@ -66,7 +66,7 @@ export const parseContentBlocks = (content) => {
       const prev = blocks[blocks.length - 1];
       if (prev.type === 'text') {
         const stripped = (prev.html || '').replace(/<[^>]+>/g, '').trim();
-        if (stripped.length >= 5 && similarity(stripped, visualBlock.title) >= 0.6) {
+        if (stripped.length >= 5 && similarity(stripped, visualBlock.title) >= 0.85) {
           blocks.pop();
         }
       }
@@ -129,6 +129,8 @@ export const parseContentBlocks = (content) => {
       const parsed = parseChartMarker(line);
       if (parsed) {
         pushVisual({ type: 'chart', chartType: parsed.chartType, labels: parsed.labels, values: parsed.values, title: parsed.title, caption: parsed.caption, originalText: line });
+      } else {
+        currentHtml += `<p>${line}</p>`;
       }
       continue;
     }

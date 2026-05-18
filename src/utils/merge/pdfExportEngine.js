@@ -7,8 +7,8 @@ import {
 } from './frontMatterGenerator.js';
 import { collectFiguresAndTables } from './chapterContentParser.js';
 import { buildInstrumentAppendix, loadInstruments } from './instrumentExporter.js';
-import { renderChartToPng } from '../exportVisualHelpers.js';
-import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock } from '../visualDataModel.js';
+import { renderChartToPng, renderDiagramToPng } from '../exportVisualHelpers.js';
+import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable } from '../visualDataModel.js';
 
 const CHART_INLINE_RE = /\[CHART:\{(.*?)\}\]/;
 
@@ -265,12 +265,11 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
         continue;
       }
 
-      const frameworkMatch = trimmed.match(FRAMEWORK_MARKER_RE);
-      if (frameworkMatch) {
+      const frameworkStart = trimmed.match(FRAMEWORK_MARKER_RE);
+      if (frameworkStart && trimmed.match(/\]\s*$/)) {
         try {
           const diagramData = parseFrameworkBlock(trimmed);
           if (diagramData) {
-            const { renderDiagramToPng } = await import('../exportVisualHelpers.js');
             const pngBuf = renderDiagramToPng(diagramData);
             if (pngBuf) {
               htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="${escapeHtml(diagramData.title || 'Diagram')}" />`);
@@ -278,6 +277,52 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
             }
           }
         } catch { /* skip */ }
+        continue;
+      }
+
+      if (frameworkStart) {
+        let fb = trimmed;
+        while (i < lines.length) {
+          const next = lines[i].trim();
+          fb += '\n' + next;
+          i++;
+          if (next.match(/\]\s*$/)) break;
+        }
+        try {
+          const diagramData = parseFrameworkBlock(fb);
+          if (diagramData) {
+            const pngBuf = renderDiagramToPng(diagramData);
+            if (pngBuf) {
+              htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="${escapeHtml(diagramData.title || 'Diagram')}" />`);
+              if (diagramData.title) htmlParts.push(`<p class="caption">${escapeHtml(diagramData.title)}</p>`);
+            }
+          }
+        } catch { /* skip */ }
+        continue;
+      }
+
+      if (markdownTableRe.test(trimmed)) {
+        const tblLines = [trimmed];
+        let nextLine = i < lines.length ? lines[i].trim() : '';
+        while (i < lines.length && markdownTableRe.test(nextLine)) {
+          tblLines.push(nextLine);
+          i++;
+          nextLine = i < lines.length ? lines[i].trim() : '';
+        }
+        const parsed = parseMarkdownTable(tblLines);
+        if (parsed && parsed.headers.length > 0) {
+          htmlParts.push('<table class="data-table">');
+          htmlParts.push('<thead><tr>' + parsed.headers.map(h => `<th>${escapeHtml(String(h))}</th>`).join('') + '</tr></thead>');
+          htmlParts.push('<tbody>');
+          for (const row of parsed.rows) {
+            htmlParts.push('<tr>' + row.map(c => `<td>${escapeHtml(String(c))}</td>`).join('') + '</tr>');
+          }
+          htmlParts.push('</tbody></table>');
+          if (nextLine && nextLine.match(/^(Table|Figure)\s+\d+\.\d+:/i)) {
+            htmlParts.push(`<p class="caption">${escapeHtml(nextLine)}</p>`);
+            i++;
+          }
+        }
         continue;
       }
 

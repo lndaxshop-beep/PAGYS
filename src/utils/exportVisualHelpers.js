@@ -334,8 +334,11 @@ export const renderDiagramToPng = (diagramData) => {
 };
 
 const findNodeCenter = (nodes, name) => {
+  if (!name) return null;
   return nodes.find(n => {
-    return true;
+    if (typeof n.label === 'string' && n.label.toLowerCase() === name.toLowerCase()) return true;
+    if (typeof n.text === 'string' && n.text.toLowerCase() === name.toLowerCase()) return true;
+    return false;
   });
 };
 

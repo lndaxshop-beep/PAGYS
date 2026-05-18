@@ -191,7 +191,8 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
         tableBuffer.push(trimmed);
         continue;
       } else if (inTable) {
-        const captionResult = flushTable(trimmed);
+        const isCaptionLine = trimmed.match(/^(Table|Figure)\s+\d+\.\d+:\s*/i);
+        const captionResult = flushTable(isCaptionLine ? trimmed : null);
         if (captionResult) lastCaption = captionResult;
       }
 
@@ -316,7 +317,7 @@ export const collectFiguresAndTables = (generatedSubsections, selectedChapters) 
               if (captionLineMatch && captionLineMatch[1]) caption = captionLineMatch[2].trim();
             }
             tblSeq++;
-            tables.push({ chapterNum, seq: tblSeq, title: caption || `Table ${chapterNum}.${tblSeq + 1}`, caption });
+            tables.push({ chapterNum, seq: tblSeq, title: caption || `Table ${chapterNum}.${tblSeq}`, caption });
           }
           mdTableLines = [];
         }

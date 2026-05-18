@@ -81,6 +81,50 @@ export const parseFrameworkBlock = (text) => {
 
 export const markdownTableRe = /^\|.+\|$/;
 
+const PLAIN_HIERARCHY_LINE_RE = /^(Figure|Table)\s+\d+\.\d+:/i;
+
+export const detectPlainTextHierarchy = (text) => {
+  if (!text || typeof text !== 'string') return null;
+  const lines = text.split('\n');
+  let bestStart = -1, bestTitle = '', bestChildren = [];
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || PLAIN_HIERARCHY_LINE_RE.test(trimmed)) continue;
+    if (/^[-•]\s/.test(trimmed)) continue;
+    const children = [];
+    let j = i + 1;
+    while (j < lines.length) {
+      const childLine = lines[j].trim();
+      if (!childLine) { j++; continue; }
+      if (/^[-•]\s/.test(childLine)) {
+        children.push(childLine.replace(/^[-•]\s+/, '').trim());
+        j++;
+      } else if (PLAIN_HIERARCHY_LINE_RE.test(childLine) || !childLine) {
+        j++;
+      } else break;
+    }
+    if (children.length >= 2) {
+      const titleLine = i > 0 ? lines[i - 1].trim() : '';
+      const title = PLAIN_HIERARCHY_LINE_RE.test(titleLine) ? titleLine.replace(/^(Figure|Table)\s+\d+\.\d+:\s*/i, '').trim() : trimmed;
+      if (children.length > bestChildren.length) { bestStart = i; bestTitle = title; bestChildren = children; }
+    }
+  }
+  if (bestChildren.length < 2) return null;
+  const frameworkLines = [`[FRAMEWORK: ${bestTitle}`];
+  const parent = lines[bestStart].trim();
+  if (parent && !PLAIN_HIERARCHY_LINE_RE.test(parent) && parent !== bestTitle && !/^[-•]\s/.test(parent)) {
+    const firstChild = bestChildren.shift();
+    if (firstChild) frameworkLines.push(`  Hierarchy: ${parent} → ${firstChild}`);
+    for (const child of bestChildren) frameworkLines.push(`  Hierarchy: ${parent} → ${child}`);
+  } else {
+    for (let ci = 0; ci < bestChildren.length - 1; ci++) {
+      frameworkLines.push(`  Hierarchy: ${bestChildren[ci]} → ${bestChildren[ci + 1]}`);
+    }
+  }
+  frameworkLines.push(']');
+  return frameworkLines.join('\n');
+};
+
 export const parseMarkdownTable = (lines) => {
   if (!lines || lines.length < 2) return null;
   const headerLine = lines[0];

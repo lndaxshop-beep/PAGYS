@@ -2,7 +2,7 @@ import React from 'react';
 import ChartRenderer from '../components/ChartRenderer';
 import TableRenderer from '../components/TableRenderer';
 import DiagramRenderer from '../components/DiagramRenderer';
-import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable } from './visualDataModel.js';
+import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable, detectPlainTextHierarchy } from './visualDataModel.js';
 
 export const calculateOverallProgress = (chapters, generatedSubsections) => {
   let total = 0, generated = 0;
@@ -36,7 +36,10 @@ const ContentRenderer = ({ content, colors }) => {
 
 export const parseContentBlocks = (content) => {
   if (!content) return [];
-  const lines = content.split('\n');
+  let processedContent = content;
+  const plainHierarchy = detectPlainTextHierarchy(content);
+  if (plainHierarchy) processedContent = content + '\n\n' + plainHierarchy;
+  const lines = processedContent.split('\n');
   const blocks = [];
   let currentHtml = '';
   let inTable = false;

@@ -205,6 +205,7 @@ For hierarchical structures (org charts, governance, classifications), use:
 - For Chapter 4 especially: every claim should be backed by a table or chart showing the actual data
 - Do NOT use code fences (\`\`\`) for visuals — use the formats above
 - **CRITICAL: NEVER draw text-based diagrams using ASCII characters (├, ──, └, │, etc.). If a visual format does not fit your content, describe the relationship in plain text instead.**
+- **CRITICAL: NEVER describe a framework, hierarchy, org chart, or relationship using plain text with dashes or bullet points as a substitute for a diagram. If you find yourself writing something like "Figure X.Y:" followed by a list of items with dashes, STOP — use [FRAMEWORK: ...] format instead. The system needs the structured format to render the diagram properly.**
 
 ${structureInstruction}
 ${promptData.childrenTopics?.length > 0 ? `

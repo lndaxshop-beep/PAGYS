@@ -4,7 +4,7 @@ import {
 } from 'docx';
 import { renderChartToPng, renderDiagramToPng, buildDocxTable, buildImageParagraph } from '../exportVisualHelpers.js';
 import { sanitizeXmlText } from '../sanitizeText.js';
-import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable } from '../visualDataModel.js';
+import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable, detectPlainTextHierarchy } from '../visualDataModel.js';
 
 const getHeadingLevel = (title, prevHeading) => {
   const match = title.trim().match(/^(\d+)\.(\d+)(\.(\d+))?\s+/);
@@ -104,7 +104,11 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
   for (const [, text] of subsectionEntries) {
     if (!text || typeof text !== 'string') continue;
 
-    const lines = text.split('\n');
+    let processedText = text;
+    const plainHierarchy = detectPlainTextHierarchy(text);
+    if (plainHierarchy) processedText = text + '\n\n' + plainHierarchy;
+
+    const lines = processedText.split('\n');
     let i = 0;
     let tableBuffer = [];
     let inTable = false;

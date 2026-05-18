@@ -36,7 +36,7 @@ const PremiumModal = ({ onClose, projectId }) => {
 
         <div style={{ backgroundColor: '#f59e0b', borderRadius: '12px', padding: '20px', color: 'white', marginBottom: '24px' }}>
           <div style={{ fontSize: '16px', fontWeight: '600' }}>Premium Active</div>
-          <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '4px' }}>Humanise: 15 uses per chapter • Feedback: 12 uses per chapter</div>
+          <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '4px' }}>Humanise: 15 uses per chapter • Feedback: 12 uses per chapter • Literature search • Bulk generation</div>
         </div>
 
         {usageData ? (

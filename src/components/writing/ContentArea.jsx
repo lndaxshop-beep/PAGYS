@@ -78,7 +78,7 @@ const ContentArea = ({
             </div>
           ) : (
             <div ref={previewRef}>
-              <ContentRenderer content={content} />
+              <ContentRenderer content={content} colors={colors} />
             </div>
           )
         ) : (

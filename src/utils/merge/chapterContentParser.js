@@ -19,11 +19,17 @@ const getHeadingLevel = (title, prevHeading) => {
   return HeadingLevel.HEADING_3;
 };
 
+const getChapterNumber = (chapterId) => {
+  const match = chapterId?.match(/(\d+)/);
+  return match ? parseInt(match[1]) : 1;
+};
+
 export const parseChapterContent = async (content, chapterId, format, chapterIndex = 1, subsections = null) => {
   const children = [];
   if (!content) return children;
 
   const fontFamily = format.fontFamily || 'Times New Roman';
+  const chNum = getChapterNumber(chapterId);
   let prevHeading = HeadingLevel.HEADING_2;
   let tableCounter = 0;
   let figureCounter = 0;
@@ -35,7 +41,7 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
       spacing: { before: 240, after: 60 },
       children: [
         new TextRun({ text: `Table `, bold: true, size: 24, font: fontFamily }),
-        new SimpleField(` SEQ Table \\* ARABIC \\s 1 `, `${chapterIndex}.${tableCounter}`),
+        new SimpleField(` SEQ Table \\* ARABIC \\s 1 `, `${chNum}.${tableCounter}`),
         new TextRun({ text: `: ${sanitizeXmlText(title)}`, bold: true, size: 24, font: fontFamily })
       ]
     });
@@ -48,7 +54,7 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
       spacing: { before: 240, after: 60 },
       children: [
         new TextRun({ text: `Figure `, bold: false, italics: true, size: 24, font: fontFamily }),
-        new SimpleField(` SEQ Figure \\* ARABIC \\s 1 `, `${chapterIndex}.${figureCounter}`),
+        new SimpleField(` SEQ Figure \\* ARABIC \\s 1 `, `${chNum}.${figureCounter}`),
         new TextRun({ text: `: ${sanitizeXmlText(title)}`, bold: false, italics: true, size: 24, font: fontFamily })
       ]
     });
@@ -57,47 +63,41 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
   const subsectionEntries = orderContentBySubsections(content, subsections);
 
   const flushMarkdownTable = (lines, captionLine) => {
-    if (lines.length < 2) return false;
+    if (lines.length < 2) return null;
     const parsed = parseMarkdownTable(lines);
-    if (!parsed) return false;
-    const captionText = captionLine?.replace(/^(Table|Figure)\s+\d+\.\d+:\s*/i, '').trim() || parsed.caption || 'Table';
+    if (!parsed) return null;
+    const fallbackTitle = parsed.headers[0] || 'Data Table';
+    const captionText = captionLine?.replace(/^(Table|Figure)\s+\d+\.\d+:\s*/i, '').trim() || parsed.caption || fallbackTitle;
     children.push(makeTableLabel(captionText));
     children.push(buildDocxTable(parsed, format));
-    if (captionText && captionText !== 'Table') {
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 240 },
-        children: [new TextRun({ text: sanitizeXmlText(captionText), italics: true, size: 22, font: fontFamily })]
-      }));
-    }
-    return true;
+    return captionText;
   };
 
   const processChartMarker = async (marker) => {
     const parsed = parseChartMarker(marker);
-    if (!parsed) return false;
+    if (!parsed) return null;
     const pngBuffer = await renderChartToPng(parsed);
-    if (!pngBuffer) return false;
+    if (!pngBuffer) return null;
     const title = parsed.title || 'Chart';
     children.push(makeFigureLabel(title));
-    children.push(...buildImageParagraph(pngBuffer, parsed.caption || null, format));
-    return true;
+    children.push(...buildImageParagraph(pngBuffer, null, format));
+    return title;
   };
 
   const processFrameworkText = async (text) => {
     const parsed = parseFrameworkBlock(text);
-    if (!parsed || (parsed.independent.length === 0 && parsed.dependent.length === 0)) return false;
+    if (!parsed || (parsed.independent.length === 0 && parsed.dependent.length === 0 && !parsed.hierarchy?.length)) return null;
     const pngBuffer = renderDiagramToPng(parsed);
-    if (!pngBuffer) return false;
+    if (!pngBuffer) return null;
     const title = parsed.title || 'Conceptual Framework';
     children.push(makeFigureLabel(title));
-    children.push(...buildImageParagraph(pngBuffer, title, format));
-    return true;
+    children.push(...buildImageParagraph(pngBuffer, null, format));
+    return title;
   };
 
   const processInlineChart = async (line) => {
     const match = line.match(CHART_MARKER_RE);
-    if (!match) return false;
+    if (!match) return null;
     return processChartMarker(line);
   };
 
@@ -114,11 +114,14 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     let inTable = false;
     let frameworkBuffer = null;
     let inFramework = false;
+    let lastCaption = null;
 
     const flushTable = (captionLine) => {
-      if (tableBuffer.length >= 2) flushMarkdownTable(tableBuffer, captionLine);
+      const result = flushMarkdownTable(tableBuffer, captionLine);
+      if (result) lastCaption = result;
       tableBuffer = [];
       inTable = false;
+      return result;
     };
 
     while (i < lines.length) {
@@ -141,13 +144,15 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
 
       if (inFramework) {
         if (trimmed.match(/^\[FRAMEWORK:/i) && frameworkBuffer) {
-          await processFrameworkText(frameworkBuffer);
+          const t = await processFrameworkText(frameworkBuffer);
+          if (t) lastCaption = t;
           frameworkBuffer = trimmed;
         } else {
           if (!frameworkBuffer) frameworkBuffer = '';
           frameworkBuffer += '\n' + trimmed;
           if (trimmed.match(/\]\s*$/)) {
-            await processFrameworkText(frameworkBuffer);
+            const t = await processFrameworkText(frameworkBuffer);
+            if (t) lastCaption = t;
             frameworkBuffer = null;
             inFramework = false;
           }
@@ -161,7 +166,8 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
         frameworkBuffer = trimmed;
         inFramework = true;
         if (trimmed.match(/\]\s*$/)) {
-          await processFrameworkText(frameworkBuffer);
+          const t = await processFrameworkText(frameworkBuffer);
+          if (t) lastCaption = t;
           frameworkBuffer = null;
           inFramework = false;
         }
@@ -171,7 +177,8 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
       const chartMatch = trimmed.match(CHART_MARKER_RE);
       if (chartMatch) {
         flushTable();
-        await processInlineChart(trimmed);
+        const t = await processInlineChart(trimmed);
+        if (t) lastCaption = t;
         continue;
       }
 
@@ -183,7 +190,14 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
         tableBuffer.push(trimmed);
         continue;
       } else if (inTable) {
-        flushTable(trimmed);
+        const captionResult = flushTable(trimmed);
+        if (captionResult) lastCaption = captionResult;
+      }
+
+      const captionLineMatch = trimmed.match(/^(Table|Figure)\s+\d+\.\d+:\s*/i);
+      if (captionLineMatch && lastCaption) {
+        const lineCaption = trimmed.replace(captionLineMatch[0], '').trim();
+        if (lineCaption === lastCaption || lineCaption.startsWith(lastCaption) || lastCaption.startsWith(lineCaption)) continue;
       }
 
       const headingMatch = trimmed.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);

@@ -40,8 +40,41 @@ export const cleanOutput = (text) => {
   }
   cleaned = cleaned.replace(/\s*—\s*/g, ', ');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = stripAsciiArt(cleaned);
   cleaned = cleaned.trim();
   return cleaned;
+};
+
+const ASCII_ART_CHARS = new Set(['/', '\\', '|', '^', '_', '-', '=', '*']);
+const DIAGRAM_LABEL_RE = /^[A-Z][a-zA-Z\s]{2,60}$/;
+
+const stripAsciiArt = (text) => {
+  const lines = text.split('\n');
+  const result = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const nonSpace = line.replace(/\s/g, '');
+    if (nonSpace.length > 0) {
+      const diagramChars = [...nonSpace].filter(c => ASCII_ART_CHARS.has(c)).length;
+      const ratio = diagramChars / nonSpace.length;
+      if (ratio >= 0.25) {
+        i++;
+        while (i < lines.length) {
+          const next = lines[i];
+          const ns = next.replace(/\s/g, '');
+          const dc = [...ns].filter(c => ASCII_ART_CHARS.has(c)).length;
+          const r = ns.length > 0 ? dc / ns.length : 0;
+          if (r < 0.25 && !DIAGRAM_LABEL_RE.test(next.trim())) break;
+          i++;
+        }
+        continue;
+      }
+    }
+    result.push(line);
+    i++;
+  }
+  return result.join('\n');
 };
 
 export const extractJSON = (response) => {

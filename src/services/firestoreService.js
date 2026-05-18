@@ -90,7 +90,7 @@ export const getCitations = async (projectId) => {
 export const saveDeletedProject = async (project) => {
   try {
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) return;
+    if (!user) throw new Error('User not authenticated');
     await setDoc(doc(db, 'deletedProjects', project.id.toString()), {
       ...project, userId: user.uid,
     });

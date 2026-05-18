@@ -357,7 +357,7 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
 
 ## REWRITE INSTRUCTIONS
 - Rewrite the ENTIRE text incorporating all fixes above.
-- Preserve ALL: tables, mermaid diagrams, [CHART:{...}] tags, data, numbers, statistics.
+- Preserve ALL: tables, diagrams, [CHART:{...}] tags, data, numbers, statistics.
 - Preserve ALL subsection headings exactly as they appear.
 - DO NOT change the word count drastically (stay within 85–115% of original).
 - Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`;
@@ -420,7 +420,7 @@ ${cleanOutput(currentContent)}
 
 ### STRUCTURAL PRESERVATION
 - Keep ALL subsection headings exactly as they are — do not modify heading text.
-- Keep ALL existing tables, mermaid diagrams, [CHART:{...}] tags, and data intact.
+- Keep ALL existing tables, diagrams, [CHART:{...}] tags, and data intact.
 - Do not restructure or reorder paragraphs unless the feedback explicitly requests it.
 
 ### SUBSECTION BOUNDARIES
@@ -520,7 +520,7 @@ Use hedging language ONLY in interpretations, NEVER in descriptions of what was 
 
 ## STRUCTURAL PRESERVATION RULES
 - Keep ALL in-text citations (Author, Year) exactly as written.
-- Keep ALL data, tables, [CHART:{...}] tags, and mermaid diagrams unchanged.
+- Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged.
 - Keep ALL subsection headings exactly as they appear.
 - KEEP the total word count within 85-115% of the original.
 - Do NOT add reference lists, bibliographies, or word count footnotes.
@@ -550,7 +550,7 @@ ${humanised}
 1. Are all in-text citations still properly formatted as (Author, Year)? Fix any that got corrupted.
 2. Are there any grammatical errors, missing words, or broken sentences? Fix them.
 3. Is the academic tone consistent and formal? No contractions, no casual language.
-4. Are all data, tables, chart tags, and mermaid diagrams intact? Do not modify them.
+4. Are all data, tables, chart tags, and diagrams intact? Do not modify them.
 5. Are all subsection headings preserved exactly?
 6. Is the word count within 85-115% of the original?
 7. NO em dashes — use commas or parentheses instead.

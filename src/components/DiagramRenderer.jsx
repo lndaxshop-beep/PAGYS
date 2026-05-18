@@ -96,9 +96,7 @@ const DiagramRenderer = ({ diagramData, title, onEdit }) => {
   }, [data]);
 
   useEffect(() => {
-    if (data && Object.keys(nodePositions).length === 0) {
-      setNodePositions(getAutoLayout());
-    }
+    if (data) setNodePositions(getAutoLayout());
   }, [data]);
 
   const drawDiagram = () => {

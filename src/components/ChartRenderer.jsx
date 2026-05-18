@@ -23,6 +23,11 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
   }, [data, chartType, isDarkMode]);
 
   const renderChart = async () => {
+    const labels = data?.labels || [];
+    const values = data?.values || [];
+    const type = (chartType || 'bar').toLowerCase();
+    if (type !== 'pie' && values.length < 2) return;
+    if (type === 'pie' && values.length < 1) return;
     try {
       const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
       Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);

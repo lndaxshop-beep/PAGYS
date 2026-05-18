@@ -25,9 +25,9 @@ const ContentRenderer = ({ content, colors, onEditVisual }) => {
   return (
     <div>
       {blocks.map((block, i) => {
-        if (block.type === 'diagram') return <DiagramRenderer key={i} diagramData={block.data} title={block.title} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
-        if (block.type === 'chart') return <ChartRenderer key={i} chartType={block.chartType} data={{ labels: block.labels, values: block.values }} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
-        if (block.type === 'table') return <TableRenderer key={i} headers={block.headers} rows={block.rows} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
+        if (block.type === 'diagram') return <DiagramRenderer key={`d_${i}_${block.title}`} diagramData={block.data} title={block.title} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
+        if (block.type === 'chart') return <ChartRenderer key={`c_${i}_${block.title}`} chartType={block.chartType} data={{ labels: block.labels, values: block.values }} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
+        if (block.type === 'table') return <TableRenderer key={`t_${i}_${block.title}`} headers={block.headers} rows={block.rows} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
         return <div key={i} dangerouslySetInnerHTML={{ __html: block.html || '' }} style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify', marginBottom: '16px', color: colors?.text || 'inherit' }} />;
       })}
     </div>
@@ -61,6 +61,20 @@ export const parseContentBlocks = (content) => {
     }
   };
 
+  const pushVisual = (visualBlock) => {
+    if (visualBlock.title && blocks.length > 0) {
+      const prev = blocks[blocks.length - 1];
+      if (prev.type === 'text') {
+        const stripped = (prev.html || '').replace(/<[^>]+>/g, '').trim();
+        if (stripped.length >= 5 && similarity(stripped, visualBlock.title) >= 0.6) {
+          blocks.pop();
+        }
+      }
+    }
+    lastVisualTitle = visualBlock.title || '';
+    blocks.push(visualBlock);
+  };
+
   const similarity = (a, b) => {
     if (!a || !b) return 0;
     const wordsA = a.toLowerCase().split(/\s+/).filter(Boolean);
@@ -74,9 +88,7 @@ export const parseContentBlocks = (content) => {
     if (tableLines.length >= 2) {
       const parsed = parseMarkdownTable(tableLines);
       if (parsed) {
-        const title = parsed.caption || 'Table';
-        lastVisualTitle = title;
-        blocks.push({ type: 'table', headers: parsed.headers, rows: parsed.rows, caption: parsed.caption, title, originalText: tableLines.join('\n') });
+        pushVisual({ type: 'table', headers: parsed.headers, rows: parsed.rows, caption: parsed.caption, title: parsed.caption || 'Table', originalText: tableLines.join('\n') });
       }
     }
     tableLines = [];
@@ -87,8 +99,7 @@ export const parseContentBlocks = (content) => {
     if (frameworkText) {
       const parsed = parseFrameworkBlock(frameworkText);
       if (parsed && (parsed.independent.length > 0 || parsed.dependent.length > 0 || parsed.hierarchy?.length > 0)) {
-        lastVisualTitle = parsed.title;
-        blocks.push({ type: 'diagram', data: parsed, title: parsed.title || 'Conceptual Framework', originalText: frameworkText });
+        pushVisual({ type: 'diagram', data: parsed, title: parsed.title || 'Conceptual Framework', originalText: frameworkText });
       }
       frameworkText = '';
       inFramework = false;
@@ -117,8 +128,7 @@ export const parseContentBlocks = (content) => {
       flushTable();
       const parsed = parseChartMarker(line);
       if (parsed) {
-        lastVisualTitle = parsed.title;
-        blocks.push({ type: 'chart', chartType: parsed.chartType, labels: parsed.labels, values: parsed.values, title: parsed.title, caption: parsed.caption, originalText: line });
+        pushVisual({ type: 'chart', chartType: parsed.chartType, labels: parsed.labels, values: parsed.values, title: parsed.title, caption: parsed.caption, originalText: line });
       }
       continue;
     }

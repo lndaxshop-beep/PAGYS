@@ -720,24 +720,24 @@ const Write = () => {
                    const blocks = parseContentBlocks(currentContent);
                    const block = blocks[blockIndex];
                    if (!block || !currentSubsection) return;
-                   if (block.type === 'chart') {
-                     const labels = (newData.labels || []).join(', ');
-                     const values = (newData.values || []).join(', ');
-                     const pairs = newData.labels.map((l, i) => `${l}: ${newData.values[i]}`).join(', ');
+                   let newContent = currentContent;
+                   if (block.type === 'chart' && block.originalText) {
+                     const pairs = (newData.labels || []).map((l, i) => `${l}: ${(newData.values || [])[i] || 0}`).join(', ');
                      const newMarker = `[CHART: ${newData.chartType} | ${newData.title} | ${pairs}]`;
-                     if (block.originalText) {
-                       const newContent = currentContent.replace(block.originalText, newMarker);
-                       setCurrentContent(newContent);
-                       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: newContent } }));
-                     } else {
-                       const lines = currentContent.split('\n');
-                       const chartIdx = lines.findIndex(l => l.match(/^\[CHART:\s*(bar|line|pie|horizontalBar)\s*\|/i));
-                       if (chartIdx >= 0) { lines[chartIdx] = newMarker; const nc = lines.join('\n'); setCurrentContent(nc); setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: nc } })); }
-                     }
-                   } else if (block.type === 'diagram') {
+                     newContent = currentContent.replace(block.originalText, newMarker);
+                   } else if (block.type === 'diagram' && block.originalText) {
                      const newMarker = `[FRAMEWORK: ${newData.title || 'Diagram'}]`;
-                     const orig = block.originalText || currentContent.split('\n').find(l => l.match(/^\[FRAMEWORK:/i));
-                     if (orig) { const nc = currentContent.replace(orig, newMarker); setCurrentContent(nc); setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: nc } })); }
+                     newContent = currentContent.replace(block.originalText, newMarker);
+                   } else if (block.type === 'table' && block.originalText) {
+                     const hdrs = (newData.headers || []).join(' | ');
+                     const sep = (newData.headers || []).map(() => '---').join(' | ');
+                     const rws = (newData.rows || []).map(r => '| ' + r.join(' | ') + ' |');
+                     const newTable = `| ${hdrs} |\n| ${sep} |\n${rws.join('\n')}`;
+                     newContent = currentContent.replace(block.originalText, newTable);
+                   }
+                   if (newContent !== currentContent) {
+                     setCurrentContent(newContent);
+                     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: newContent } }));
                    }
                  }}
                />

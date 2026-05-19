@@ -87,6 +87,8 @@ const Write = () => {
   const [applyingAICorrection, setApplyingAICorrection] = useState(false);
   const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
   const [plagiarismResult, setPlagiarismResult] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const touchStartX = useRef(0);
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -675,8 +677,14 @@ const Write = () => {
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.background }}>
-      <div style={{ width: '400px', height: '100vh', overflowY: 'auto', backgroundColor: colors.surface }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.background }} onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }} onTouchEnd={(e) => { const diff = e.changedTouches[0].clientX - touchStartX.current; if (diff > 60) setSidebarOpen(true); else if (diff < -60) setSidebarOpen(false); }}>
+      {/* Mobile sidebar overlay */}
+      <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: sidebarOpen && window.innerWidth <= 768 ? 'block' : 'none', position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
+      {/* Left pane drawer */}
+      <div className={`left-pane-drawer ${sidebarOpen ? 'open' : ''}`} style={{
+        width: '400px', minWidth: '400px', height: '100vh', overflowY: 'auto', backgroundColor: colors.surface,
+        transition: 'transform 0.3s ease',
+      }}>
         <LeftPane chapters={chapters} activeChapter={activeChapter} onChapterClick={wrappedHandleChapterClick} progress={overallProgress}
           onDeleteSubsection={handleDeleteWithUndo} onRestoreSubsection={handleRestoreSubsection} onCustomizeSubsection={handleCustomizeSubsection} onRenameSubsection={handleRenameSubsection}
           onAddSubsection={handleAddSubsection} onSubsectionClick={wrappedHandleSubsectionClick} generatingSubtopics={generatingSubtopics}
@@ -689,9 +697,16 @@ const Write = () => {
           />
       </div>
 
-      <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
+      <div className="content-area" style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
-          <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowHelpModal(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: colors.text, padding: '4px 8px', display: 'none' }}>
+              ☰
+            </button>
+            <div style={{ flex: 1 }}>
+              <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowHelpModal(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
+            </div>
+          </div>
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
@@ -981,6 +996,12 @@ const Write = () => {
         }
         .correction-blink {
           animation: correctionBlink 1.8s ease-out forwards;
+        }
+        @media (max-width: 768px) {
+          .left-pane-drawer { position: fixed; top: 0; left: 0; z-index: 300; transform: translateX(-100%); }
+          .left-pane-drawer.open { transform: translateX(0); }
+          .content-area { width: 100% !important; border-left: none !important; }
+          .hamburger-btn { display: block !important; }
         }
       `}</style>
     </div>

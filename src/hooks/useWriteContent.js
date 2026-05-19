@@ -275,11 +275,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
         diagnosticReport
       });
 
-      const postBurstiness = calculateBurstiness(humanisedText);
-      const postBanned = scanBannedPhrases(humanisedText);
-      const improvement = ((postBurstiness.cv - preBurstiness.cv) / (preBurstiness.cv || 0.01) * 100).toFixed(0);
-      console.log(`[Humanise] cv: ${preBurstiness.cv.toFixed(3)} → ${postBurstiness.cv.toFixed(3)} (${improvement}% change), banned: ${preBanned.length} → ${postBanned.length}`);
-
       return { humanisedText, humaniseKey };
     } catch (error) { throw error; }
     finally { setHumanising(false); }

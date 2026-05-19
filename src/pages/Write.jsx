@@ -10,7 +10,7 @@ import WordCountModal from '../components/WordCountModal';
 import LiteratureReviewTypeModal from '../components/LiteratureReviewTypeModal';
 import { useToast, ToastContainer } from '../hooks/useToast.jsx';
 import ConfirmModal from '../components/ConfirmModal';
-import { useAutoSave, useUndoRedo } from '../hooks/useAutoSave';
+import { useAutoSave } from '../hooks/useAutoSave';
 import useWriteChapter from '../hooks/useWriteChapter';
 import useWriteContent from '../hooks/useWriteContent';
 import useWriteNavigation from '../hooks/useWriteNavigation';
@@ -93,7 +93,6 @@ const Write = () => {
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
-  const { state: editorContent, set: setEditorContent, undo, redo, canUndo, canRedo } = useUndoRedo('');
 
   const { saveStatus, lastSaved, saveNow } = useAutoSave({
     saveFn: (data) => saveGeneratedContent(projectId, data),
@@ -124,8 +123,6 @@ const Write = () => {
         if (saveBtn) saveBtn.click();
         toastSuccess('Content saved');
       },
-      undo: canUndo ? undo : null,
-      redo: canRedo ? redo : null,
       toggleEdit: () => setIsPreviewMode(prev => !prev),
       toggleShortcuts: () => setShowShortcutsModal(prev => !prev),
       escape: () => {

@@ -50,7 +50,7 @@ const stripCodeFenceArt = (text) => {
   return text.replace(/```(mermaid|chart|table|diagram|graph)\s*[\s\S]*?```\s*/gi, '');
 };
 
-const ASCII_ART_CHARS = new Set(['/', '\\', '|', '^', '_', '-', '=', '*']);
+const ASCII_ART_CHARS = new Set(['/', '\\', '^', '_', '=', '*']);
 const DIAGRAM_LABEL_RE = /^[A-Z][a-zA-Z\s]{2,60}$/;
 
 const stripAsciiArt = (text) => {

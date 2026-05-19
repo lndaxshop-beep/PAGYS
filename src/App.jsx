@@ -1,11 +1,12 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/layout/Header';
 import Toast from './components/Toast';
 import HomePage from './components/home/HomePage';
+import SplashScreen from './components/SplashScreen';
 import { PageSkeleton } from './components/Skeleton';
 import './App.css';
 
@@ -31,9 +32,33 @@ const Page = ({ children }) => (
 
 function AppContent() {
   const { colors } = useTheme();
+  const location = useLocation();
+  const prevPath = useRef(location.pathname);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [toast, setToast] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const notify = (message, type) => setToast({ message, type });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialLoad(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialLoad) {
+      prevPath.current = location.pathname;
+      return;
+    }
+    const prev = prevPath.current;
+    prevPath.current = location.pathname;
+    const navPages = ['/dashboard', '/myfiles'];
+    if (navPages.includes(prev) && navPages.includes(location.pathname) && prev !== location.pathname) {
+      setIsTransitioning(true);
+      const timer = setTimeout(() => setIsTransitioning(false), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, isInitialLoad]);
 
   useEffect(() => {
     const goOffline = () => setIsOffline(true);
@@ -43,7 +68,11 @@ function AppContent() {
     return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline); };
   }, []);
 
+  const showSplash = isInitialLoad || isTransitioning;
+
   return (
+    <>
+    <SplashScreen show={showSplash} />
     <ErrorBoundary>
       <div style={{
         backgroundColor: colors.background,
@@ -80,6 +109,7 @@ function AppContent() {
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </ErrorBoundary>
+    </>
   );
 }
 

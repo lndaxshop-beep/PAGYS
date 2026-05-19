@@ -7,6 +7,7 @@ import Header from './components/layout/Header';
 import Toast from './components/Toast';
 import HomePage from './components/home/HomePage';
 import SplashScreen from './components/SplashScreen';
+import AppFeedbackButton from './components/AppFeedbackButton';
 import { NavigationLoadingProvider, useNavigationLoading } from './contexts/NavigationLoadingContext';
 import { PageSkeleton } from './components/Skeleton';
 import './App.css';
@@ -109,6 +110,7 @@ function AppContent() {
           </Routes>
         </div>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        <AppFeedbackButton />
       </div>
     </ErrorBoundary>
     </>

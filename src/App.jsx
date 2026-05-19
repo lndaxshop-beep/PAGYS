@@ -41,7 +41,7 @@ function AppContent() {
   const notify = (message, type) => setToast({ message, type });
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsInitialLoad(false), 2500);
+    const timer = setTimeout(() => setIsInitialLoad(false), 5000);
     return () => clearTimeout(timer);
   }, []);
 

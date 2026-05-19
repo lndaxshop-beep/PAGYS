@@ -1,8 +1,39 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 
-export const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-export const genAI = new GoogleGenerativeAI(API_KEY);
-export const MODEL = "gemini-2.5-flash";
+const callProxy = async (promptOrRequest, modelName, tools) => {
+  const body = { prompt: promptOrRequest, model: modelName };
+  if (tools) body.tools = tools;
+
+  const response = await fetch(`${PROXY_URL}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const genAI = {
+  getGenerativeModel: ({ model, tools }) => ({
+    generateContent: async (promptOrRequest) => {
+      const data = await callProxy(promptOrRequest, model || 'gemini-2.5-flash', tools);
+      const text = data.text || '';
+      return {
+        response: {
+          text: () => text,
+        },
+        candidates: data.candidates,
+      };
+    },
+  }),
+};
+
+export const MODEL = 'gemini-2.5-flash';
 
 export const WORD_COUNT_PRESETS = {
   undergraduate: {

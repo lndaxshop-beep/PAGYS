@@ -29,10 +29,13 @@ export const useDashboardForm = (onSuccess, { onNotify } = {}) => {
     let questions = [];
     setLoadingQuestions(true);
     try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(`You are an academic research advisor. Generate 6 professional, SHORT research questions for a thesis.
+      const proxyUrl = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
+      const geminiRes = await fetch(`${proxyUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          prompt: `You are an academic research advisor. Generate 6 professional, SHORT research questions for a thesis.
 
 TOPIC: "${form.title}"
 FIELD: ${form.field || 'general'}
@@ -47,8 +50,11 @@ Requirements:
 Examples:
 1. How does AI affect cancer diagnosis accuracy?
 2. What is the effect of water pH on maize germination?
-3. How does internal auditing reduce fraud in banks?`);
-      const text = result.response.text();
+3. How does internal auditing reduce fraud in banks?`
+        }),
+      });
+      const geminiData = await geminiRes.json();
+      const text = geminiData.text || '';
       questions = text.split('\n').filter(l => l.match(/^\d+\.\s/)).map(l => l.replace(/^\d+\.\s*/, '').trim()).slice(0, 8);
     } catch (e) {
       console.error('AI question generation failed:', e);

@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -32,7 +32,16 @@ const Page = ({ children }) => (
 function AppContent() {
   const { colors } = useTheme();
   const [toast, setToast] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const notify = (message, type) => setToast({ message, type });
+
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline); };
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -42,6 +51,15 @@ function AppContent() {
         display: 'flex',
         flexDirection: 'column'
       }}>
+        {isOffline && (
+          <div style={{
+            backgroundColor: '#92400e', color: '#fde68a', padding: '8px 16px',
+            textAlign: 'center', fontSize: '13px', fontWeight: '500',
+            borderBottom: '1px solid #b45309'
+          }}>
+            📡 You're offline — viewing cached content
+          </div>
+        )}
         <Header />
         <div style={{ flex: 1 }}>
           <Routes>

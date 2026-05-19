@@ -212,6 +212,25 @@ const MyFiles = () => {
       e.target.value = '';
     };
 
+    const handleBibtexImport = async (e) => {
+      const files = e.target.files;
+      if (!files?.length) return;
+      try {
+        const text = await files[0].text();
+        const { parseBibTeX } = await import('../utils/bibtexParser.js');
+        const entries = parseBibTeX(text);
+        if (entries.length > 0) {
+          sl.addSources(entries);
+          notify(`Imported ${entries.length} references from BibTeX.`, 'success');
+        } else {
+          notify('No references found in the BibTeX file.', 'error');
+        }
+      } catch (err) {
+        notify('Failed to parse BibTeX file.', 'error');
+      }
+      e.target.value = '';
+    };
+
     return <SourceLibrary
       sources={sl.sources}
       extracting={sl.extracting}
@@ -222,6 +241,7 @@ const MyFiles = () => {
       processingMatrixPayment={sl.processingMatrixPayment}
       onAddFile={handleFileUpload}
       onRemoveSource={sl.removeSource}
+      onImportBibtex={handleBibtexImport}
       onGenerateMatrix={() => sl.generateMatrix(project)}
       onMatrixPaymentConfirm={() => sl.handleMatrixPaymentConfirm(project)}
       onMatrixPaymentCancel={sl.handleMatrixPaymentCancel}

@@ -7,7 +7,7 @@ const SourceLibrary = ({
   sources, extracting, loading, matrix, generatingMatrix,
   pendingMatrixRegen, processingMatrixPayment,
   onAddFile, onRemoveSource, onGenerateMatrix, onMatrixPaymentConfirm, onMatrixPaymentCancel,
-  onClearSources, isPremium
+  onClearSources, onImportBibtex, isPremium
 }) => {
   const { colors, isDarkMode } = useTheme();
   const { fmt } = useCurrency();
@@ -78,6 +78,22 @@ const SourceLibrary = ({
               fontWeight: '500', cursor: 'pointer', fontSize: '13px'
             }}
           >+ Add Source</button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".bib"
+            onChange={onImportBibtex}
+            style={{ display: 'none' }}
+            id="bibtex-upload"
+          />
+          <button
+            onClick={() => document.getElementById('bibtex-upload')?.click()}
+            style={{
+              backgroundColor: 'transparent', color: colors.primary,
+              border: `1px solid ${colors.primary}`, padding: '8px 16px',
+              borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'
+            }}
+          >📚 Import BibTeX</button>
         </div>
       </div>
 

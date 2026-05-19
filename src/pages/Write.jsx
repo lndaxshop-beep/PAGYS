@@ -85,6 +85,8 @@ const Write = () => {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [highlightRanges, setHighlightRanges] = useState([]);
   const [applyingAICorrection, setApplyingAICorrection] = useState(false);
+  const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
+  const [plagiarismResult, setPlagiarismResult] = useState(null);
 
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
@@ -794,8 +796,22 @@ const Write = () => {
                 onResetHumanise={() => setResetModalType('humanise')}
                 onResetFeedback={() => setResetModalType('feedback')}
                 onOpenVersions={() => setVersionBrowserSubsection(currentSubsection)}
-              />
-            </>
+               />
+               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
+                 <button onClick={() => setShowAIDetection(true)} style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '6px', backgroundColor: '#0891b2', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+                   🤖 AI Score
+                 </button>
+                 <button onClick={async () => {
+                   if (!currentContent) return;
+                   const { checkPlagiarism } = await import('../utils/plagiarismChecker.js');
+                   const result = checkPlagiarism(currentContent, sourceLibrary?.sources || []);
+                   setPlagiarismResult(result);
+                   setShowPlagiarismModal(true);
+                 }} style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '6px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+                   📋 Check Sources
+                 </button>
+               </div>
+             </>
           )}
         </div>
       </div>
@@ -890,6 +906,43 @@ const Write = () => {
       )}
 
       <AIDetectionDashboard isOpen={showAIDetection} onClose={() => setShowAIDetection(false)} content={currentContent} onApplyCorrection={handleAICorrection} applyingCorrection={applyingAICorrection} />
+      {showPlagiarismModal && plagiarismResult && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowPlagiarismModal(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '480px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: colors.text }}>📋 Similarity Check</h2>
+              <button onClick={() => setShowPlagiarismModal(false)} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px' }}>✕</button>
+            </div>
+            <div style={{ textAlign: 'center', padding: '24px', marginBottom: '20px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '12px' }}>
+              <div style={{ fontSize: '40px', fontWeight: '800', color: plagiarismResult.score >= 30 ? '#dc2626' : plagiarismResult.score >= 15 ? '#f59e0b' : '#059669' }}>{plagiarismResult.score}%</div>
+              <div style={{ fontSize: '13px', color: colors.textSecondary, marginTop: '4px' }}>
+                {plagiarismResult.score >= 30 ? '🔴 High similarity' : plagiarismResult.score >= 15 ? '⚠️ Moderate similarity' : '✅ Low similarity'} — {plagiarismResult.matches.length} flagged
+              </div>
+              <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '8px' }}>
+                Compared against {sourceLibrary?.sources?.length || 0} uploaded source(s)
+              </div>
+            </div>
+            {plagiarismResult.matches.length > 0 && (
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: colors.text, marginBottom: '12px' }}>Matched Paragraphs</div>
+                {plagiarismResult.matches.map((m, i) => (
+                  <div key={i} style={{ padding: '10px', marginBottom: '8px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: m.similarity >= 30 ? '#dc2626' : m.similarity >= 15 ? '#f59e0b' : '#059669' }}>{m.similarity}% match</span>
+                      <span style={{ fontSize: '11px', color: colors.textSecondary }}>{m.wordCount} words</span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: colors.text, margin: '0 0 4px', fontStyle: 'italic' }}>"{m.paragraph}"</p>
+                    <p style={{ fontSize: '11px', color: colors.textSecondary, margin: 0 }}>Similar to: {m.source}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {plagiarismResult.matches.length === 0 && (
+              <p style={{ textAlign: 'center', color: colors.textSecondary, padding: '20px' }}>No significant similarity found against your uploaded sources.</p>
+            )}
+          </div>
+        </div>
+      )}
       <LiteratureSearchModal
         isOpen={showLitSearchModal}
         onClose={() => setShowLitSearchModal(false)}

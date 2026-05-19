@@ -136,9 +136,9 @@ const AIDetectionDashboard = ({ isOpen, onClose, content, onApplyCorrection, app
               <div style={{ marginTop: '16px' }}>
                 <div style={{ fontSize: '13px', fontWeight: '500', color: '#dc2626', marginBottom: '8px' }}>⚠️ {metrics.banned.length} Banned Phrase(s) Detected</div>
                 {!appliedFixes.has('banned') && metrics.banned.slice(0, 3).map((b, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', marginBottom: '4px', borderRadius: '6px', backgroundColor: '#fef2f2', gap: '8px' }}>
-                    <span style={{ fontSize: '11px', color: '#991b1b', flex: 1, fontStyle: 'italic' }}>"...{b.line.length > 80 ? b.line.slice(0, 80) + '...' : b.line}"</span>
-                    <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fecaca', color: '#dc2626', whiteSpace: 'nowrap' }}>{b.phrase}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', marginBottom: '4px', borderRadius: '6px', backgroundColor: isDarkMode ? '#3d1a1a' : '#fef2f2', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: isDarkMode ? '#fca5a5' : '#991b1b', flex: 1, fontStyle: 'italic' }}>"...{b.line.length > 80 ? b.line.slice(0, 80) + '...' : b.line}"</span>
+                    <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', backgroundColor: isDarkMode ? '#7f1d1d' : '#fecaca', color: '#dc2626', whiteSpace: 'nowrap' }}>{b.phrase}</span>
                   </div>
                 ))}
                 <CorrectionCard icon="✂️" title={`Replace all ${metrics.banned.length} banned phrases`} description="AI will replace each detected banned phrase with a more natural alternative." onClick={() => handleApply('banned', { phrases: metrics.banned.map(b => b.phrase) })} applying={applyingType === 'banned'} fixed={appliedFixes.has('banned')} color="#dc2626" />

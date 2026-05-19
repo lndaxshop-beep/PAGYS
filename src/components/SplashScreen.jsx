@@ -62,7 +62,8 @@ const SplashScreen = ({ show }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '6px',
+          width: 'min(65vw, 380px)',
+          aspectRatio: '1',
         }}>
           <div style={{
             position: 'absolute',
@@ -71,34 +72,25 @@ const SplashScreen = ({ show }) => {
             border: '3px solid transparent',
             borderTopColor: '#6366f1',
             borderRightColor: '#a5b4fc',
-            animation: 'splashSpin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite',
-          }} />
-          <div style={{
-            position: 'absolute',
-            inset: '8px',
-            borderRadius: '50%',
-            border: '2px solid transparent',
-            borderBottomColor: '#818cf8',
-            borderLeftColor: '#c7d2fe',
-            animation: 'splashSpin 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite reverse',
+            borderBottomColor: '#c7d2fe',
+            animation: 'splashSpin 1.2s linear infinite',
           }} />
           <img
             src={splashLogo}
             alt=""
             style={{
-              width: 'min(70vw, 420px)',
+              width: '80%',
               height: 'auto',
               display: 'block',
               position: 'relative',
               zIndex: 1,
-              imageRendering: 'auto',
             }}
           />
         </div>
-        <div style={{ marginTop: '24px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ marginTop: '20px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{
             fontFamily: "'Playfair Display', 'Georgia', serif",
-            fontSize: '26px',
+            fontSize: '20px',
             color: '#444',
             fontStyle: 'italic',
             fontWeight: 500,
@@ -108,9 +100,9 @@ const SplashScreen = ({ show }) => {
           <span style={{
             display: typedText.length < fullText.length ? 'inline-block' : 'none',
             width: '2px',
-            height: '28px',
+            height: '22px',
             backgroundColor: '#444',
-            marginLeft: '4px',
+            marginLeft: '3px',
             animation: 'splashBlink 0.8s step-end infinite',
             verticalAlign: 'middle',
           }} />

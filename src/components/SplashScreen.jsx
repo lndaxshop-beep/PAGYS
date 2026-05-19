@@ -78,13 +78,12 @@ const SplashScreen = ({ show }) => {
               display: 'block',
               position: 'relative',
               zIndex: 1,
-              marginBottom: '8%',
             }}
           />
           <div style={{
             position: 'absolute',
-            bottom: '6%',
-            height: '26px',
+            bottom: '18%',
+            height: '24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

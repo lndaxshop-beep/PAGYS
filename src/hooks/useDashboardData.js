@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
 import { saveProject, getProjects, updateProject, deleteProject, saveDeletedProject, getDeletedProjects, permanentlyDeleteProject, getGeneratedContent, getChapters } from '../services/firestoreService';
 import { calculateProjectProgress } from '../utils/dashboardHelpers';
 
@@ -36,6 +37,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
   const [loading, setLoading] = useState(true);
   const [progressLoading, setProgressLoading] = useState(false);
   const navigate = useNavigate();
+  const { startTransition } = useNavigationLoading();
   const prevProjectIdsRef = useRef('');
 
   const loadProjects = async () => {
@@ -172,7 +174,10 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     }
   };
 
-  const continueProject = (id) => navigate(`/write/${id}`);
+  const continueProject = (id) => {
+    startTransition();
+    navigate(`/write/${id}`);
+  };
 
   return {
     projects, deletedProjects, projectsWithProgress, loading, progressLoading,

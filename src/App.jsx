@@ -7,6 +7,7 @@ import Header from './components/layout/Header';
 import Toast from './components/Toast';
 import HomePage from './components/home/HomePage';
 import SplashScreen from './components/SplashScreen';
+import { NavigationLoadingProvider, useNavigationLoading } from './contexts/NavigationLoadingContext';
 import { PageSkeleton } from './components/Skeleton';
 import './App.css';
 
@@ -36,6 +37,7 @@ function AppContent() {
   const prevPath = useRef(location.pathname);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const { isTransitioning: contextTransitioning } = useNavigationLoading();
   const [toast, setToast] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const notify = (message, type) => setToast({ message, type });
@@ -68,7 +70,7 @@ function AppContent() {
     return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline); };
   }, []);
 
-  const showSplash = isInitialLoad || isTransitioning;
+  const showSplash = isInitialLoad || isTransitioning || contextTransitioning;
 
   return (
     <>
@@ -117,7 +119,9 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-        <AppContent />
+        <NavigationLoadingProvider>
+          <AppContent />
+        </NavigationLoadingProvider>
       </Router>
     </ThemeProvider>
   );

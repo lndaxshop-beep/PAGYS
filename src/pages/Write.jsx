@@ -30,6 +30,7 @@ import DiffModal from '../components/DiffModal';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import VersionBrowser from '../components/writing/VersionBrowser';
 import HelpModal from '../components/writing/HelpModal';
@@ -90,6 +91,7 @@ const Write = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const touchStartX = useRef(0);
 
+  const { endTransition } = useNavigationLoading();
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
@@ -176,6 +178,7 @@ const Write = () => {
         navigate('/dashboard');
       }
       setLoading(false);
+      endTransition();
     };
     loadProject();
     getSubsectionVersions(projectId).then(v => {

@@ -50,20 +50,14 @@ const SplashScreen = ({ show }) => {
       opacity: exiting ? 0 : 1,
       transition: 'opacity 0.5s ease-out',
     }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        animation: 'splashFadeIn 0.8s ease-out',
-      }}>
         <div style={{
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 'min(65vw, 380px)',
+          width: 'min(50vw, 280px)',
           aspectRatio: '1',
+          animation: 'splashFadeIn 0.8s ease-out',
         }}>
           <div style={{
             position: 'absolute',
@@ -79,35 +73,43 @@ const SplashScreen = ({ show }) => {
             src={splashLogo}
             alt=""
             style={{
-              width: '80%',
+              width: '75%',
               height: 'auto',
               display: 'block',
               position: 'relative',
               zIndex: 1,
+              marginBottom: '8%',
             }}
           />
-        </div>
-        <div style={{ marginTop: '20px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{
-            fontFamily: "'Playfair Display', 'Georgia', serif",
-            fontSize: '20px',
-            color: '#444',
-            fontStyle: 'italic',
-            fontWeight: 500,
+          <div style={{
+            position: 'absolute',
+            bottom: '6%',
+            height: '26px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
           }}>
-            {typedText}
-          </span>
-          <span style={{
-            display: typedText.length < fullText.length ? 'inline-block' : 'none',
-            width: '2px',
-            height: '22px',
-            backgroundColor: '#444',
-            marginLeft: '3px',
-            animation: 'splashBlink 0.8s step-end infinite',
-            verticalAlign: 'middle',
-          }} />
+            <span style={{
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              fontSize: '17px',
+              color: '#444',
+              fontStyle: 'italic',
+              fontWeight: 500,
+            }}>
+              {typedText}
+            </span>
+            <span style={{
+              display: typedText.length < fullText.length ? 'inline-block' : 'none',
+              width: '2px',
+              height: '18px',
+              backgroundColor: '#444',
+              marginLeft: '3px',
+              animation: 'splashBlink 0.8s step-end infinite',
+              verticalAlign: 'middle',
+            }} />
+          </div>
         </div>
-      </div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap');
         @keyframes splashFadeIn {

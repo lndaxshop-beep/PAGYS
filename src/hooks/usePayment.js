@@ -5,6 +5,19 @@ const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
+const storePaymentRecord = async (paymentData) => {
+  try {
+    const { db } = await import('../firebase');
+    const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+    await addDoc(collection(db, 'payments'), {
+      ...paymentData,
+      createdAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('Failed to store payment record:', e);
+  }
+};
+
 const usePayment = (onNotify) => {
   const [processing, setProcessing] = useState(false);
 
@@ -27,23 +40,37 @@ const usePayment = (onNotify) => {
     }));
   }, [onNotify]);
 
-  const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade) => {
+  const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount) => {
     try {
+      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const res = await fetch(`${PROXY_URL}/api/verify-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference }),
+        body: JSON.stringify({ reference, projectId, tier, userId: user?.uid }),
       });
       const data = await res.json();
       if (!res.ok || !data.verified) {
         throw new Error(data.error || 'Payment verification failed');
       }
       await updateProjectTier(projectId, tier, isUpgrade);
-      return true;
+      await storePaymentRecord({
+        userId: user?.uid,
+        projectId,
+        tier,
+        amount: data.amount,
+        currency: data.currency,
+        reference: data.reference,
+        email: data.email,
+        paidAt: data.paidAt,
+        channel: data.channel,
+        type: isUpgrade ? 'upgrade' : 'project_creation',
+        status: 'verified',
+      });
+      return data;
     } catch (e) {
       console.error('Payment verification error:', e);
       if (onNotify) onNotify('Payment verification failed. Contact support.', 'error');
-      return false;
+      return null;
     }
   }, [onNotify, updateProjectTier]);
 
@@ -53,6 +80,12 @@ const usePayment = (onNotify) => {
       if (DEV_BYPASS) {
         await new Promise(resolve => setTimeout(resolve, 800));
         await updateProjectTier(projectId, tier, false);
+        await storePaymentRecord({
+          userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
+          projectId, tier, amount: tier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular,
+          currency: 'USD', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
+          channel: 'dev_bypass', type: 'project_creation', status: 'verified',
+        });
         return true;
       }
 
@@ -70,7 +103,8 @@ const usePayment = (onNotify) => {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to initialize payment');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to initialize payment');
       }
 
       const data = await res.json();
@@ -84,7 +118,9 @@ const usePayment = (onNotify) => {
             sessionStorage.removeItem('paystack_return');
             const ref = sessionStorage.getItem('paystack_reference');
             if (ref) {
-              verifyPayment(ref, projectId, tier, false).then(resolve);
+              verifyPayment(ref, projectId, tier, false, amount).then((result) => {
+                resolve(!!result);
+              });
             } else {
               resolve(false);
             }
@@ -99,7 +135,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment]);
+  }, [onNotify, verifyPayment, updateProjectTier]);
 
   const upgradeToPremium = useCallback(async (projectId) => {
     setProcessing(true);
@@ -107,6 +143,12 @@ const usePayment = (onNotify) => {
       if (DEV_BYPASS) {
         await new Promise(resolve => setTimeout(resolve, 800));
         await updateProjectTier(projectId, 'premium', true);
+        await storePaymentRecord({
+          userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
+          projectId, tier: 'premium', amount: PRICES_USD.upgrade,
+          currency: 'USD', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
+          channel: 'dev_bypass', type: 'upgrade', status: 'verified',
+        });
         return true;
       }
 
@@ -124,7 +166,8 @@ const usePayment = (onNotify) => {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to initialize payment');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to initialize payment');
       }
 
       const data = await res.json();
@@ -138,7 +181,9 @@ const usePayment = (onNotify) => {
             sessionStorage.removeItem('paystack_return');
             const ref = sessionStorage.getItem('paystack_reference');
             if (ref) {
-              verifyPayment(ref, projectId, 'premium', true).then(resolve);
+              verifyPayment(ref, projectId, 'premium', true, amount).then((result) => {
+                resolve(!!result);
+              });
             } else {
               resolve(false);
             }
@@ -153,13 +198,19 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment]);
+  }, [onNotify, verifyPayment, updateProjectTier]);
 
   const processSmallPayment = useCallback(async (projectId, amount, metadata, onSuccess) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
         await new Promise(resolve => setTimeout(resolve, 800));
+        await storePaymentRecord({
+          userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
+          projectId, amount, currency: 'USD', reference: `dev_${Date.now()}`,
+          paidAt: new Date().toISOString(), channel: 'dev_bypass',
+          type: metadata.type || 'micro_payment', status: 'verified',
+        });
         if (onSuccess) onSuccess();
         return true;
       }
@@ -176,7 +227,10 @@ const usePayment = (onNotify) => {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to initialize payment');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to initialize payment');
+      }
 
       const data = await res.json();
       window.location.href = data.authorizationUrl;
@@ -189,9 +243,9 @@ const usePayment = (onNotify) => {
             sessionStorage.removeItem('paystack_return');
             const ref = sessionStorage.getItem('paystack_reference');
             if (ref) {
-              verifyPayment(ref, projectId, metadata.tier || 'regular', false).then((v) => {
-                if (v && onSuccess) onSuccess();
-                resolve(v);
+              verifyPayment(ref, projectId, metadata.tier || 'regular', false, amount).then((result) => {
+                if (result && onSuccess) onSuccess();
+                resolve(!!result);
               });
             } else {
               resolve(false);

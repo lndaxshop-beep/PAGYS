@@ -10,6 +10,7 @@ import RecycleBin from '../components/dashboard/RecycleBin';
 import NewProjectForm from '../components/dashboard/NewProjectForm';
 import ProjectsList from '../components/dashboard/ProjectsList';
 import PaymentModal from '../components/PaymentModal';
+import PaymentReceipt from '../components/PaymentReceipt';
 import ProjectConfirmationModal from '../components/ProjectConfirmationModal';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
@@ -39,6 +40,7 @@ const Dashboard = () => {
   const [paymentProject, setPaymentProject] = useState(null);
   const [paymentTier, setPaymentTier] = useState(null);
   const [paymentIsUpgrade, setPaymentIsUpgrade] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
   const [confirmationProject, setConfirmationProject] = useState(null);
   const [confirmationTier, setConfirmationTier] = useState(null);
 
@@ -122,6 +124,16 @@ const Dashboard = () => {
         }
       }
       setShowPaymentModal(false);
+      const receiptData = {
+        type: paymentIsUpgrade ? 'upgrade' : 'project_creation',
+        amount: paymentIsUpgrade ? PRICES_USD.upgrade : (paymentTier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular),
+        currency: 'USD',
+        reference: `PAY_${Date.now()}`,
+        email: JSON.parse(localStorage.getItem('currentUser') || '{}').email,
+        paidAt: new Date().toISOString(),
+        channel: 'card',
+      };
+      setPaymentReceipt(receiptData);
       setPaymentProject(null);
       setPaymentTier(null);
       loadProjects();
@@ -152,6 +164,16 @@ const Dashboard = () => {
     const success = await upgradeToPremium(paymentProject.id);
     if (success) {
       setShowPaymentModal(false);
+      const receiptData = {
+        type: 'upgrade',
+        amount: PRICES_USD.upgrade,
+        currency: 'USD',
+        reference: `PAY_${Date.now()}`,
+        email: JSON.parse(localStorage.getItem('currentUser') || '{}').email,
+        paidAt: new Date().toISOString(),
+        channel: 'card',
+      };
+      setPaymentReceipt(receiptData);
       setPaymentProject(null);
       setPaymentIsUpgrade(false);
       loadProjects();
@@ -304,6 +326,13 @@ const Dashboard = () => {
           onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}
           onCancel={handleClosePayment}
           onDevBypass={handleDevBypass}
+        />
+      )}
+
+      {paymentReceipt && (
+        <PaymentReceipt
+          payment={paymentReceipt}
+          onClose={() => setPaymentReceipt(null)}
         />
       )}
 

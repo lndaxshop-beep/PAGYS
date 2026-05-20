@@ -64,9 +64,60 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+app.post('/api/initialize-payment', async (req, res) => {
+  try {
+    const { email, amount, metadata } = req.body;
+    if (!email || !amount) return res.status(400).json({ error: 'Missing email or amount' });
+
+    if (!paystack) {
+      return res.status(500).json({ error: 'Payment gateway not configured' });
+    }
+
+    const amountInKobo = Math.round(amount * 100);
+    const response = await paystack.transaction.initialize({
+      email,
+      amount: amountInKobo,
+      metadata: {
+        ...metadata,
+        custom_fields: [
+          { display_name: 'Project Type', variable_name: 'project_type', value: metadata?.type || 'project_creation' },
+        ],
+      },
+    });
+
+    res.json({ authorizationUrl: response.data.authorization_url, reference: response.data.reference });
+  } catch (err) {
+    console.error('Payment initialization error:', err.message);
+    res.status(500).json({ error: 'Payment initialization failed' });
+  }
+});
+
+app.post('/api/paystack-webhook', async (req, res) => {
+  try {
+    const event = req.body;
+
+    if (event.event === 'charge.success') {
+      const data = event.data;
+      console.log('Paystack webhook: charge.success', {
+        reference: data.reference,
+        amount: data.amount / 100,
+        email: data.customer?.email,
+        metadata: data.metadata,
+      });
+
+      return res.json({ received: true });
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Webhook error:', err.message);
+    res.status(200).json({ received: true });
+  }
+});
+
 app.post('/api/verify-payment', async (req, res) => {
   try {
-    const { reference } = req.body;
+    const { reference, projectId, tier, userId } = req.body;
     if (!reference) return res.status(400).json({ error: 'Missing payment reference' });
 
     if (!paystack) {
@@ -76,14 +127,20 @@ app.post('/api/verify-payment', async (req, res) => {
     const response = await paystack.transaction.verify(reference);
 
     if (response.data.status === 'success') {
-      return res.json({
+      const paymentData = {
         success: true,
         verified: true,
         amount: response.data.amount / 100,
         currency: response.data.currency,
         reference: response.data.reference,
         email: response.data.customer?.email,
-      });
+        paidAt: response.data.paid_at,
+        channel: response.data.channel,
+        metadata: response.data.metadata,
+      };
+
+      console.log('Payment verified:', { reference, amount: paymentData.amount, projectId, tier });
+      return res.json(paymentData);
     }
 
     return res.status(400).json({ error: 'Payment not successful', status: response.data.status });

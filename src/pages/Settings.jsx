@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc, orderBy, limit, getDocs } from 'firebase/firestore';
 import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Toast from '../components/Toast';
@@ -21,6 +21,8 @@ const Settings = () => {
   const [toast, setToast] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
 
   const notify = (message, type) => setToast({ message, type });
 
@@ -47,6 +49,27 @@ const Settings = () => {
       } catch (e) { console.error('Failed to load projects:', e); }
     };
     if (user) loadProjects();
+  }, [user]);
+
+  useEffect(() => {
+    const loadPayments = async () => {
+      if (!user?.uid) return;
+      setLoadingPayments(true);
+      try {
+        const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../firebase');
+        const paymentsRef = collection(db, 'payments');
+        const q = query(paymentsRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(20));
+        const snapshot = await getDocs(q);
+        const paymentList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPayments(paymentList);
+      } catch (e) {
+        console.error('Failed to load payments:', e);
+      } finally {
+        setLoadingPayments(false);
+      }
+    };
+    loadPayments();
   }, [user]);
 
   const handleSave = async () => {
@@ -230,6 +253,42 @@ const Settings = () => {
             </div>
           ) : (
             <p style={{ color: colors.textSecondary, fontSize: '14px' }}>No projects yet. Create one from the Dashboard.</p>
+          )}
+        </div>
+
+        <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', border: `1px solid ${colors.border}`, marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Payment History</h2>
+          {loadingPayments ? (
+            <p style={{ color: colors.textSecondary, fontSize: '14px' }}>Loading payments...</p>
+          ) : payments.length > 0 ? (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {payments.map(p => (
+                <div key={p.id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 16px', backgroundColor: colors.background, borderRadius: '8px',
+                  border: `1px solid ${colors.border}`
+                }}>
+                  <div>
+                    <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>
+                      {p.type === 'upgrade' ? 'Premium Upgrade' : p.type === 'project_creation' ? (p.tier === 'premium' ? 'Premium Project' : 'Regular Project') : 'Feature Payment'}
+                    </span>
+                    <span style={{ color: colors.textSecondary, fontSize: '12px', marginLeft: '8px' }}>
+                      {p.reference}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px' }}>
+                      {p.currency?.toUpperCase()} {p.amount?.toFixed(2)}
+                    </span>
+                    <span style={{ color: colors.textSecondary, fontSize: '11px', display: 'block' }}>
+                      {p.paidAt ? new Date(p.paidAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: colors.textSecondary, fontSize: '14px' }}>No payment history yet.</p>
           )}
         </div>
 

@@ -36,7 +36,8 @@ function AppContent() {
   const { colors } = useTheme();
   const location = useLocation();
   const prevPath = useRef(location.pathname);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [splashMinTimeElapsed, setSplashMinTimeElapsed] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { isTransitioning: contextTransitioning } = useNavigationLoading();
   const [toast, setToast] = useState(null);
@@ -44,12 +45,16 @@ function AppContent() {
   const notify = (message, type) => setToast({ message, type });
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsInitialLoad(false), 5000);
+    const timer = setTimeout(() => setSplashMinTimeElapsed(true), 4000);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (isInitialLoad) {
+    setPageReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!splashMinTimeElapsed) {
       prevPath.current = location.pathname;
       return;
     }
@@ -61,7 +66,7 @@ function AppContent() {
       const timer = setTimeout(() => setIsTransitioning(false), 800);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname, isInitialLoad]);
+  }, [location.pathname, splashMinTimeElapsed]);
 
   useEffect(() => {
     const goOffline = () => setIsOffline(true);
@@ -71,11 +76,12 @@ function AppContent() {
     return () => { window.removeEventListener('offline', goOffline); window.removeEventListener('online', goOnline); };
   }, []);
 
-  const showSplash = isInitialLoad || isTransitioning || contextTransitioning;
+  const showSplash = !splashMinTimeElapsed || !pageReady || isTransitioning || contextTransitioning;
 
   return (
     <>
     <SplashScreen show={showSplash} />
+    {!showSplash && (
     <ErrorBoundary>
       <div style={{
         backgroundColor: colors.background,
@@ -113,6 +119,7 @@ function AppContent() {
         <AppFeedbackButton />
       </div>
     </ErrorBoundary>
+    )}
     </>
   );
 }

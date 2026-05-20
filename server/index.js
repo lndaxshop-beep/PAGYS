@@ -73,10 +73,12 @@ app.post('/api/initialize-payment', async (req, res) => {
       return res.status(500).json({ error: 'Payment gateway not configured' });
     }
 
+    const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${ALLOWED_ORIGINS[0]}/dashboard`;
     const amountInKobo = Math.round(amount * 100);
     const response = await paystack.transaction.initialize({
       email,
       amount: amountInKobo,
+      callback_url: callbackUrl,
       metadata: {
         ...metadata,
         custom_fields: [

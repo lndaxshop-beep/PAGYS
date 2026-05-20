@@ -110,8 +110,7 @@ const MyFiles = () => {
   const downloadChapter = async (chapter) => {
     setPreparingDownload(true); setDownloadProgress('Preparing document...');
     try {
-      const content = await getGeneratedContent(selectedProject);
-      const chapterContent = content?.[chapter.id] || {};
+      const chapterContent = rawContent?.[chapter.id] || {};
       const chapterIndex = chapters.findIndex(ch => ch.id === chapter.id) + 1;
       const blob = await generateChapterDocument({
         chapter,

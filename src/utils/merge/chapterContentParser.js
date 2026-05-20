@@ -104,9 +104,9 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
   for (const [, text] of subsectionEntries) {
     if (!text || typeof text !== 'string') continue;
 
-    let processedText = text;
-    const plainHierarchy = detectPlainTextHierarchy(text);
-    if (plainHierarchy) processedText = text + '\n\n' + plainHierarchy;
+    let processedText = text.replace(/<p[^>]*>/gi, '\n').replace(/<\/p>/gi, '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/?span[^>]*>/gi, '').replace(/<\/?strong[^>]*>/gi, '').replace(/<\/?em[^>]*>/gi, '');
+    const plainHierarchy = detectPlainTextHierarchy(processedText);
+    if (plainHierarchy) processedText = processedText + '\n\n' + plainHierarchy;
 
     const lines = processedText.split('\n');
     let i = 0;

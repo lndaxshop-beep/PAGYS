@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { formatPrice, getUserCountry, PRICES_USD } from '../constants/pricing';
+import { formatPrice, getUserCountry, PRICES_GHS, getCurrency } from '../constants/pricing';
 
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
@@ -27,9 +27,12 @@ const usePayment = (onNotify) => {
       tier,
       isPremium: tier === 'premium',
     });
+    const country = getUserCountry();
+    const priceKey = isUpgrade ? 'upgrade' : tier;
+    const amount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
     if (onNotify) onNotify(
       isUpgrade
-        ? `Project upgraded to Premium (${formatPrice(PRICES_USD.upgrade, getUserCountry(), false)})! All features unlocked.`
+        ? `Project upgraded to Premium (${formatPrice(amount, country, false)})! All features unlocked.`
         : tier === 'premium'
           ? 'Premium project created! All features unlocked.'
           : 'Regular project created! You can upgrade anytime.',
@@ -40,7 +43,7 @@ const usePayment = (onNotify) => {
     }));
   }, [onNotify]);
 
-  const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount) => {
+  const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount, currency) => {
     try {
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const res = await fetch(`${PROXY_URL}/api/verify-payment`, {
@@ -57,12 +60,12 @@ const usePayment = (onNotify) => {
         userId: user?.uid,
         projectId,
         tier,
-        amount: data.amount,
-        currency: data.currency,
-        reference: data.reference,
-        email: data.email,
-        paidAt: data.paidAt,
-        channel: data.channel,
+        amount: data.amount || amount,
+        currency: data.currency || currency,
+        reference: data.reference || reference,
+        email: data.email || user?.email,
+        paidAt: data.paidAt || new Date().toISOString(),
+        channel: data.channel || 'inline',
         type: isUpgrade ? 'upgrade' : 'project_creation',
         status: 'verified',
       });
@@ -74,6 +77,26 @@ const usePayment = (onNotify) => {
     }
   }, [onNotify, updateProjectTier]);
 
+  const openPaystackPopup = useCallback((email, amount, currency, metadata) => {
+    return new Promise((resolve) => {
+      const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email,
+        amount: Math.round(amount * 100),
+        currency: currency.toUpperCase(),
+        ref: `PAGYS_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
+        metadata: { custom_fields: [{ display_name: 'Project Type', variable_name: 'project_type', value: metadata?.type || 'project_creation' }] },
+        callback: (response) => {
+          resolve({ reference: response.reference, status: 'success' });
+        },
+        onClose: () => {
+          resolve({ reference: null, status: 'closed' });
+        },
+      });
+      handler.openIframe();
+    });
+  }, []);
+
   const processPayment = useCallback(async (projectId, tier) => {
     setProcessing(true);
     try {
@@ -82,52 +105,31 @@ const usePayment = (onNotify) => {
         await updateProjectTier(projectId, tier, false);
         await storePaymentRecord({
           userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
-          projectId, tier, amount: tier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular,
-          currency: 'USD', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
+          projectId, tier, amount: PRICES_GHS[tier] || PRICES_GHS.regular,
+          currency: 'GHS', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
           channel: 'dev_bypass', type: 'project_creation', status: 'verified',
         });
         return true;
       }
 
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      const amount = tier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular;
+      const country = getUserCountry();
+      const currency = getCurrency(country);
+      const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
+      const localAmount = Math.round(ghsPrice * currency.rate);
 
-      const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email || 'customer@example.com',
-          amount,
-          metadata: { projectId, tier, type: 'project_creation' },
-        }),
-      });
+      const result = await openPaystackPopup(
+        user.email || 'customer@example.com',
+        localAmount,
+        currency.code,
+        { projectId, tier, type: 'project_creation' }
+      );
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to initialize payment');
+      if (result.status === 'success' && result.reference) {
+        const verified = await verifyPayment(result.reference, projectId, tier, false, localAmount, currency.code);
+        return !!verified;
       }
-
-      const data = await res.json();
-      window.location.href = data.authorizationUrl;
-
-      return new Promise((resolve) => {
-        const checkReturn = setInterval(() => {
-          const returned = sessionStorage.getItem('paystack_return');
-          if (returned) {
-            clearInterval(checkReturn);
-            sessionStorage.removeItem('paystack_return');
-            const ref = sessionStorage.getItem('paystack_reference');
-            if (ref) {
-              verifyPayment(ref, projectId, tier, false, amount).then((result) => {
-                resolve(!!result);
-              });
-            } else {
-              resolve(false);
-            }
-          }
-        }, 500);
-        setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
-      });
+      return false;
     } catch (e) {
       console.error('Error processing payment:', e);
       if (onNotify) onNotify('Payment failed. Please try again.', 'error');
@@ -135,7 +137,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, updateProjectTier]);
+  }, [onNotify, verifyPayment, updateProjectTier, openPaystackPopup]);
 
   const upgradeToPremium = useCallback(async (projectId) => {
     setProcessing(true);
@@ -145,52 +147,31 @@ const usePayment = (onNotify) => {
         await updateProjectTier(projectId, 'premium', true);
         await storePaymentRecord({
           userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
-          projectId, tier: 'premium', amount: PRICES_USD.upgrade,
-          currency: 'USD', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
+          projectId, tier: 'premium', amount: PRICES_GHS.upgrade,
+          currency: 'GHS', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
           channel: 'dev_bypass', type: 'upgrade', status: 'verified',
         });
         return true;
       }
 
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      const amount = PRICES_USD.upgrade;
+      const country = getUserCountry();
+      const currency = getCurrency(country);
+      const ghsPrice = PRICES_GHS.upgrade;
+      const localAmount = Math.round(ghsPrice * currency.rate);
 
-      const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email || 'customer@example.com',
-          amount,
-          metadata: { projectId, tier: 'premium', type: 'upgrade' },
-        }),
-      });
+      const result = await openPaystackPopup(
+        user.email || 'customer@example.com',
+        localAmount,
+        currency.code,
+        { projectId, tier: 'premium', type: 'upgrade' }
+      );
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to initialize payment');
+      if (result.status === 'success' && result.reference) {
+        const verified = await verifyPayment(result.reference, projectId, 'premium', true, localAmount, currency.code);
+        return !!verified;
       }
-
-      const data = await res.json();
-      window.location.href = data.authorizationUrl;
-
-      return new Promise((resolve) => {
-        const checkReturn = setInterval(() => {
-          const returned = sessionStorage.getItem('paystack_return');
-          if (returned) {
-            clearInterval(checkReturn);
-            sessionStorage.removeItem('paystack_return');
-            const ref = sessionStorage.getItem('paystack_reference');
-            if (ref) {
-              verifyPayment(ref, projectId, 'premium', true, amount).then((result) => {
-                resolve(!!result);
-              });
-            } else {
-              resolve(false);
-            }
-          }
-        }, 500);
-        setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
-      });
+      return false;
     } catch (e) {
       console.error('Error upgrading project:', e);
       if (onNotify) onNotify('Upgrade failed. Please try again.', 'error');
@@ -198,16 +179,16 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, updateProjectTier]);
+  }, [onNotify, verifyPayment, updateProjectTier, openPaystackPopup]);
 
-  const processSmallPayment = useCallback(async (projectId, amount, metadata, onSuccess) => {
+  const processSmallPayment = useCallback(async (projectId, ghsAmount, metadata, onSuccess) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
         await new Promise(resolve => setTimeout(resolve, 800));
         await storePaymentRecord({
           userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
-          projectId, amount, currency: 'USD', reference: `dev_${Date.now()}`,
+          projectId, amount: ghsAmount, currency: 'GHS', reference: `dev_${Date.now()}`,
           paidAt: new Date().toISOString(), channel: 'dev_bypass',
           type: metadata.type || 'micro_payment', status: 'verified',
         });
@@ -216,44 +197,23 @@ const usePayment = (onNotify) => {
       }
 
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const country = getUserCountry();
+      const currency = getCurrency(country);
+      const localAmount = Math.round(ghsAmount * currency.rate);
 
-      const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email || 'customer@example.com',
-          amount,
-          metadata: { projectId, ...metadata },
-        }),
-      });
+      const result = await openPaystackPopup(
+        user.email || 'customer@example.com',
+        localAmount,
+        currency.code,
+        { projectId, ...metadata }
+      );
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to initialize payment');
+      if (result.status === 'success' && result.reference) {
+        const verified = await verifyPayment(result.reference, projectId, metadata.tier || 'regular', false, localAmount, currency.code);
+        if (verified && onSuccess) onSuccess();
+        return !!verified;
       }
-
-      const data = await res.json();
-      window.location.href = data.authorizationUrl;
-
-      return new Promise((resolve) => {
-        const checkReturn = setInterval(() => {
-          const returned = sessionStorage.getItem('paystack_return');
-          if (returned) {
-            clearInterval(checkReturn);
-            sessionStorage.removeItem('paystack_return');
-            const ref = sessionStorage.getItem('paystack_reference');
-            if (ref) {
-              verifyPayment(ref, projectId, metadata.tier || 'regular', false, amount).then((result) => {
-                if (result && onSuccess) onSuccess();
-                resolve(!!result);
-              });
-            } else {
-              resolve(false);
-            }
-          }
-        }, 500);
-        setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
-      });
+      return false;
     } catch (e) {
       console.error('Error processing payment:', e);
       if (onNotify) onNotify('Payment failed. Please try again.', 'error');
@@ -261,7 +221,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment]);
+  }, [onNotify, verifyPayment, openPaystackPopup]);
 
   return { processing, processPayment, upgradeToPremium, processSmallPayment, devBypass: DEV_BYPASS };
 };

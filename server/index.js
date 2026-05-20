@@ -66,7 +66,7 @@ app.post('/api/generate', async (req, res) => {
 
 app.post('/api/initialize-payment', async (req, res) => {
   try {
-    const { email, amount, metadata } = req.body;
+    const { email, amount, currency, metadata } = req.body;
     if (!email || !amount) return res.status(400).json({ error: 'Missing email or amount' });
 
     if (!paystack) {
@@ -74,10 +74,15 @@ app.post('/api/initialize-payment', async (req, res) => {
     }
 
     const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${ALLOWED_ORIGINS[0]}/dashboard`;
-    const amountInKobo = Math.round(amount * 100);
+    const paystackCurrency = (currency || 'GHS').toLowerCase();
+    const amountInSubunit = Math.round(amount * 100);
+
+    console.log(`[Paystack] Initializing: ${amount} ${paystackCurrency.toUpperCase()} for ${email}`);
+
     const response = await paystack.transaction.initialize({
       email,
-      amount: amountInKobo,
+      amount: amountInSubunit,
+      currency: paystackCurrency,
       callback_url: callbackUrl,
       metadata: {
         ...metadata,
@@ -87,7 +92,7 @@ app.post('/api/initialize-payment', async (req, res) => {
       },
     });
 
-    res.json({ authorizationUrl: response.data.authorization_url, reference: response.data.reference });
+    res.json({ authorizationUrl: response.data.authorization_url, reference: response.data.reference, accessCode: response.data.access_code });
   } catch (err) {
     console.error('Payment initialization error:', err.message);
     res.status(500).json({ error: 'Payment initialization failed' });

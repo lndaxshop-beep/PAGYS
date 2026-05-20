@@ -41,9 +41,9 @@ const ContentRenderer = ({ content, colors, onEditVisual }) => {
 
 export const parseContentBlocks = (content) => {
   if (!content) return [];
-  let processedContent = content;
-  const plainHierarchy = detectPlainTextHierarchy(content);
-  if (plainHierarchy) processedContent = content + '\n\n' + plainHierarchy;
+  let processedContent = content.replace(/<p[^>]*>/gi, '\n').replace(/<\/p>/gi, '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/?span[^>]*>/gi, '').replace(/<\/?strong[^>]*>/gi, '').replace(/<\/?em[^>]*>/gi, '');
+  const plainHierarchy = detectPlainTextHierarchy(processedContent);
+  if (plainHierarchy) processedContent = processedContent + '\n\n' + plainHierarchy;
   const lines = processedContent.split('\n');
   const blocks = [];
   let currentHtml = '';

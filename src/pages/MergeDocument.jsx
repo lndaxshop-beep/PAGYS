@@ -12,6 +12,8 @@ import generateMarkdownDocument from '../utils/merge/markdownExportEngine.js';
 import { PageSkeleton } from '../components/Skeleton';
 import { useCurrency } from '../hooks/useCurrency';
 import { PRICES_USD } from '../constants/pricing';
+import usePayment from '../hooks/usePayment';
+import Toast from '../components/Toast';
 
 const PLACEHOLDER_FIELDS = [
   { key: 'fullName', label: 'Full Name', default: '' },
@@ -43,6 +45,9 @@ const MergeDocument = () => {
   const navigate = useNavigate();
   const { colors, isDarkMode } = useTheme();
   const { fmt } = useCurrency();
+  const [toast, setToast] = useState(null);
+  const notify = (message, type) => setToast({ message, type });
+  const { processing: processingPayment, processSmallPayment, devBypass } = usePayment(notify);
 
   const [project, setProject] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -73,7 +78,6 @@ const MergeDocument = () => {
   const [error, setError] = useState('');
   const [showAbstractPaymentModal, setShowAbstractPaymentModal] = useState(false);
   const [processingAbstractPayment, setProcessingAbstractPayment] = useState(false);
-  const abstractPaymentTimeoutRef = useRef(null);
 
   const [dedicationNames, setDedicationNames] = useState(() => {
     try { return localStorage.getItem(`dedicationNames_${projectId}`) || ''; } catch { return ''; }
@@ -295,14 +299,10 @@ const MergeDocument = () => {
     setGeneratingAbstract(false);
   };
 
-  const handleAbstractPaymentConfirm = () => {
+  const handleAbstractPaymentConfirm = async () => {
     setProcessingAbstractPayment(true);
-    abstractPaymentTimeoutRef.current = setTimeout(async () => {
-      setProcessingAbstractPayment(false);
-      setShowAbstractPaymentModal(false);
-
-      const key = getAbstractCacheKey();
-
+    const key = getAbstractCacheKey();
+    const success = await processSmallPayment(projectId, PRICES_USD.abstractRegen, { type: 'abstract_regen' }, async () => {
       setGeneratingAbstract(true);
       setError('');
       try {
@@ -318,7 +318,34 @@ const MergeDocument = () => {
         setError('Failed to generate abstract: ' + (e.message || 'Unknown error'));
       }
       setGeneratingAbstract(false);
-    }, 800);
+    });
+    if (success) {
+      setShowAbstractPaymentModal(false);
+    }
+    setProcessingAbstractPayment(false);
+  };
+
+  const handleAbstractDevBypass = async () => {
+    setProcessingAbstractPayment(true);
+    const key = getAbstractCacheKey();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setGeneratingAbstract(true);
+    setError('');
+    try {
+      const { generateAbstract } = await import('../services/geminiService');
+      const text = await generateAbstract(project, generatedSubsections);
+      if (text) {
+        setPlaceholders(prev => ({ ...prev, abstractText: text }));
+        localStorage.setItem(key, text);
+      } else {
+        setError('Failed to generate abstract. Try again.');
+      }
+    } catch (e) {
+      setError('Failed to generate abstract: ' + (e.message || 'Unknown error'));
+    }
+    setGeneratingAbstract(false);
+    setProcessingAbstractPayment(false);
+    setShowAbstractPaymentModal(false);
   };
 
   const handleAbstractPaymentCancel = () => {
@@ -506,9 +533,12 @@ const MergeDocument = () => {
               {processingAbstractPayment ? (
                 <div style={{ width: '48px', height: '48px', border: `4px solid ${colors.primary}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
               ) : (
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexDirection: 'column' }}>
+                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_USD.abstractRegen, false)} via Paystack</button>
+                  {devBypass && (
+                    <button onClick={handleAbstractDevBypass} style={{ padding: '10px 24px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>⚡ Simulate Payment (Dev Mode)</button>
+                  )}
                   <button onClick={handleAbstractPaymentCancel} style={{ padding: '10px 24px', backgroundColor: colors.border, color: colors.text, border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_USD.abstractRegen, false)}</button>
                 </div>
               )}
             </div>
@@ -773,6 +803,7 @@ const MergeDocument = () => {
         </div>
       </div>
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

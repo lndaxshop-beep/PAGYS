@@ -36,6 +36,7 @@ import VersionBrowser from '../components/writing/VersionBrowser';
 import HelpModal from '../components/writing/HelpModal';
 import { saveSubsectionVersions, getSubsectionVersions } from '../services/firestoreService';
 import { fixBannedPhrase, fixBurstiness, fixTransitionOveruse, humaniseContent } from '../services/gemini/aiCorrectionService';
+import usePayment from '../hooks/usePayment';
 
 const Write = () => {
   const { projectId } = useParams();
@@ -56,7 +57,6 @@ const Write = () => {
 
   const [resetModalType, setResetModalType] = useState(null);
   const [processingReset, setProcessingReset] = useState(false);
-  const resetTimeoutRef = useRef(null);
   const [currentContent, setCurrentContent] = useState('');
   const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
@@ -95,6 +95,7 @@ const Write = () => {
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
+  const { processing: processingPayment, processSmallPayment, devBypass } = usePayment(toastError);
 
   const { saveStatus, lastSaved, saveNow } = useAutoSave({
     saveFn: (data) => saveGeneratedContent(projectId, data),
@@ -550,25 +551,39 @@ const Write = () => {
     try { localStorage.setItem(`instruments_${projectId}`, JSON.stringify(downloadedTypes || [])); } catch (e) { console.warn('Failed to cache instruments:', e); }
   };
 
-  const handleResetConfirm = () => {
+  const handleResetConfirm = async () => {
     if (processingReset) return;
+    const resetPrice = resetModalType === 'humanise' ? PRICES_USD.humaniseReset : PRICES_USD.feedbackReset;
     setProcessingReset(true);
-    resetTimeoutRef.current = setTimeout(() => {
+    const success = await processSmallPayment(projectId, resetPrice, { type: `${resetModalType}_reset` }, () => {
       if (resetModalType === 'humanise') {
         setHumaniseUsed(prev => ({ ...prev, [activeChapter]: 0 }));
       } else if (resetModalType === 'feedback') {
         setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
       }
-      setProcessingReset(false);
+      toastSuccess(`${resetModalType === 'humanise' ? 'Humanise' : 'Feedback'} pool reset for this chapter!`, 'success');
+    });
+    if (success) {
       setResetModalType(null);
-    }, 1000);
+    }
+    setProcessingReset(false);
   };
 
-  useEffect(() => {
-    return () => {
-      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
-    };
-  }, []);
+  const handleResetDevBypass = async () => {
+    if (processingReset) return;
+    setProcessingReset(true);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (resetModalType === 'humanise') {
+      setHumaniseUsed(prev => ({ ...prev, [activeChapter]: 0 }));
+    } else if (resetModalType === 'feedback') {
+      setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
+    }
+    setProcessingReset(false);
+    setResetModalType(null);
+    toastSuccess(`${resetModalType === 'humanise' ? 'Humanise' : 'Feedback'} pool reset (dev mode)!`, 'success');
+  };
+
+
 
   const captureVersion = (chapterId, subsectionId, content, label) => {
     if (!content || !subsectionId) return;
@@ -905,8 +920,18 @@ const Write = () => {
                 fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingReset ? 0.7 : 1
               }}>
-                {processingReset ? 'Processing...' : `Pay ${fmt(PRICES_USD.humaniseReset)}`}
+                {processingReset ? 'Processing...' : `Pay ${fmt(PRICES_USD.humaniseReset)} via Paystack`}
               </button>
+              {devBypass && (
+                <button onClick={handleResetDevBypass} disabled={processingReset} style={{
+                  backgroundColor: '#f59e0b',
+                  color: 'white', padding: '12px', border: 'none', borderRadius: '8px',
+                  fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
+                  fontSize: '13px'
+                }}>
+                  ⚡ Simulate Payment (Dev Mode)
+                </button>
+              )}
               <button onClick={() => setResetModalType(null)} disabled={processingReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,
                 padding: '10px', border: `1px solid ${colors.border}`, borderRadius: '8px',

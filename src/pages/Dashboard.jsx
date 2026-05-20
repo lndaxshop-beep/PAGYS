@@ -153,7 +153,25 @@ const Dashboard = () => {
     if (success) {
       setShowPaymentModal(false);
       setPaymentProject(null);
+      setPaymentIsUpgrade(false);
       loadProjects();
+    }
+  };
+
+  const handleDevBypass = async () => {
+    if (!paymentProject) return;
+    if (paymentIsUpgrade) {
+      await upgradeToPremium(paymentProject.id);
+    } else {
+      await processPayment(paymentProject.id, paymentTier);
+    }
+    setShowPaymentModal(false);
+    setPaymentProject(null);
+    setPaymentTier(null);
+    setPaymentIsUpgrade(false);
+    loadProjects();
+    if (!paymentIsUpgrade && paymentTier === 'premium') {
+      setShowSourceSetup(true);
     }
   };
 
@@ -285,6 +303,7 @@ const Dashboard = () => {
           processingPayment={processingPayment}
           onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}
           onCancel={handleClosePayment}
+          onDevBypass={handleDevBypass}
         />
       )}
 

@@ -1,16 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import Paystack from 'paystack';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
-if (!GEMINI_API_KEY) {
-  console.error('FATAL: GEMINI_API_KEY environment variable is not set.');
-  process.exit(1);
-}
+const paystack = PAYSTACK_SECRET_KEY ? new Paystack(PAYSTACK_SECRET_KEY) : null;
 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: '10mb' }));
@@ -64,11 +63,41 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+app.post('/api/verify-payment', async (req, res) => {
+  try {
+    const { reference } = req.body;
+    if (!reference) return res.status(400).json({ error: 'Missing payment reference' });
+
+    if (!paystack) {
+      return res.status(500).json({ error: 'Payment gateway not configured' });
+    }
+
+    const response = await paystack.transaction.verify(reference);
+
+    if (response.data.status === 'success') {
+      return res.json({
+        success: true,
+        verified: true,
+        amount: response.data.amount / 100,
+        currency: response.data.currency,
+        reference: response.data.reference,
+        email: response.data.customer?.email,
+      });
+    }
+
+    return res.status(400).json({ error: 'Payment not successful', status: response.data.status });
+  } catch (err) {
+    console.error('Payment verification error:', err.message);
+    res.status(500).json({ error: 'Payment verification failed' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', model: 'gemini-2.5-flash' });
+  res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: !!paystack });
 });
 
 app.listen(PORT, () => {
   console.log(`PAGYS API Proxy running on port ${PORT}`);
   console.log(`Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
+  console.log(`Paystack configured: ${!!paystack}`);
 });

@@ -3,9 +3,11 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useCurrency } from '../hooks/useCurrency';
 import { PRICES_USD } from '../constants/pricing';
 
+const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
+
 const PaymentModal = ({
   project, tier, amount, isUpgrade,
-  processingPayment, onConfirm, onCancel
+  processingPayment, onConfirm, onCancel, onDevBypass
 }) => {
   const { colors } = useTheme();
   const { fmt } = useCurrency();
@@ -57,7 +59,7 @@ const PaymentModal = ({
         <p style={{ textAlign: 'center', fontSize: '12px', color: colors.textSecondary, margin: '0 0 20px' }}>
           {isUpgrade
             ? `You will be charged ${fmt(PRICES_USD.upgrade)} for the upgrade. This is a one-time payment.`
-            : 'Payment is processed securely. This is a one-time payment per project.'
+            : 'Payment is processed securely via Paystack. This is a one-time payment per project.'
           }
         </p>
 
@@ -72,8 +74,24 @@ const PaymentModal = ({
               fontSize: '15px', opacity: processingPayment ? 0.7 : 1
             }}
           >
-            {processingPayment ? 'Processing...' : `Pay ${fmt(amount)}`}
+            {processingPayment ? 'Processing...' : `Pay ${fmt(amount)} via Paystack`}
           </button>
+
+          {DEV_BYPASS && onDevBypass && (
+            <button
+              onClick={onDevBypass}
+              disabled={processingPayment}
+              style={{
+                backgroundColor: '#f59e0b',
+                color: 'white', padding: '12px', border: 'none', borderRadius: '8px',
+                fontWeight: '600', cursor: processingPayment ? 'not-allowed' : 'pointer',
+                fontSize: '13px', opacity: processingPayment ? 0.7 : 1
+              }}
+            >
+              ⚡ Simulate Payment (Dev Mode)
+            </button>
+          )}
+
           <button
             onClick={onCancel}
             disabled={processingPayment}

@@ -82,8 +82,16 @@ const useSourceLibrary = (projectId, userId) => {
         ...metadata
       };
 
-      const updated = [...sources, source];
-      persistSources(updated);
+      setSources(prev => {
+        const updated = [...prev, source];
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
+        } catch (e) { console.warn('Failed to persist sources:', e); }
+        if (userId) {
+          saveGeneratedContent({ userId, projectId, sources: updated }).catch(() => {});
+        }
+        return updated;
+      });
       return { success: true, source };
     } catch (error) {
       console.error('Error adding source:', error);
@@ -91,12 +99,17 @@ const useSourceLibrary = (projectId, userId) => {
     } finally {
       setExtracting(false);
     }
-  }, [sources, projectId, userId]);
+  }, [projectId, userId]);
 
   const removeSource = useCallback((sourceId) => {
-    const updated = sources.filter(s => s.id !== sourceId);
-    persistSources(updated);
-  }, [sources, projectId, userId]);
+    setSources(prev => {
+      const updated = prev.filter(s => s.id !== sourceId);
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
+      } catch (e) { console.warn('Failed to persist sources:', e); }
+      return updated;
+    });
+  }, [projectId, userId]);
 
   const generateMatrix = useCallback(async (project) => {
     if (sources.length === 0) return;
@@ -147,9 +160,10 @@ const useSourceLibrary = (projectId, userId) => {
   }, []);
 
   const clearSources = useCallback(() => {
-    persistSources([]);
+    setSources([]);
     setMatrix(null);
-  }, [projectId, userId]);
+    try { localStorage.removeItem(`${STORAGE_KEY}_${projectId}`); } catch {}
+  }, [projectId]);
 
   const getActiveSources = useCallback(() => {
     return sources.filter(s => s.title && s.title !== 'Unknown');
@@ -157,9 +171,14 @@ const useSourceLibrary = (projectId, userId) => {
 
   const addSources = useCallback((newSources) => {
     if (!newSources?.length) return;
-    const updated = [...sources, ...newSources];
-    persistSources(updated);
-  }, [sources, projectId, userId]);
+    setSources(prev => {
+      const updated = [...prev, ...newSources];
+      try {
+        localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
+      } catch (e) { console.warn('Failed to persist sources:', e); }
+      return updated;
+    });
+  }, [projectId]);
 
   return {
     sources,

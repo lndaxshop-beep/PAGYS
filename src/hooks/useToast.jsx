@@ -3,6 +3,15 @@ import { useState, useCallback, useRef } from 'react';
 export const useToast = () => {
   const [toasts, setToasts] = useState([]);
   const counterRef = useRef(0);
+  const timersRef = useRef({});
+
+  const removeToast = useCallback((id) => {
+    if (timersRef.current[id]) {
+      clearTimeout(timersRef.current[id]);
+      delete timersRef.current[id];
+    }
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   const addToast = useCallback((message, type = 'info', duration = 3000, action = null) => {
     const id = ++counterRef.current;
@@ -10,16 +19,19 @@ export const useToast = () => {
     setToasts(prev => [...prev, { id, message, type, action }]);
 
     if (effectiveDuration > 0) {
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id));
+      timersRef.current[id] = setTimeout(() => {
+        removeToast(id);
       }, effectiveDuration);
     }
 
     return id;
-  }, []);
+  }, [removeToast]);
 
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+  useEffect(() => {
+    return () => {
+      Object.values(timersRef.current).forEach(t => clearTimeout(t));
+      timersRef.current = {};
+    };
   }, []);
 
   const success = useCallback((message, duration) => addToast(message, 'success', duration), [addToast]);

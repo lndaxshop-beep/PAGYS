@@ -14,7 +14,7 @@ const useFindingsData = (project, onUpload, onGenerateWithAI, onNotify) => {
 
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files);
-    setUploadedFiles([...uploadedFiles, ...files]);
+    setUploadedFiles(prev => [...prev, ...files]);
     setUseAIGenerated(false);
     setSelectedOption('upload');
   };

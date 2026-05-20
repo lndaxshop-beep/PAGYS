@@ -85,22 +85,28 @@ export const useProjectData = (projectId) => {
   }, [projectId, saveToLocalStorage]);
 
   const updateGeneratedContent = useCallback(async (chapterId, content) => {
-    const newContent = { ...generatedContent, [chapterId]: content };
-    setGeneratedContent(newContent);
-    saveToLocalStorage('generated', projectId, newContent);
-  }, [generatedContent, projectId, saveToLocalStorage]);
+    setGeneratedContent(prev => {
+      const newContent = { ...prev, [chapterId]: content };
+      saveToLocalStorage('generated', projectId, newContent);
+      return newContent;
+    });
+  }, [projectId, saveToLocalStorage]);
 
   const updateCitations = useCallback(async (chapterId, citationsData) => {
-    const newCitations = { ...citations, [chapterId]: citationsData };
-    setCitations(newCitations);
-    saveToLocalStorage('citations', projectId, newCitations);
-  }, [citations, projectId, saveToLocalStorage]);
+    setCitations(prev => {
+      const newCitations = { ...prev, [chapterId]: citationsData };
+      saveToLocalStorage('citations', projectId, newCitations);
+      return newCitations;
+    });
+  }, [projectId, saveToLocalStorage]);
 
   const updateVisualData = useCallback(async (chapterId, visual) => {
-    const newVisual = { ...visualData, [chapterId]: visual };
-    setVisualData(newVisual);
-    saveToLocalStorage('visual', projectId, newVisual);
-  }, [visualData, projectId, saveToLocalStorage]);
+    setVisualData(prev => {
+      const newVisual = { ...prev, [chapterId]: visual };
+      saveToLocalStorage('visual', projectId, newVisual);
+      return newVisual;
+    });
+  }, [projectId, saveToLocalStorage]);
 
   const addInstrument = useCallback(async (instrument) => {
     const existing = JSON.parse(localStorage.getItem(`instruments_${projectId}`) || '{}');

@@ -38,8 +38,8 @@ const useAppAuth = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleLogout = () => {
-    signOut(auth);
+  const handleLogout = async () => {
+    await signOut(auth);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authToken');
     setIsLoggedIn(false);

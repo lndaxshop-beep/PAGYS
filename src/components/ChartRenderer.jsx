@@ -4,6 +4,14 @@ import { CHART_TYPES } from '../utils/visualDataModel.js';
 
 const ACADEMIC_COLORS = ['#2C3E50', '#3498DB', '#27AE60', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E', '#16A085'];
 
+let chartRegistered = false;
+const registerChart = async () => {
+  if (chartRegistered) return;
+  const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
+  Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
+  chartRegistered = true;
+};
+
 const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
   const { colors, isDarkMode } = useTheme();
   const canvasRef = useRef(null);
@@ -29,8 +37,8 @@ const ChartRenderer = ({ chartType, data, title, caption, onEdit }) => {
     let cancelled = false;
     const render = async () => {
       try {
-        const { Chart, BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title } = await import('chart.js');
-        Chart.register(BarController, BarElement, LineController, LineElement, PieController, ArcElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip, Title);
+        const { Chart } = await import('chart.js');
+        await registerChart();
 
         if (cancelled) return;
         if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }

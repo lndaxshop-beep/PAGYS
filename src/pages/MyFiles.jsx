@@ -8,6 +8,7 @@ import Toast from '../components/Toast';
 import SourceLibrary from '../components/writing/SourceLibrary';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
+import { escapeHtml } from '../utils/htmlEscape';
 import { generateChapterDocument } from '../utils/merge/chapterDownloadEngine.js';
 import { computeThesisScores } from '../utils/aiScoreUtils.js';
 import { useCurrency } from '../hooks/useCurrency';
@@ -38,6 +39,7 @@ const MyFiles = () => {
   const [processingRegenReset, setProcessingRegenReset] = useState(false);
   const regenResetTimeoutRef = useRef(null);
   const [rawContent, setRawContent] = useState({});
+  const sourceLibrary = useSourceLibrary(selectedProject, user?.uid);
 
   const isPremium = projectData?.tier === 'premium' || projectData?.isPremium;
   const baseDefenceRegenLimit = isPremium ? 2 : 1;
@@ -124,8 +126,8 @@ const MyFiles = () => {
     } finally { setPreparingDownload(false); setDownloadProgress(''); }
   };
 
-  const generateAbbreviationsDocument = () => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>List of Abbreviations</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:10px}th{background:#f2f2f2}</style></head><body><h1>List of Abbreviations</h1>${abbreviations.length > 0 ? `<table><thead><tr><th>Abbreviation</th><th>Meaning</th></tr></thead><tbody>${abbreviations.map(a => `<tr><td>${a.abbr}</td><td>${a.meaning}</td></tr>`).join('')}</tbody></table>` : '<p>None found.</p>'}</body></html>`;
-  const generateDefenceDocument = () => { if (!defenceQuestions) return ''; return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Defence Prep</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}h2{font-size:16pt;font-weight:bold;color:#2c3e50}.qa-item{margin-bottom:25px;padding:15px;background:#f9f9f9;border-left:3px solid #3498db}.question{font-weight:bold}</style></head><body><h1>Defence Preparation Guide</h1><p><strong>${projectData?.title}</strong></p>${Object.entries(defenceQuestions).map(([s, qs]) => { if (!qs || qs.length === 0) return ''; return `<h2>${formatSectionName(s)}</h2>${qs.map((q, i) => `<div class="qa-item"><div class="question">Q${i+1}: ${q.question}</div><div>${q.answer}</div></div>`).join('')}`; }).join('')}</body></html>`; };
+  const generateAbbreviationsDocument = () => `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>List of Abbreviations</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:10px}th{background:#f2f2f2}</style></head><body><h1>List of Abbreviations</h1>${abbreviations.length > 0 ? `<table><thead><tr><th>Abbreviation</th><th>Meaning</th></tr></thead><tbody>${abbreviations.map(a => `<tr><td>${escapeHtml(a.abbr)}</td><td>${escapeHtml(a.meaning)}</td></tr>`).join('')}</tbody></table>` : '<p>None found.</p>'}</body></html>`;
+  const generateDefenceDocument = () => { if (!defenceQuestions) return ''; return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Defence Prep</title><style>body{font-family:'Times New Roman',Times,serif;margin:2.54cm;font-size:12pt}h1{font-size:18pt;font-weight:bold;text-align:center}h2{font-size:16pt;font-weight:bold;color:#2c3e50}.qa-item{margin-bottom:25px;padding:15px;background:#f9f9f9;border-left:3px solid #3498db}.question{font-weight:bold}</style></head><body><h1>Defence Preparation Guide</h1><p><strong>${escapeHtml(projectData?.title)}</strong></p>${Object.entries(defenceQuestions).map(([s, qs]) => { if (!qs || qs.length === 0) return ''; return `<h2>${escapeHtml(formatSectionName(s))}</h2>${qs.map((q, i) => `<div class="qa-item"><div class="question">Q${i+1}: ${escapeHtml(q.question)}</div><div>${escapeHtml(q.answer)}</div></div>`).join('')}`; }).join('')}</body></html>`; };
   const formatSectionName = (s) => {
     const ch = chapters.find(c => c.id === s);
     return ch ? getChapterDisplayTitle(ch) : ({ final: 'Final', proposal: 'Proposal' })[s] || s;
@@ -169,7 +171,7 @@ const MyFiles = () => {
       const { generateDefenceQuestions } = await import('../services/geminiService');
       const qs = await generateDefenceQuestions({ title: projects.find(p => p.id === pid)?.title, researchTopic: projects.find(p => p.id === pid)?.topic, field: projects.find(p => p.id === pid)?.field, level: projects.find(p => p.id === pid)?.level, chapters: cc });
       if (qs) { setDefenceQuestions(qs); localStorage.setItem(simpleKey, JSON.stringify(qs)); }
-    } catch (e) {} finally { setLoadingDefence(false); }
+    } catch (e) { console.error('Failed to load defence questions:', e); notify('Failed to load defence questions.', 'error'); } finally { setLoadingDefence(false); }
   };
 
   const handleProjectChange = (pid) => { const p = projects.find(pr => pr.id === pid); setSelectedProject(pid); setProjectData(p); loadChaptersForProject(pid); setActiveTab('chapters'); setAbbreviations([]); setDefenceQuestions(null); setGeneratedInstruments([]); };
@@ -197,58 +199,6 @@ const MyFiles = () => {
 
   const thesisScores = useMemo(() => computeThesisScores(rawContent), [rawContent]);
 
-  const SourcesTabContent = ({ projectId, project }) => {
-    const sl = useSourceLibrary(projectId);
-    const fileInputRef = React.useRef(null);
-
-    const handleFileUpload = async (e) => {
-      const files = e.target.files;
-      for (let i = 0; i < files.length; i++) {
-        const result = await sl.addSource(files[i]);
-        if (result?.error) {
-          notify(result.message, 'warning');
-        }
-      }
-      e.target.value = '';
-    };
-
-    const handleBibtexImport = async (e) => {
-      const files = e.target.files;
-      if (!files?.length) return;
-      try {
-        const text = await files[0].text();
-        const { parseBibTeX } = await import('../utils/bibtexParser.js');
-        const entries = parseBibTeX(text);
-        if (entries.length > 0) {
-          sl.addSources(entries);
-          notify(`Imported ${entries.length} references from BibTeX.`, 'success');
-        } else {
-          notify('No references found in the BibTeX file.', 'error');
-        }
-      } catch (err) {
-        notify('Failed to parse BibTeX file.', 'error');
-      }
-      e.target.value = '';
-    };
-
-    return <SourceLibrary
-      sources={sl.sources}
-      extracting={sl.extracting}
-      loading={false}
-      matrix={sl.matrix}
-      generatingMatrix={sl.generatingMatrix}
-      pendingMatrixRegen={sl.pendingMatrixRegen}
-      processingMatrixPayment={sl.processingMatrixPayment}
-      onAddFile={handleFileUpload}
-      onRemoveSource={sl.removeSource}
-      onImportBibtex={handleBibtexImport}
-      onGenerateMatrix={() => sl.generateMatrix(project)}
-      onMatrixPaymentConfirm={() => sl.handleMatrixPaymentConfirm(project)}
-      onMatrixPaymentCancel={sl.handleMatrixPaymentCancel}
-      onClearSources={sl.clearSources}
-    />;
-  };
-
   const loadGeneratedInstruments = (pid) => {
     const stored = localStorage.getItem(`instruments_${pid}`);
     if (stored) {
@@ -269,50 +219,50 @@ const MyFiles = () => {
     const type = INSTRUMENT_TYPES[instrumentId];
     if (!type) return;
 
-    let bodyContent = `<h1>${type.icon} ${type.label}</h1>
-    <div class="info"><p><strong>Project:</strong> ${projectData?.title || 'Thesis'}</p><p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p></div><hr />`;
+    let bodyContent = `<h1>${type.icon} ${escapeHtml(type.label)}</h1>
+    <div class="info"><p><strong>Project:</strong> ${escapeHtml(projectData?.title || 'Thesis')}</p><p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p></div><hr />`;
 
     if (content.sections) {
       content.sections.forEach(section => {
-        bodyContent += `<div class="section"><h2>${section.sectionName || section.title}</h2>`;
+        bodyContent += `<div class="section"><h2>${escapeHtml(section.sectionName || section.title)}</h2>`;
         if (section.questions) {
           section.questions.forEach((q, qi) => {
-            bodyContent += `<div class="question"><div class="question-text">${qi + 1}. ${q.text}</div>`;
-            if (q.options) { q.options.forEach(opt => { bodyContent += `<div class="option">☐ ${opt}</div>`; }); }
+            bodyContent += `<div class="question"><div class="question-text">${qi + 1}. ${escapeHtml(q.text)}</div>`;
+            if (q.options) { q.options.forEach(opt => { bodyContent += `<div class="option">☐ ${escapeHtml(opt)}</div>`; }); }
             if (q.type === 'open-ended') { bodyContent += `<div class="open-ended-space"><div class="line"></div><div class="line"></div></div>`; }
             bodyContent += `</div>`;
           });
         }
         if (section.items) {
           section.items.forEach((item, ii) => {
-            if (item.type === 'script') bodyContent += `<p class="script">"${item.content}"</p>`;
-            else if (item.type === 'question') { bodyContent += `<div class="question"><div class="question-text">${ii + 1}. ${item.text}</div>`; if (item.probes) item.probes.forEach(p => { bodyContent += `<p class="probe">→ ${p}</p>`; }); bodyContent += `</div>`; }
-            else if (item.type === 'note') bodyContent += `<p class="note">📝 ${item.content}</p>`;
-            else if (item.type === 'activity') bodyContent += `<div class="question"><div class="question-text">Activity: ${item.name}</div><p>${item.instructions || ''}</p></div>`;
+            if (item.type === 'script') bodyContent += `<p class="script">"${escapeHtml(item.content)}"</p>`;
+            else if (item.type === 'question') { bodyContent += `<div class="question"><div class="question-text">${ii + 1}. ${escapeHtml(item.text)}</div>`; if (item.probes) item.probes.forEach(p => { bodyContent += `<p class="probe">→ ${escapeHtml(p)}</p>`; }); bodyContent += `</div>`; }
+            else if (item.type === 'note') bodyContent += `<p class="note">📝 ${escapeHtml(item.content)}</p>`;
+            else if (item.type === 'activity') bodyContent += `<div class="question"><div class="question-text">Activity: ${escapeHtml(item.name)}</div><p>${escapeHtml(item.instructions || '')}</p></div>`;
           });
         }
         if (section.fields || section.indicators) {
           bodyContent += `<table class="obs-table"><tr><th>#</th><th>Indicator / Field</th><th>Type</th></tr>`;
           let count = 0;
-          (section.fields || []).forEach(f => { count++; bodyContent += `<tr><td>${count}</td><td>${f.label}</td><td>${f.type}</td></tr>`; });
-          (section.indicators || []).forEach(ind => { count++; bodyContent += `<tr><td>${count}</td><td>${ind.label}</td><td>${ind.type}</td></tr>`; });
+          (section.fields || []).forEach(f => { count++; bodyContent += `<tr><td>${count}</td><td>${escapeHtml(f.label)}</td><td>${escapeHtml(f.type)}</td></tr>`; });
+          (section.indicators || []).forEach(ind => { count++; bodyContent += `<tr><td>${count}</td><td>${escapeHtml(ind.label)}</td><td>${escapeHtml(ind.type)}</td></tr>`; });
           bodyContent += `</table>`;
         }
         if (section.codes) {
           bodyContent += `<table class="obs-table"><tr><th>Code</th><th>Label</th><th>Description</th></tr>`;
-          section.codes.forEach(c => { bodyContent += `<tr><td>${c.code}</td><td>${c.label}</td><td>${c.description || ''}</td></tr>`; });
+          section.codes.forEach(c => { bodyContent += `<tr><td>${escapeHtml(c.code)}</td><td>${escapeHtml(c.label)}</td><td>${escapeHtml(c.description || '')}</td></tr>`; });
           bodyContent += `</table>`;
         }
         if (section.criteria) {
-          section.criteria.forEach((c, ci) => { bodyContent += `<div class="question"><div class="question-text">${ci + 1}. ${c.criterion}</div><p>${c.description || ''}</p></div>`; });
+          section.criteria.forEach((c, ci) => { bodyContent += `<div class="question"><div class="question-text">${ci + 1}. ${escapeHtml(c.criterion)}</div><p>${escapeHtml(c.description || '')}</p></div>`; });
         }
         if (section.sources) {
           bodyContent += `<table class="obs-table"><tr><th>Source</th><th>Type</th><th>Details</th></tr>`;
-          section.sources.forEach(s => { bodyContent += `<tr><td>${s.source}</td><td>${s.type}</td><td>${s.participants || s.duration || s.sessions || ''}</td></tr>`; });
+          section.sources.forEach(s => { bodyContent += `<tr><td>${escapeHtml(s.source)}</td><td>${escapeHtml(s.type)}</td><td>${escapeHtml(s.participants || s.duration || s.sessions || '')}</td></tr>`; });
           bodyContent += `</table>`;
         }
-        if (section.description) bodyContent += `<p>${section.description}</p>`;
-        if (section.methods) bodyContent += `<p><strong>Methods:</strong> ${section.methods.join(', ')}</p>`;
+        if (section.description) bodyContent += `<p>${escapeHtml(section.description)}</p>`;
+        if (section.methods) bodyContent += `<p><strong>Methods:</strong> ${escapeHtml(section.methods.join(', '))}</p>`;
         bodyContent += `</div>`;
       });
     }
@@ -535,7 +485,46 @@ const MyFiles = () => {
           </div>
         )}
         {activeTab === 'sources' && selectedProject && (
-          <SourcesTabContent key={selectedProject} projectId={selectedProject} project={projectData} />
+          <SourceLibrary
+            sources={sourceLibrary.sources}
+            extracting={sourceLibrary.extracting}
+            loading={false}
+            matrix={sourceLibrary.matrix}
+            generatingMatrix={sourceLibrary.generatingMatrix}
+            pendingMatrixRegen={sourceLibrary.pendingMatrixRegen}
+            processingMatrixPayment={sourceLibrary.processingMatrixPayment}
+            onAddFile={async (e) => {
+              const files = e.target.files;
+              for (let i = 0; i < files.length; i++) {
+                const result = await sourceLibrary.addSource(files[i]);
+                if (result?.error) notify(result.message, 'warning');
+              }
+              e.target.value = '';
+            }}
+            onRemoveSource={sourceLibrary.removeSource}
+            onImportBibtex={async (e) => {
+              const files = e.target.files;
+              if (!files?.length) return;
+              try {
+                const text = await files[0].text();
+                const { parseBibTeX } = await import('../utils/bibtexParser.js');
+                const entries = parseBibTeX(text);
+                if (entries.length > 0) {
+                  sourceLibrary.addSources(entries);
+                  notify(`Imported ${entries.length} references from BibTeX.`, 'success');
+                } else {
+                  notify('No references found in the BibTeX file.', 'error');
+                }
+              } catch (err) {
+                notify('Failed to parse BibTeX file.', 'error');
+              }
+              e.target.value = '';
+            }}
+            onGenerateMatrix={() => sourceLibrary.generateMatrix(projectData)}
+            onMatrixPaymentConfirm={() => sourceLibrary.handleMatrixPaymentConfirm(projectData)}
+            onMatrixPaymentCancel={sourceLibrary.handleMatrixPaymentCancel}
+            onClearSources={sourceLibrary.clearSources}
+          />
         )}
         {activeTab === 'instruments' && (
           <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>

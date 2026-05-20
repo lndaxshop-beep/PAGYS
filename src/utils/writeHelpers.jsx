@@ -4,6 +4,11 @@ import TableRenderer from '../components/TableRenderer';
 import DiagramRenderer from '../components/DiagramRenderer';
 import { CHART_MARKER_RE, parseChartMarker, FRAMEWORK_MARKER_RE, parseFrameworkBlock, markdownTableRe, parseMarkdownTable, detectPlainTextHierarchy } from './visualDataModel.js';
 
+const sanitizeHtml = (str) => {
+  if (typeof str !== 'string') return '';
+  return str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/javascript:/gi, '').replace(/on\w+=/gi, '');
+};
+
 export const calculateOverallProgress = (chapters, generatedSubsections) => {
   let total = 0, generated = 0;
   chapters.forEach(ch => {
@@ -28,7 +33,7 @@ const ContentRenderer = ({ content, colors, onEditVisual }) => {
         if (block.type === 'diagram') return <DiagramRenderer key={`d_${i}_${block.title}`} diagramData={block.data} title={block.title} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
         if (block.type === 'chart') return <ChartRenderer key={`c_${i}_${block.title}`} chartType={block.chartType} data={{ labels: block.labels, values: block.values }} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
         if (block.type === 'table') return <TableRenderer key={`t_${i}_${block.title}`} headers={block.headers} rows={block.rows} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
-        return <div key={i} dangerouslySetInnerHTML={{ __html: block.html || '' }} style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify', marginBottom: '16px', color: colors?.text || 'inherit' }} />;
+        return <div key={i} dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.html) }} style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify', marginBottom: '16px', color: colors?.text || 'inherit' }} />;
       })}
     </div>
   );
@@ -150,13 +155,13 @@ export const parseContentBlocks = (content) => {
       continue;
     }
 
-    if (line.startsWith('# ')) currentHtml += `<h1>${line.slice(2)}</h1>`;
-    else if (line.startsWith('## ')) currentHtml += `<h2>${line.slice(3)}</h2>`;
-    else if (line.startsWith('### ')) currentHtml += `<h3>${line.slice(4)}</h3>`;
-    else if (line.startsWith('- ')) currentHtml += `<li>${line.slice(2)}</li>`;
-    else if (line.match(/^\d+\.\s/)) currentHtml += `<li>${line.replace(/^\d+\.\s/, '')}</li>`;
-    else if (line.startsWith('**') && line.endsWith('**')) currentHtml += `<strong>${line.slice(2, -2)}</strong><br/>`;
-    else currentHtml += `<p>${line}</p>`;
+    if (line.startsWith('# ')) currentHtml += `<h1>${sanitizeHtml(line.slice(2))}</h1>`;
+    else if (line.startsWith('## ')) currentHtml += `<h2>${sanitizeHtml(line.slice(3))}</h2>`;
+    else if (line.startsWith('### ')) currentHtml += `<h3>${sanitizeHtml(line.slice(4))}</h3>`;
+    else if (line.startsWith('- ')) currentHtml += `<li>${sanitizeHtml(line.slice(2))}</li>`;
+    else if (line.match(/^\d+\.\s/)) currentHtml += `<li>${sanitizeHtml(line.replace(/^\d+\.\s/, ''))}</li>`;
+    else if (line.startsWith('**') && line.endsWith('**')) currentHtml += `<strong>${sanitizeHtml(line.slice(2, -2))}</strong><br/>`;
+    else currentHtml += `<p>${sanitizeHtml(line)}</p>`;
   }
 
   flushTable();

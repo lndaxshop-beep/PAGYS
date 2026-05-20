@@ -12,7 +12,7 @@ export const useDashboardForm = (onSuccess, { onNotify } = {}) => {
   const [questionModal, setQuestionModal] = useState(null);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const extractKeyword = () => {
     const t = form.title.trim();
@@ -73,7 +73,7 @@ Examples:
     }
     setQuestionModal({
       title: form.title, questions,
-      callback: (q) => setForm({ ...form, topic: q })
+      callback: (q) => setForm(prev => ({ ...prev, topic: q }))
     });
   };
 

@@ -83,13 +83,19 @@ const stripAsciiArt = (text) => {
 };
 
 export const extractJSON = (response) => {
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  if (!response) return null;
+  const jsonMatch = response.match(/\{[\s\S]*?\}/);
   if (jsonMatch) { try { return JSON.parse(jsonMatch[0]); } catch (e) {} }
+  const greedyMatch = response.match(/\{[\s\S]*\}/);
+  if (greedyMatch) { try { return JSON.parse(greedyMatch[0]); } catch (e) {} }
   return null;
 };
 
 export const extractJSONArray = (response) => {
-  const jsonMatch = response.match(/\[[\s\S]*\]/);
+  if (!response) return null;
+  const jsonMatch = response.match(/\[[\s\S]*?\]/);
   if (jsonMatch) { try { return JSON.parse(jsonMatch[0]); } catch (e) {} }
+  const greedyMatch = response.match(/\[[\s\S]*\]/);
+  if (greedyMatch) { try { return JSON.parse(greedyMatch[0]); } catch (e) {} }
   return null;
 };

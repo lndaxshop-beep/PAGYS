@@ -19,6 +19,9 @@ const ShortcutsModal = ({ isOpen, onClose }) => {
   return (
     <div
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shortcuts-modal-title"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}
     >
       <div
@@ -26,8 +29,8 @@ const ShortcutsModal = ({ isOpen, onClose }) => {
         style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: colors.text }}>⌨ Keyboard Shortcuts</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '20px', padding: '4px 8px' }}>✕</button>
+          <h2 id="shortcuts-modal-title" style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: colors.text }}>⌨ Keyboard Shortcuts</h2>
+          <button onClick={onClose} aria-label="Close shortcuts" style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '20px', padding: '4px 8px' }}>✕</button>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>

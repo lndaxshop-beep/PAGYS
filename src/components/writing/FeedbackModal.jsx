@@ -21,11 +21,11 @@ const FeedbackModal = ({ isOpen, onClose, subsection, feedbackText, setFeedbackT
   if (!isOpen || !subsection) return null;
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+    <div role="dialog" aria-modal="true" aria-labelledby="feedback-modal-title" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '90%', maxHeight: '80vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text }}>{applying ? 'Applying Feedback...' : 'Supervisor Feedback'}</h2>
-          <button onClick={onClose} disabled={applying} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: applying ? 'not-allowed' : 'pointer' }}>×</button>
+          <h2 id="feedback-modal-title" style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text }}>{applying ? 'Applying Feedback...' : 'Supervisor Feedback'}</h2>
+          <button onClick={onClose} disabled={applying} aria-label="Close feedback" style={{ background: 'none', border: 'none', fontSize: '28px', cursor: applying ? 'not-allowed' : 'pointer' }}>×</button>
         </div>
         <p style={{ color: colors.textSecondary, marginBottom: '20px' }}>Subsection: <strong>{subsection.title}</strong></p>
         {applying ? (

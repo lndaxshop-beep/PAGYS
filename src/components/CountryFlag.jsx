@@ -78,7 +78,7 @@ const CountryFlag = ({ countryCode, size = 20 }) => {
   };
 
   // Get country code from the map
-  const code = countryCodeMap[countryCode] || 'UN';
+  const code = countryCodeMap[countryCode] || 'US';
   
   // Get the flag component
   const FlagComponent = flags[code];

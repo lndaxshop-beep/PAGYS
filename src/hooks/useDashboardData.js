@@ -71,21 +71,33 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
 
     const cache = getCachedProgress();
     setProgressLoading(true);
+    let cancelled = false;
 
     Promise.all(projects.map(async (project) => {
       const cached = cache[project.id];
       if (cached) {
         return { ...project, progress: cached.progress };
       }
-      const chapters = await getChapters(project.id);
-      const content = await getGeneratedContent(project.id);
+      const [chapters, content] = await Promise.all([
+        getChapters(project.id),
+        getGeneratedContent(project.id),
+      ]);
       const progress = calculateProjectProgress(project, chapters, content);
       setCachedProgress(project.id, progress);
       return { ...project, progress };
     })).then((results) => {
-      setProjectsWithProgress(results);
-      setProgressLoading(false);
+      if (!cancelled) {
+        setProjectsWithProgress(results);
+        setProgressLoading(false);
+      }
+    }).catch(e => {
+      if (!cancelled) {
+        console.error('Error loading progress:', e);
+        setProgressLoading(false);
+      }
     });
+
+    return () => { cancelled = true; };
   }, [projects]);
 
   const invalidateProgressCache = (projectId) => {
@@ -121,6 +133,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
 
   const handleRestoreProject = async (id) => {
     const project = deletedProjects.find(p => p.id === id);
+    if (!project) { notify('Project not found.', 'error'); return; }
     try {
       await saveProject(project);
       await permanentlyDeleteProject(id);
@@ -146,7 +159,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
       await permanentlyDeleteProject(id);
       invalidateProgressCache(id);
       loadDeletedProjects();
-      notify('Project permanently deleted', 'error');
+      notify('Project permanently deleted', 'success');
     } catch (e) {
       console.error('Error permanently deleting project:', e);
       notify('Failed to delete project. Please try again.', 'error');
@@ -167,7 +180,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
         invalidateProgressCache(project.id);
       }
       loadDeletedProjects();
-      notify('Recycle bin emptied', 'error');
+      notify('Recycle bin emptied', 'success');
     } catch (e) {
       console.error('Error emptying recycle bin:', e);
       notify('Failed to empty recycle bin. Please try again.', 'error');

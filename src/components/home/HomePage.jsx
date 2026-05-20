@@ -4,7 +4,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import Footer from '../layout/Footer';
 import FeatureCard from './FeatureCard';
 import TestimonialCard from './TestimonialCard';
-import Toast from '../Toast';
 import { useCurrency } from '../../hooks/useCurrency';
 import { PRICES_USD } from '../../constants/pricing';
 
@@ -13,7 +12,6 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { fmt } = useCurrency();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const checkLogin = () => {
@@ -181,7 +179,6 @@ const HomePage = () => {
         }
       `}</style>
       <Footer />
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

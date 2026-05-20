@@ -86,7 +86,7 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose, project })
   };
 
   return (
-    <div style={{
+    <div role="dialog" aria-modal="true" aria-labelledby="lit-review-type-title" style={{
       position: 'fixed',
       top: 0,
       left: 0,

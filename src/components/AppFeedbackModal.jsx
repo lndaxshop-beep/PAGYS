@@ -71,7 +71,7 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="feedback-modal-title" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={onClose}>
       <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
         {submitted ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -82,8 +82,8 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ color: colors.text, fontSize: '20px', fontWeight: '600' }}>Send Feedback</h3>
-              <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: colors.textSecondary, fontSize: '24px', cursor: 'pointer', padding: '0', lineHeight: '1' }}>×</button>
+              <h3 id="feedback-modal-title" style={{ color: colors.text, fontSize: '20px', fontWeight: '600' }}>Send Feedback</h3>
+              <button type="button" onClick={onClose} aria-label="Close feedback modal" style={{ background: 'none', border: 'none', color: colors.textSecondary, fontSize: '24px', cursor: 'pointer', padding: '0', lineHeight: '1' }}>×</button>
             </div>
 
             <div style={{ marginBottom: '16px' }}>

@@ -44,6 +44,9 @@ const DiffModal = ({ isOpen, oldText, newText, title, onAccept, onReject }) => {
   return (
     <div
       onClick={onReject}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="diff-modal-title"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}
     >
       <div
@@ -51,13 +54,15 @@ const DiffModal = ({ isOpen, oldText, newText, title, onAccept, onReject }) => {
         style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: colors.text }}>{title || 'Changes Preview'}</h2>
-          <button onClick={onReject} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}>✕</button>
+          <h2 id="diff-modal-title" style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: colors.text }}>{title || 'Changes Preview'}</h2>
+          <button onClick={onReject} aria-label="Close diff modal" style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}>✕</button>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexShrink: 0 }} role="tablist" aria-label="Diff view mode">
           <button
             onClick={() => setView('inline')}
+            role="tab"
+            aria-selected={view === 'inline'}
             style={{
               padding: '4px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
               backgroundColor: view === 'inline' ? colors.primary : 'transparent',
@@ -69,6 +74,8 @@ const DiffModal = ({ isOpen, oldText, newText, title, onAccept, onReject }) => {
           </button>
           <button
             onClick={() => setView('side-by-side')}
+            role="tab"
+            aria-selected={view === 'side-by-side'}
             style={{
               padding: '4px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
               backgroundColor: view === 'side-by-side' ? colors.primary : 'transparent',
@@ -101,7 +108,7 @@ const DiffModal = ({ isOpen, oldText, newText, title, onAccept, onReject }) => {
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexShrink: 0, justifyContent: 'flex-end' }}>
           <button
-            onClick={onReject}
+            onClick={() => onReject?.()}
             style={{
               padding: '10px 20px', fontSize: '13px', borderRadius: '8px', cursor: 'pointer',
               backgroundColor: 'transparent', color: colors.textSecondary,
@@ -111,7 +118,7 @@ const DiffModal = ({ isOpen, oldText, newText, title, onAccept, onReject }) => {
             Reject Changes
           </button>
           <button
-            onClick={onAccept}
+            onClick={() => onAccept?.()}
             style={{
               padding: '10px 20px', fontSize: '13px', borderRadius: '8px', cursor: 'pointer',
               backgroundColor: colors.primary, color: 'white',

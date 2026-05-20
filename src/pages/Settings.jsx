@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { doc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { deleteUser } from 'firebase/auth';
+import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc } from 'firebase/firestore';
+import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
@@ -66,12 +66,39 @@ const Settings = () => {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handleVerifyEmail = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser && !currentUser.emailVerified) {
+        await sendEmailVerification(currentUser);
+        notify('Verification email sent. Check your inbox.', 'success');
+      } else if (currentUser?.emailVerified) {
+        notify('Email already verified.', 'info');
+      } else {
+        notify('No authenticated user found.', 'error');
+      }
+    } catch (err) {
+      console.error('Error sending verification email:', err);
+      notify('Failed to send verification email.', 'error');
+    }
+  };
+
   const executeDelete = async () => {
     setDeleting(true);
     setConfirm(null);
+    let backupUserData = null;
+    let backupProjects = [];
     try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        backupUserData = { id: user.uid, ...userDocSnap.data() };
+      }
+
       const projectsQuery = query(collection(db, 'projects'), where('userId', '==', user?.uid));
       const projectsSnapshot = await getDocs(projectsQuery);
+      backupProjects = projectsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
       const deletePromises = projectsSnapshot.docs.map(d => deleteDoc(doc(db, 'projects', d.id)));
       await Promise.all(deletePromises);
 
@@ -80,15 +107,35 @@ const Settings = () => {
       const allProjects = JSON.parse(localStorage.getItem('thesisProjects') || '[]');
       localStorage.setItem('thesisProjects', JSON.stringify(allProjects.filter(p => p.userId !== user?.uid)));
 
-      await deleteDoc(doc(db, 'users', user.uid));
+      await deleteDoc(userDocRef);
+
       const currentUser = auth.currentUser;
-      if (currentUser) await deleteUser(currentUser).catch(() => {});
+      if (currentUser) {
+        try {
+          await deleteUser(currentUser);
+        } catch (authErr) {
+          console.error('Auth deletion failed, rolling back:', authErr);
+          await setDoc(userDocRef, backupUserData).catch(e => console.error('Rollback user doc failed:', e));
+          const restorePromises = backupProjects.map(p => setDoc(doc(db, 'projects', p.id), p)).catch(e => console.error('Rollback projects failed:', e));
+          await Promise.allSettled(restorePromises);
+          notify('Account deletion failed. Your data has been restored.', 'error');
+          setDeleting(false);
+          return;
+        }
+      }
 
       localStorage.removeItem('currentUser');
       notify('Your account has been deleted.', 'success');
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
       console.error('Error deleting account:', err);
+      if (backupUserData) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), backupUserData);
+        } catch (rollbackErr) {
+          console.error('Rollback failed:', rollbackErr);
+        }
+      }
       notify('Failed to delete account. Please try again.', 'error');
       setDeleting(false);
     }
@@ -133,8 +180,14 @@ const Settings = () => {
             </div>
             <div>
               <label htmlFor="settingsEmail" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Email Address</label>
-              <input id="settingsEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                style={{ width: '100%', padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input id="settingsEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  style={{ flex: 1, padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
+                <button onClick={handleVerifyEmail}
+                  style={{ padding: '12px 16px', border: `1px solid ${colors.primary}`, borderRadius: '8px', fontSize: '13px', backgroundColor: 'transparent', color: colors.primary, cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                  Verify Email
+                </button>
+              </div>
             </div>
             <div>
               <label htmlFor="settingsUsername" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Username</label>

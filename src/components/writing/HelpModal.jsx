@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const FEATURES = [
   {
@@ -82,11 +83,15 @@ const FEATURES = [
 ];
 
 const HelpModal = ({ isOpen, onClose }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
     <div
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="help-modal-title"
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.6)',
@@ -98,7 +103,7 @@ const HelpModal = ({ isOpen, onClose }) => {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '90%', maxWidth: '960px', maxHeight: '85vh',
-          backgroundColor: '#1e1e2e',
+          backgroundColor: colors.surface,
           borderRadius: '20px',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
@@ -107,19 +112,19 @@ const HelpModal = ({ isOpen, onClose }) => {
       >
         <div style={{
           padding: '28px 32px 20px',
-          borderBottom: '1px solid #2d2d3d',
+          borderBottom: `1px solid ${colors.border}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
           <div>
-            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#ffffff', margin: '0 0 4px' }}>
+            <h2 id="help-modal-title" style={{ fontSize: '22px', fontWeight: '700', color: colors.text, margin: '0 0 4px' }}>
               📖 Help & Features Guide
             </h2>
-            <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: colors.textSecondary, margin: 0 }}>
               Everything you need to know about the writing platform
             </p>
           </div>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
+          <button onClick={onClose} aria-label="Close help modal" style={{
+            background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer',
             fontSize: '20px', padding: '4px 8px', borderRadius: '6px', lineHeight: '1',
           }}>✕</button>
         </div>
@@ -133,9 +138,9 @@ const HelpModal = ({ isOpen, onClose }) => {
           }}>
             {FEATURES.map((feature, i) => (
               <div key={i} style={{
-                backgroundColor: '#2a2a3c',
+                backgroundColor: colors.background,
                 borderRadius: '14px', padding: '20px',
-                border: '1px solid #3a3a4c',
+                border: `1px solid ${colors.border}`,
                 transition: 'transform 0.15s, box-shadow 0.15s',
                 position: 'relative',
               }}>
@@ -152,7 +157,7 @@ const HelpModal = ({ isOpen, onClose }) => {
                 )}
                 <div style={{
                   width: '44px', height: '44px',
-                  backgroundColor: '#373750',
+                  backgroundColor: colors.hover,
                   borderRadius: '12px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '22px', marginBottom: '14px',
@@ -160,13 +165,13 @@ const HelpModal = ({ isOpen, onClose }) => {
                   {feature.icon}
                 </div>
                 <h3 style={{
-                  fontSize: '14px', fontWeight: '700', color: '#ffffff',
+                  fontSize: '14px', fontWeight: '700', color: colors.text,
                   margin: '0 0 6px',
                 }}>
                   {feature.title}
                 </h3>
                 <p style={{
-                  fontSize: '12px', lineHeight: '1.6', color: '#b0b0c0',
+                  fontSize: '12px', lineHeight: '1.6', color: colors.textSecondary,
                   margin: 0,
                 }}>
                   {feature.description}
@@ -178,7 +183,7 @@ const HelpModal = ({ isOpen, onClose }) => {
 
         <div style={{
           padding: '16px 32px',
-          borderTop: '1px solid #2d2d3d',
+          borderTop: `1px solid ${colors.border}`,
           display: 'flex', justifyContent: 'center',
         }}>
           <button onClick={onClose} style={{

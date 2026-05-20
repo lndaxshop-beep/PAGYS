@@ -63,6 +63,7 @@ const ProfileMenu = ({ user, onLogout, onClose }) => {
       {/* Overlay to close menu when clicking outside */}
       <div
         onClick={onClose}
+        aria-hidden="true"
         style={{
           position: 'fixed',
           top: 0,
@@ -74,7 +75,7 @@ const ProfileMenu = ({ user, onLogout, onClose }) => {
       />
       
       {/* Dropdown Menu */}
-      <div style={{
+      <div role="menu" aria-label="Profile menu" style={{
         position: 'absolute',
         top: '100%',
         right: 0,

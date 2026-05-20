@@ -40,7 +40,7 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
   };
 
   return (
-    <div style={{
+    <div role="dialog" aria-modal="true" aria-labelledby="upload-findings-title" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -65,7 +65,7 @@ const UploadFindings = ({ project, onClose, onUpload, onGenerateWithAI }) => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text }}>
+            <h2 id="upload-findings-title" style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text }}>
               Chapter 4: Results & Analysis
             </h2>
             <p style={{ color: colors.textSecondary, marginTop: '4px' }}>

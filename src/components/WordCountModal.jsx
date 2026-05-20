@@ -98,7 +98,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
   const wordsPerSub = getWordsPerSubsection();
 
   return (
-    <div style={{
+    <div role="dialog" aria-modal="true" aria-labelledby="wordcount-modal-title" style={{
       position: 'fixed',
       top: 0,
       left: 0,

@@ -106,6 +106,9 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
   return (
     <div
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lit-search-title"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}
     >
       <div
@@ -113,8 +116,8 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
         style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '700px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: colors.text }}>📚 Literature Search</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}>✕</button>
+          <h2 id="lit-search-title" style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: colors.text }}>📚 Literature Search</h2>
+          <button onClick={onClose} aria-label="Close literature search" style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}>✕</button>
         </div>
 
         <p style={{ fontSize: '12px', color: colors.textSecondary, margin: '0 0 12px', flexShrink: 0 }}>

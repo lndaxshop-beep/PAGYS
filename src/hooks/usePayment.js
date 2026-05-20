@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { formatPrice, getUserCountry, PRICES_GHS, getCurrency } from '../constants/pricing';
 
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
@@ -20,6 +20,8 @@ const storePaymentRecord = async (paymentData) => {
 
 const usePayment = (onNotify) => {
   const [processing, setProcessing] = useState(false);
+  const [mockPaymentConfig, setMockPaymentConfig] = useState(null);
+  const pendingResolveRef = useRef(null);
 
   const updateProjectTier = useCallback(async (projectId, tier, isUpgrade) => {
     const { updateProject } = await import('../services/firestoreService');
@@ -77,23 +79,56 @@ const usePayment = (onNotify) => {
     }
   }, [onNotify, updateProjectTier]);
 
-  const openPaystackPopup = useCallback((email, amount, currency, metadata) => {
+  const handleMockPaymentSuccess = useCallback(async (result) => {
+    setMockPaymentConfig(null);
+    if (pendingResolveRef.current && result?.status === 'success') {
+      const { reference, projectId, tier, isUpgrade, amount, currency } = pendingResolveRef.current;
+      pendingResolveRef.current = null;
+      await verifyPayment(reference, projectId, tier, isUpgrade, amount, currency);
+    }
+  }, [verifyPayment]);
+
+  const handleMockPaymentClose = useCallback(() => {
+    setMockPaymentConfig(null);
+    if (pendingResolveRef.current) {
+      pendingResolveRef.current = null;
+    }
+  }, []);
+
+  const openPaystackPopup = useCallback((email, amount, currencyCode, metadata) => {
     return new Promise((resolve) => {
-      const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email,
-        amount: Math.round(amount * 100),
-        currency: currency.toUpperCase(),
-        ref: `PAGYS_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
-        metadata: { custom_fields: [{ display_name: 'Project Type', variable_name: 'project_type', value: metadata?.type || 'project_creation' }] },
-        callback: (response) => {
-          resolve({ reference: response.reference, status: 'success' });
-        },
-        onClose: () => {
-          resolve({ reference: null, status: 'closed' });
-        },
-      });
-      handler.openIframe();
+      if (typeof PaystackPop === 'undefined') {
+        console.warn('PaystackPop not loaded, falling back to server redirect');
+        resolve({ useRedirect: true });
+        return;
+      }
+
+      try {
+        const handler = PaystackPop.setup({
+          key: PAYSTACK_PUBLIC_KEY,
+          email,
+          amount: Math.round(amount * 100),
+          currency: currencyCode.toLowerCase(),
+          ref: `PAGYS_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
+          metadata: {
+            custom_fields: [{
+              display_name: 'Project Type',
+              variable_name: 'project_type',
+              value: metadata?.type || 'project_creation',
+            }],
+          },
+          callback: (response) => {
+            resolve({ reference: response.reference, status: 'success' });
+          },
+          onClose: () => {
+            resolve({ reference: null, status: 'closed' });
+          },
+        });
+        handler.openIframe();
+      } catch (e) {
+        console.error('Paystack inline popup error:', e);
+        resolve({ useRedirect: true });
+      }
     });
   }, []);
 
@@ -101,15 +136,26 @@ const usePayment = (onNotify) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        await updateProjectTier(projectId, tier, false);
-        await storePaymentRecord({
-          userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
-          projectId, tier, amount: PRICES_GHS[tier] || PRICES_GHS.regular,
-          currency: 'GHS', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
-          channel: 'dev_bypass', type: 'project_creation', status: 'verified',
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const country = getUserCountry();
+        const currency = getCurrency(country);
+        const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
+        const localAmount = Math.round(ghsPrice * currency.rate);
+
+        return new Promise((resolve) => {
+          pendingResolveRef.current = {
+            reference: `mock_${Date.now()}`,
+            projectId, tier, isUpgrade: false,
+            amount: localAmount, currency: currency.code,
+            resolve,
+          };
+          setMockPaymentConfig({
+            email: user.email || 'test@example.com',
+            amount: localAmount,
+            currency: currency.code,
+            metadata: { projectId, tier, type: 'project_creation' },
+          });
         });
-        return true;
       }
 
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -124,6 +170,36 @@ const usePayment = (onNotify) => {
         currency.code,
         { projectId, tier, type: 'project_creation' }
       );
+
+      if (result.useRedirect) {
+        const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email || 'customer@example.com',
+            amount: localAmount,
+            currency: currency.code,
+            metadata: { projectId, tier, type: 'project_creation' },
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to initialize payment');
+        const data = await res.json();
+        window.location.href = data.authorizationUrl;
+        return new Promise((resolve) => {
+          const checkReturn = setInterval(() => {
+            const returned = sessionStorage.getItem('paystack_return');
+            if (returned) {
+              clearInterval(checkReturn);
+              sessionStorage.removeItem('paystack_return');
+              const ref = sessionStorage.getItem('paystack_reference');
+              if (ref) {
+                verifyPayment(ref, projectId, tier, false, localAmount, currency.code).then((v) => resolve(!!v));
+              } else { resolve(false); }
+            }
+          }, 500);
+          setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
+        });
+      }
 
       if (result.status === 'success' && result.reference) {
         const verified = await verifyPayment(result.reference, projectId, tier, false, localAmount, currency.code);
@@ -143,15 +219,26 @@ const usePayment = (onNotify) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        await updateProjectTier(projectId, 'premium', true);
-        await storePaymentRecord({
-          userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
-          projectId, tier: 'premium', amount: PRICES_GHS.upgrade,
-          currency: 'GHS', reference: `dev_${Date.now()}`, paidAt: new Date().toISOString(),
-          channel: 'dev_bypass', type: 'upgrade', status: 'verified',
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const country = getUserCountry();
+        const currency = getCurrency(country);
+        const ghsPrice = PRICES_GHS.upgrade;
+        const localAmount = Math.round(ghsPrice * currency.rate);
+
+        return new Promise((resolve) => {
+          pendingResolveRef.current = {
+            reference: `mock_${Date.now()}`,
+            projectId, tier: 'premium', isUpgrade: true,
+            amount: localAmount, currency: currency.code,
+            resolve,
+          };
+          setMockPaymentConfig({
+            email: user.email || 'test@example.com',
+            amount: localAmount,
+            currency: currency.code,
+            metadata: { projectId, tier: 'premium', type: 'upgrade' },
+          });
         });
-        return true;
       }
 
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -166,6 +253,36 @@ const usePayment = (onNotify) => {
         currency.code,
         { projectId, tier: 'premium', type: 'upgrade' }
       );
+
+      if (result.useRedirect) {
+        const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email || 'customer@example.com',
+            amount: localAmount,
+            currency: currency.code,
+            metadata: { projectId, tier: 'premium', type: 'upgrade' },
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to initialize payment');
+        const data = await res.json();
+        window.location.href = data.authorizationUrl;
+        return new Promise((resolve) => {
+          const checkReturn = setInterval(() => {
+            const returned = sessionStorage.getItem('paystack_return');
+            if (returned) {
+              clearInterval(checkReturn);
+              sessionStorage.removeItem('paystack_return');
+              const ref = sessionStorage.getItem('paystack_reference');
+              if (ref) {
+                verifyPayment(ref, projectId, 'premium', true, localAmount, currency.code).then((v) => resolve(!!v));
+              } else { resolve(false); }
+            }
+          }, 500);
+          setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
+        });
+      }
 
       if (result.status === 'success' && result.reference) {
         const verified = await verifyPayment(result.reference, projectId, 'premium', true, localAmount, currency.code);
@@ -185,15 +302,28 @@ const usePayment = (onNotify) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        await storePaymentRecord({
-          userId: JSON.parse(localStorage.getItem('currentUser') || '{}').uid,
-          projectId, amount: ghsAmount, currency: 'GHS', reference: `dev_${Date.now()}`,
-          paidAt: new Date().toISOString(), channel: 'dev_bypass',
-          type: metadata.type || 'micro_payment', status: 'verified',
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const country = getUserCountry();
+        const currency = getCurrency(country);
+        const localAmount = Math.round(ghsAmount * currency.rate);
+
+        return new Promise((resolve) => {
+          pendingResolveRef.current = {
+            reference: `mock_${Date.now()}`,
+            projectId, tier: metadata.tier || 'regular', isUpgrade: false,
+            amount: localAmount, currency: currency.code,
+            resolve,
+          };
+          setMockPaymentConfig({
+            email: user.email || 'test@example.com',
+            amount: localAmount,
+            currency: currency.code,
+            metadata: { projectId, ...metadata },
+          });
+        }).then((result) => {
+          if (result && onSuccess) onSuccess();
+          return result;
         });
-        if (onSuccess) onSuccess();
-        return true;
       }
 
       const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -207,6 +337,39 @@ const usePayment = (onNotify) => {
         currency.code,
         { projectId, ...metadata }
       );
+
+      if (result.useRedirect) {
+        const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email || 'customer@example.com',
+            amount: localAmount,
+            currency: currency.code,
+            metadata: { projectId, ...metadata },
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to initialize payment');
+        const data = await res.json();
+        window.location.href = data.authorizationUrl;
+        return new Promise((resolve) => {
+          const checkReturn = setInterval(() => {
+            const returned = sessionStorage.getItem('paystack_return');
+            if (returned) {
+              clearInterval(checkReturn);
+              sessionStorage.removeItem('paystack_return');
+              const ref = sessionStorage.getItem('paystack_reference');
+              if (ref) {
+                verifyPayment(ref, projectId, metadata.tier || 'regular', false, localAmount, currency.code).then((v) => {
+                  if (v && onSuccess) onSuccess();
+                  resolve(!!v);
+                });
+              } else { resolve(false); }
+            }
+          }, 500);
+          setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
+        });
+      }
 
       if (result.status === 'success' && result.reference) {
         const verified = await verifyPayment(result.reference, projectId, metadata.tier || 'regular', false, localAmount, currency.code);
@@ -223,7 +386,16 @@ const usePayment = (onNotify) => {
     }
   }, [onNotify, verifyPayment, openPaystackPopup]);
 
-  return { processing, processPayment, upgradeToPremium, processSmallPayment, devBypass: DEV_BYPASS };
+  return {
+    processing,
+    processPayment,
+    upgradeToPremium,
+    processSmallPayment,
+    devBypass: DEV_BYPASS,
+    mockPaymentConfig,
+    onMockPaymentSuccess: handleMockPaymentSuccess,
+    onMockPaymentClose: handleMockPaymentClose,
+  };
 };
 
 export default usePayment;

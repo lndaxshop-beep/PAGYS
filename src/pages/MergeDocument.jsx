@@ -13,6 +13,7 @@ import { PageSkeleton } from '../components/Skeleton';
 import { useCurrency } from '../hooks/useCurrency';
 import { PRICES_USD } from '../constants/pricing';
 import usePayment from '../hooks/usePayment';
+import MockPaymentModal from '../components/MockPaymentModal';
 import Toast from '../components/Toast';
 
 const PLACEHOLDER_FIELDS = [
@@ -47,7 +48,7 @@ const MergeDocument = () => {
   const { fmt } = useCurrency();
   const [toast, setToast] = useState(null);
   const notify = (message, type) => setToast({ message, type });
-  const { processing: processingPayment, processSmallPayment, devBypass } = usePayment(notify);
+  const { processing: processingPayment, processSmallPayment, devBypass, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
 
   const [project, setProject] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -543,6 +544,17 @@ const MergeDocument = () => {
               )}
             </div>
           </div>
+        )}
+
+        {mockPaymentConfig && (
+          <MockPaymentModal
+            email={mockPaymentConfig.email}
+            amount={mockPaymentConfig.amount}
+            currency={mockPaymentConfig.currency}
+            metadata={mockPaymentConfig.metadata}
+            onClose={onMockPaymentClose}
+            onSuccess={onMockPaymentSuccess}
+          />
         )}
 
         {generating && (

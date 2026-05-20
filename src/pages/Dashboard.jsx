@@ -11,6 +11,7 @@ import NewProjectForm from '../components/dashboard/NewProjectForm';
 import ProjectsList from '../components/dashboard/ProjectsList';
 import PaymentModal from '../components/PaymentModal';
 import PaymentReceipt from '../components/PaymentReceipt';
+import MockPaymentModal from '../components/MockPaymentModal';
 import ProjectConfirmationModal from '../components/ProjectConfirmationModal';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
@@ -54,7 +55,7 @@ const Dashboard = () => {
     setToast({ message, type });
   }, []);
 
-  const { processing: processingPayment, processPayment, upgradeToPremium } = usePayment(notify);
+  const { processing: processingPayment, processPayment, upgradeToPremium, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
 
   const {
     projects, deletedProjects, projectsWithProgress, loading, progressLoading,
@@ -333,6 +334,17 @@ const Dashboard = () => {
         <PaymentReceipt
           payment={paymentReceipt}
           onClose={() => setPaymentReceipt(null)}
+        />
+      )}
+
+      {mockPaymentConfig && (
+        <MockPaymentModal
+          email={mockPaymentConfig.email}
+          amount={mockPaymentConfig.amount}
+          currency={mockPaymentConfig.currency}
+          metadata={mockPaymentConfig.metadata}
+          onClose={onMockPaymentClose}
+          onSuccess={onMockPaymentSuccess}
         />
       )}
 

@@ -37,6 +37,7 @@ import HelpModal from '../components/writing/HelpModal';
 import { saveSubsectionVersions, getSubsectionVersions } from '../services/firestoreService';
 import { fixBannedPhrase, fixBurstiness, fixTransitionOveruse, humaniseContent } from '../services/gemini/aiCorrectionService';
 import usePayment from '../hooks/usePayment';
+import MockPaymentModal from '../components/MockPaymentModal';
 
 const Write = () => {
   const { projectId } = useParams();
@@ -102,7 +103,7 @@ const Write = () => {
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
-  const { processing: processingPayment, processSmallPayment, devBypass } = usePayment(toastError);
+  const { processing: processingPayment, processSmallPayment, devBypass, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(toastError);
 
   const { saveStatus, lastSaved, saveNow } = useAutoSave({
     saveFn: (data) => saveGeneratedContent(projectId, data),
@@ -953,6 +954,16 @@ const Write = () => {
       )}
 
       <AIDetectionDashboard isOpen={showAIDetection} onClose={() => setShowAIDetection(false)} content={currentContent} onApplyCorrection={handleAICorrection} applyingCorrection={applyingAICorrection} />
+      {mockPaymentConfig && (
+        <MockPaymentModal
+          email={mockPaymentConfig.email}
+          amount={mockPaymentConfig.amount}
+          currency={mockPaymentConfig.currency}
+          metadata={mockPaymentConfig.metadata}
+          onClose={onMockPaymentClose}
+          onSuccess={onMockPaymentSuccess}
+        />
+      )}
       {showPlagiarismModal && plagiarismResult && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowPlagiarismModal(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '480px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>

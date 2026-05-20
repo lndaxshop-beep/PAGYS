@@ -5,10 +5,19 @@ export const useAutoSave = ({ saveFn, data, delay = 30000 }) => {
   const [lastSaved, setLastSaved] = useState(null);
   const timerRef = useRef(null);
   const dataRef = useRef(data);
+  const prevDataRef = useRef(null);
 
   useEffect(() => {
-    dataRef.current = data;
-  }, [data]);
+    if (JSON.stringify(data) !== JSON.stringify(prevDataRef.current)) {
+      prevDataRef.current = data;
+      dataRef.current = data;
+      if (data && Object.keys(data).length > 0) {
+        setSaveStatus('unsaved');
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => { save(); }, delay);
+      }
+    }
+  }, [data, delay]);
 
   const save = useCallback(async () => {
     if (!dataRef.current || !saveFn) return;
@@ -22,21 +31,6 @@ export const useAutoSave = ({ saveFn, data, delay = 30000 }) => {
       setSaveStatus('error');
     }
   }, [saveFn]);
-
-  useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    if (data) {
-      setSaveStatus('unsaved');
-      timerRef.current = setTimeout(() => {
-        save();
-      }, delay);
-    }
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [data, delay, save]);
 
   const saveNow = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

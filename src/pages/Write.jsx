@@ -89,7 +89,14 @@ const Write = () => {
   const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
   const [plagiarismResult, setPlagiarismResult] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { endTransition } = useNavigationLoading();
   const modals = useWriteModals();
@@ -364,7 +371,7 @@ const Write = () => {
         if (refResult && refResult.content) {
           setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
         }
-      });
+      }).catch(e => console.error('Auto-generate references failed:', e));
     } catch (error) {
       console.error('Generation failed:', error);
       toastError('Failed to write content. ' + error.message);
@@ -464,7 +471,7 @@ const Write = () => {
           if (refResult && refResult.content) {
             setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
           }
-        });
+        }).catch(e => console.error('Auto-generate references failed:', e));
         toastSuccess('Feedback applied successfully!');
         modals.setShowFeedbackModal(false); modals.setCurrentFeedbackSubsection(null); modals.setFeedbackText(''); modals.setFeedbackFiles([]);
       };
@@ -541,7 +548,7 @@ const Write = () => {
         if (refResult && refResult.content) {
           setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
         }
-      });
+      }).catch(e => console.error('Auto-generate references failed:', e));
     }
   };
 
@@ -694,7 +701,7 @@ const Write = () => {
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.background }} onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }} onTouchEnd={(e) => { const diff = e.changedTouches[0].clientX - touchStartX.current; if (diff > 60) setSidebarOpen(true); else if (diff < -60) setSidebarOpen(false); }}>
       {/* Mobile sidebar overlay */}
-      <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: sidebarOpen && window.innerWidth <= 768 ? 'block' : 'none', position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
+      <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: sidebarOpen && isMobile ? 'block' : 'none', position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
       {/* Left pane drawer */}
       <div className={`left-pane-drawer ${sidebarOpen ? 'open' : ''}`} style={{
         width: '400px', minWidth: '400px', height: '100vh', overflowY: 'auto', backgroundColor: colors.surface,

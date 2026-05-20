@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { SUPPORT_EMAIL } from '../constants/app';
 
 const PrivacyPolicy = () => {
   const { colors, isDarkMode } = useTheme();
@@ -84,7 +85,7 @@ const PrivacyPolicy = () => {
 
           <Section title="9. Contact Us" colors={colors}>
             <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-              <p><strong>Email:</strong> beaty.rice.7@gmail.com</p>
+              <p><strong>Email:</strong> ${SUPPORT_EMAIL}</p>
               <p><strong>Business:</strong> A&P Firms</p>
               <p><strong>Platform:</strong> PAGYS</p>
               <p><strong>Operating in:</strong> Ghana</p>

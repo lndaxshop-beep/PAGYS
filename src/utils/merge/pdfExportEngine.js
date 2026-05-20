@@ -210,7 +210,7 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
           }
         } else if (type === 'chart' || type === 'diagram' || type === 'graph') {
           const parsed = JSON.parse(raw);
-          const pngBuf = renderChartToPng(parsed);
+          const pngBuf = await renderChartToPng(parsed);
           if (pngBuf) {
             htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="${escapeHtml(parsed.title || 'Chart')}" />`);
             if (parsed.caption || parsed.title) {
@@ -330,7 +330,7 @@ const parseChapterContentToHtml = async (content, chapterId, format) => {
       if (chartInline) {
         try {
           const parsed = JSON.parse(`{${chartInline[1]}}`);
-          const pngBuf = renderChartToPng(parsed);
+          const pngBuf = await renderChartToPng(parsed);
           if (pngBuf) {
             htmlParts.push(`<img class="chart-img" src="${bufToDataUrl(pngBuf)}" alt="${escapeHtml(parsed.title || 'Chart')}" />`);
             if (parsed.caption || parsed.title) {

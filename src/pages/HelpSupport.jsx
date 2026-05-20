@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { SUPPORT_EMAIL } from '../constants/app';
 
 const HelpSupport = () => {
   const { colors, isDarkMode } = useTheme();
@@ -14,7 +15,7 @@ const HelpSupport = () => {
     { q: 'What citation styles are supported?', a: 'APA 7th Edition, MLA 9th Edition, Chicago/Turabian, Harvard, and IEEE.' },
     { q: 'How do I upload my own chapter structure?', a: 'When you click a new chapter, a popup appears. Upload a screenshot, document, or paste formatted text showing your desired structure. We will follow it.' },
     { q: 'What is Premium?', a: 'Premium gives you extended use of Humanise and Feedback features — up to 4 times per subsection instead of 1.' },
-    { q: 'Do you offer refunds?', a: 'No. All purchases are final. If you experience issues, contact beaty.rice.7@gmail.com.' },
+    { q: 'Do you offer refunds?', a: `No. All purchases are final. If you experience issues, contact ${SUPPORT_EMAIL}.` },
   ];
 
   return (
@@ -48,8 +49,8 @@ const HelpSupport = () => {
         <div style={{ backgroundColor: colors.primary + '10', borderRadius: '16px', padding: '32px', border: `1px solid ${colors.primary}20`, textAlign: 'center' }}>
           <h2 style={{ fontSize: '24px', fontWeight: '600', color: colors.text, marginBottom: '12px' }}>Still Need Help?</h2>
           <p style={{ color: colors.textSecondary, marginBottom: '20px' }}>Contact us directly and we'll respond as soon as possible.</p>
-          <a href="mailto:beaty.rice.7@gmail.com" style={{ backgroundColor: colors.primary, color: 'white', padding: '14px 32px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', display: 'inline-block', fontSize: '16px' }}>
-            📧 beaty.rice.7@gmail.com
+          <a href={`mailto:${SUPPORT_EMAIL}`} style={{ backgroundColor: colors.primary, color: 'white', padding: '14px 32px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', display: 'inline-block', fontSize: '16px' }}>
+            📧 {SUPPORT_EMAIL}
           </a>
         </div>
       </div>

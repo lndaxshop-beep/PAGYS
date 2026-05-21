@@ -506,15 +506,15 @@ const Write = () => {
     }
   };
 
-  const handleUploadFindings = (findingsData) => {
+  const handleUploadFindings = async (findingsData) => {
     setUploadedFindings(findingsData); modals.setShowUploadFindings(false);
-    generateSubtopicsForChapter('chapter4');
+    await generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
       const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.type !== 'references') || 0;
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
-  const handleGenerateWithAI = (findingsData) => { setUploadedFindings(findingsData); modals.setShowUploadFindings(false); generateSubtopicsForChapter('chapter4');
+  const handleGenerateWithAI = async (findingsData) => { setUploadedFindings(findingsData); modals.setShowUploadFindings(false); await generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
       const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.type !== 'references') || 0;
@@ -854,7 +854,7 @@ const Write = () => {
         </div>
       </div>
 
-      {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => {}} onDownload={handleInstrumentsDownload} onNotify={toastError} />}
+      {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => modals.setShowDataCollectionModal(false)} onDownload={handleInstrumentsDownload} onNotify={toastError} />}
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
       {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} stepIndicator={modals.pendingChapterAfterWordCount === 'chapter2' && modals.literatureReviewType ? 'Step 3 of 3: Word Count' : undefined} />}
       {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} project={project} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterForStructure(null); }} />}

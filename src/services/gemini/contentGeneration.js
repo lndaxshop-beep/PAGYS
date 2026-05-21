@@ -83,7 +83,7 @@ export const generateAcademicContent = async (promptData) => {
     const model = genAI.getGenerativeModel({ 
       model: MODEL,
       tools: [{ googleSearch: {} }],
-      generationConfig: { temperature: 0.88, topP: 0.92 }
+      generationConfig: { temperature: 0.4, topP: 0.85 }
     });
     const wordRange = promptData.wordCount || { min: 500, max: 1000 };
     const targetWords = Math.floor((wordRange.min + wordRange.max) / 2);
@@ -128,7 +128,16 @@ ${sourcesJson.substring(0, 15000)}
     }
 
     const prompt = `You are an advanced academic writing assistant helping a ${promptData.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+${promptData.thesisContext ? `
+## THESIS CONTEXT — PREVIOUS CHAPTERS
+This thesis has already written the following chapters. Use this context to maintain consistency in terminology, arguments, and references across chapters:
+${promptData.thesisContext.previousChapters.map(ch => `### ${ch.title}\n${ch.summary}`).join('\n\n')}
 
+### CONSISTENCY RULES
+- Use the same terminology and variable names established in previous chapters.
+- When referencing findings or arguments from earlier chapters, use phrases like "as discussed in Chapter X" or "consistent with the findings presented earlier."
+- Do not redefine terms that were already defined in previous chapters.
+- Build upon arguments from previous chapters rather than repeating them.` : ''}
 THESIS TITLE: "${promptData.topic}"
 ${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
 FIELD: ${promptData.field || 'Not specified'}
@@ -302,13 +311,20 @@ Write the complete content now. Aim for approximately ${targetWords} words.`;
     const candidates = result.response.candidates;
     
     let sources = [];
+    let groundingUsed = false;
     if (candidates && candidates[0]?.groundingMetadata?.groundingChunks) {
       sources = candidates[0].groundingMetadata.groundingChunks
         .filter(chunk => chunk.web)
         .map(chunk => ({ title: chunk.web.title || '', uri: chunk.web.uri || '' }));
+      groundingUsed = sources.length > 0;
     }
     
-    return { text: cleanOutput(responseText), sources };
+    const cleanedText = cleanOutput(responseText);
+    return { 
+      text: groundingUsed ? cleanedText : `[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${cleanedText}`, 
+      sources,
+      groundingUsed 
+    };
   } catch (error) { console.error('Error generating academic content:', error); throw error; }
 };
 

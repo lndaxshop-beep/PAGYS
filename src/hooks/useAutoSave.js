@@ -30,7 +30,7 @@ export const useAutoSave = ({ saveFn, data, delay = 30000 }) => {
       console.error('Auto-save failed:', error);
       setSaveStatus('error');
     }
-  }, [saveFn]);
+  }, []);
 
   const saveNow = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

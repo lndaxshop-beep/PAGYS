@@ -17,6 +17,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
         needsSubtopics: !chapter.generated || chapter.subsections.length === 0
       };
     }
+    return { action: 'locked', chapterId };
   }, [chapters, chapterWordCountSet, generatedSubsections, literatureReviewType]);
 
   const handleChapterStructureSubmit = useCallback(async (referenceData, pendingChapterForStructure, instrumentsCompleted, setShowUploadFindings, setShowWordCountModal, setPendingChapterAfterWordCount, setPendingChapterForStructure, setShowChapterStructureModal, setUploadedStructureFile, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent) => {
@@ -120,10 +121,11 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, completed: true } : ch));
     if (activeChapter === 'chapter3') return { action: 'showDataCollection' };
     if (activeChapter === 'chapter5') return { action: 'navigateFiles' };
-    const currentIndex = chapters.findIndex(ch => ch.id === activeChapter);
-    if (currentIndex < chapters.length - 1) {
-      const nextChapterId = chapters[currentIndex + 1].id;
-      setChapters(prev => prev.map((ch, index) => index === currentIndex + 1 ? { ...ch, unlocked: true } : ch));
+    const chapterOrder = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
+    const currentIndex = chapterOrder.indexOf(activeChapter);
+    if (currentIndex < chapterOrder.length - 1) {
+      const nextChapterId = chapterOrder[currentIndex + 1];
+      setChapters(prev => prev.map(ch => ch.id === nextChapterId ? { ...ch, unlocked: true } : ch));
       return { action: 'nextChapter', nextChapterId, chapterTitle: chapters.find(c => c.id === activeChapter)?.title || 'Chapter' };
     }
     return { action: 'none' };

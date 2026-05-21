@@ -35,6 +35,13 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
+      if (!user.emailVerified) {
+        await user.sendEmailVerification();
+        setError('Please verify your email address before logging in. A new verification email has been sent.');
+        await auth.signOut();
+        return;
+      }
+
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const userData = userDoc.data();
 

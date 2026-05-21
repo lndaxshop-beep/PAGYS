@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import Paystack from 'paystack';
+import crypto from 'crypto';
+import admin from 'firebase-admin';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,6 +13,34 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
 const paystack = PAYSTACK_SECRET_KEY ? new Paystack(PAYSTACK_SECRET_KEY) : null;
+
+// Initialize Firebase Admin
+let adminDb;
+try {
+  if (admin.apps.length === 0) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      admin.initializeApp({
+        credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+      });
+    } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+      });
+    } else {
+      console.warn('Firebase Admin: No credentials provided. Server-side Firestore updates disabled.');
+    }
+  }
+  if (admin.apps.length > 0) {
+    adminDb = admin.firestore();
+    console.log('Firebase Admin initialized');
+  }
+} catch (err) {
+  console.warn('Firebase Admin not initialized:', err.message);
+}
 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: '10mb' }));
@@ -21,6 +51,15 @@ const limiter = rateLimit({
   message: { error: 'Too many requests. Please try again later.' },
 });
 app.use('/api/', limiter);
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many payment requests. Please wait.' },
+});
+app.use('/api/initialize-payment', paymentLimiter);
+app.use('/api/verify-payment', paymentLimiter);
+app.use('/api/upgrade-tier', paymentLimiter);
 
 app.post('/api/generate', async (req, res) => {
   try {
@@ -42,10 +81,10 @@ app.post('/api/generate', async (req, res) => {
 
     if (req.body.tools) requestBody.tools = req.body.tools;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
       body: JSON.stringify(requestBody),
     });
 
@@ -101,16 +140,65 @@ app.post('/api/initialize-payment', async (req, res) => {
 
 app.post('/api/paystack-webhook', async (req, res) => {
   try {
+    const signature = req.headers['x-paystack-signature'];
+    if (!signature) {
+      console.warn('Webhook received without signature');
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    const rawBody = JSON.stringify(req.body);
+    const expectedSignature = crypto
+      .createHmac('sha512', PAYSTACK_SECRET_KEY)
+      .update(rawBody)
+      .digest('hex');
+
+    if (signature !== expectedSignature) {
+      console.error('Webhook signature verification failed');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
     const event = req.body;
 
     if (event.event === 'charge.success') {
       const data = event.data;
-      console.log('Paystack webhook: charge.success', {
+      console.log('Paystack webhook: charge.success (verified)', {
         reference: data.reference,
         amount: data.amount / 100,
         email: data.customer?.email,
         metadata: data.metadata,
       });
+
+      if (adminDb && data.metadata?.projectId) {
+        try {
+          const tier = data.metadata?.tier || 'regular';
+          const isUpgrade = data.metadata?.type === 'upgrade';
+          const projectRef = adminDb.collection('projects').doc(data.metadata.projectId);
+          await projectRef.update({
+            tier,
+            isPremium: tier === 'premium',
+            lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          await adminDb.collection('payments').add({
+            userId: data.metadata.userId || '',
+            projectId: data.metadata.projectId,
+            tier,
+            amount: data.amount / 100,
+            currency: data.currency || 'GHS',
+            reference: data.reference,
+            email: data.customer?.email,
+            paidAt: data.paid_at || new Date().toISOString(),
+            channel: data.channel || 'webhook',
+            type: data.metadata?.type || 'project_creation',
+            status: 'verified',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          console.log(`[Webhook] Tier updated for project ${data.metadata.projectId}`);
+        } catch (dbErr) {
+          console.error('[Webhook] Firestore update failed:', dbErr.message);
+        }
+      }
 
       return res.json({ received: true });
     }
@@ -124,11 +212,21 @@ app.post('/api/paystack-webhook', async (req, res) => {
 
 app.post('/api/verify-payment', async (req, res) => {
   try {
-    const { reference, projectId, tier, userId } = req.body;
+    const { reference, projectId, tier, userId, idToken } = req.body;
     if (!reference) return res.status(400).json({ error: 'Missing payment reference' });
 
     if (!paystack) {
       return res.status(500).json({ error: 'Payment gateway not configured' });
+    }
+
+    let verifiedUserId = userId;
+    if (idToken && admin.apps.length > 0) {
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        verifiedUserId = decodedToken.uid;
+      } catch (authErr) {
+        console.warn('Firebase ID token verification failed:', authErr.message);
+      }
     }
 
     const response = await paystack.transaction.verify(reference);
@@ -146,6 +244,38 @@ app.post('/api/verify-payment', async (req, res) => {
         metadata: response.data.metadata,
       };
 
+      if (adminDb && projectId) {
+        try {
+          const isUpgrade = response.data.metadata?.type === 'upgrade';
+          const projectTier = response.data.metadata?.tier || tier || 'regular';
+          const projectRef = adminDb.collection('projects').doc(projectId);
+          await projectRef.update({
+            tier: projectTier,
+            isPremium: projectTier === 'premium',
+            lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          await adminDb.collection('payments').add({
+            userId: verifiedUserId || '',
+            projectId,
+            tier: projectTier,
+            amount: paymentData.amount,
+            currency: paymentData.currency,
+            reference: paymentData.reference,
+            email: paymentData.email,
+            paidAt: paymentData.paidAt || new Date().toISOString(),
+            channel: paymentData.channel || 'inline',
+            type: isUpgrade ? 'upgrade' : 'project_creation',
+            status: 'verified',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          console.log(`[Verify] Tier updated server-side for project ${projectId}`);
+        } catch (dbErr) {
+          console.error('[Verify] Firestore update failed:', dbErr.message);
+        }
+      }
+
       console.log('Payment verified:', { reference, amount: paymentData.amount, projectId, tier });
       return res.json(paymentData);
     }
@@ -158,11 +288,12 @@ app.post('/api/verify-payment', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: !!paystack });
+  res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: !!paystack, firebaseAdmin: !!adminDb });
 });
 
 app.listen(PORT, () => {
   console.log(`PAGYS API Proxy running on port ${PORT}`);
   console.log(`Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
   console.log(`Paystack configured: ${!!paystack}`);
+  console.log(`Firebase Admin: ${!!adminDb}`);
 });

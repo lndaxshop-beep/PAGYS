@@ -18,9 +18,9 @@ const getDedupKey = (entry) => {
   return `${authorMatch?.[1]?.toLowerCase() || ''}|${yearMatch?.[1] || ''}`;
 };
 
-const loadUserSources = () => {
+const loadUserSources = (projectId) => {
   try {
-    return JSON.parse(localStorage.getItem('userSources') || '[]');
+    return JSON.parse(localStorage.getItem(`userSources_${projectId}`) || '[]');
   } catch { return []; }
 };
 
@@ -28,9 +28,11 @@ export const mergeReferences = async (selectedChapters, generatedSubsections, st
   const allEntries = [];
   const seen = new Set();
 
+  const allCitations = [];
+  const chaptersNeedingGeneration = [];
+
   for (const chapter of selectedChapters) {
     const chapterContent = generatedSubsections[chapter.id] || {};
-
     const existingRefs = chapterContent.references || chapterContent.References || '';
 
     if (existingRefs && existingRefs.length > 10) {
@@ -48,36 +50,41 @@ export const mergeReferences = async (selectedChapters, generatedSubsections, st
         if (!content || typeof content !== 'string') return;
         chapterCitations.push(...extractCitations(content));
       });
-
       const uniqueCitations = [...new Set(chapterCitations)];
-      if (uniqueCitations.length === 0) continue;
+      if (uniqueCitations.length > 0) {
+        allCitations.push(...uniqueCitations);
+      }
+      chaptersNeedingGeneration.push(chapter);
+    }
+  }
 
-      const userSources = loadUserSources();
-      let generated = false;
+  if (chaptersNeedingGeneration.length > 0 && allCitations.length > 0) {
+    const uniqueAllCitations = [...new Set(allCitations)];
+    const userSources = loadUserSources(projectId);
+    let generated = false;
 
-      try {
-        const { generateReferences } = await import('../../services/geminiService');
-        const aiResult = await generateReferences(uniqueCitations, style, userSources, 'combine');
-        if (aiResult) {
-          const lines = aiResult.split('\n').filter(l => l.trim());
-          for (const line of lines) {
-            const key = getDedupKey(line);
-            if (!key || seen.has(key)) continue;
-            seen.add(key);
-            allEntries.push({ formatted: line.trim(), orderKey: line.toLowerCase() });
-          }
-          generated = true;
+    try {
+      const { generateReferences } = await import('../../services/geminiService');
+      const aiResult = await generateReferences(uniqueAllCitations, style, userSources, 'combine');
+      if (aiResult) {
+        const lines = aiResult.split('\n').filter(l => l.trim());
+        for (const line of lines) {
+          const key = getDedupKey(line);
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          allEntries.push({ formatted: line.trim(), orderKey: line.toLowerCase() });
         }
-      } catch (err) {
-        console.error(`[referenceMerger] AI generation failed for chapter "${chapter.title}":`, err.message);
+        generated = true;
       }
+    } catch (err) {
+      console.error('[referenceMerger] AI generation failed:', err.message);
+    }
 
-      if (!generated) {
-        const chapterTitle = chapter.customTitle || chapter.title || `Chapter ${chapter.id}`;
-        throw new Error(
-          `References for "${chapterTitle}" could not be generated. Please open this chapter and click "Generate References" first, then try merging again.`
-        );
-      }
+    if (!generated) {
+      const chapterTitles = chaptersNeedingGeneration.map(c => c.customTitle || c.title || `Chapter ${c.id}`).join(', ');
+      throw new Error(
+        `References for ${chapterTitles} could not be generated. Please open these chapters and click "Generate References" first, then try merging again.`
+      );
     }
   }
 

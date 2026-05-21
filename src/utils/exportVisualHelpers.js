@@ -9,7 +9,7 @@ const PIXELS_PER_INCH = 96;
 const TARGET_IMAGE_WIDTH_INCHES = 5.5;
 const CHART_WIDTH = 2000;
 const CHART_HEIGHT = 1200;
-const ACADEMIC_COLORS = ['#2C3E50', '#3498DB', '#27AE60', '#E74C3C', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E', '#16A085'];
+const ACADEMIC_COLORS = ['#000000', '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#999999', '#78A0A0'];
 
 const canvasToPngBuffer = (canvas) => {
   const dataUrl = canvas.toDataURL('image/png');

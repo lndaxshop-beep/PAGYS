@@ -11,7 +11,7 @@ import generateLatexDocument from '../utils/merge/latexExportEngine.js';
 import generateMarkdownDocument from '../utils/merge/markdownExportEngine.js';
 import { PageSkeleton } from '../components/Skeleton';
 import { useCurrency } from '../hooks/useCurrency';
-import { PRICES_USD } from '../constants/pricing';
+import { PRICES_GHS } from '../constants/pricing';
 import usePayment from '../hooks/usePayment';
 import MockPaymentModal from '../components/MockPaymentModal';
 import Toast from '../components/Toast';
@@ -95,11 +95,14 @@ const MergeDocument = () => {
   const [generatingDedication, setGeneratingDedication] = useState(false);
   const [generatingAcknowledgements, setGeneratingAcknowledgements] = useState(false);
 
-  const getAbstractCacheKey = () => `abstract_${projectId}_${JSON.stringify(generatedSubsections).length.toString(36)}`;
+  const getAbstractCacheKey = () => {
+    const contentHash = JSON.stringify(generatedSubsections).split('').reduce((a, c) => ((a << 5) - a) + c.charCodeAt(0), 0).toString(36);
+    return `abstract_${projectId}_${contentHash}`;
+  };
 
   useEffect(() => {
     if (!projectId || Object.keys(generatedSubsections).length === 0) return;
-    const key = `abstract_${projectId}_${JSON.stringify(generatedSubsections).length.toString(36)}`;
+    const key = getAbstractCacheKey();
     const cached = localStorage.getItem(key);
     if (cached) {
       setPlaceholders(prev => ({ ...prev, abstractText: cached }));
@@ -272,17 +275,7 @@ const MergeDocument = () => {
     } catch { return null; }
   };
 
-  const handleGenerateAbstractClick = async () => {
-    if (generatingAbstract) return;
-
-    const key = getAbstractCacheKey();
-    const cached = localStorage.getItem(key);
-
-    if (cached) {
-      setShowAbstractPaymentModal(true);
-      return;
-    }
-
+  const doGenerateAbstract = useCallback(async (key) => {
     setGeneratingAbstract(true);
     setError('');
     try {
@@ -298,27 +291,27 @@ const MergeDocument = () => {
       setError('Failed to generate abstract: ' + (e.message || 'Unknown error'));
     }
     setGeneratingAbstract(false);
+  }, [project, generatedSubsections]);
+
+  const handleGenerateAbstractClick = async () => {
+    if (generatingAbstract) return;
+
+    const key = getAbstractCacheKey();
+    const cached = localStorage.getItem(key);
+
+    if (cached) {
+      setShowAbstractPaymentModal(true);
+      return;
+    }
+
+    await doGenerateAbstract(key);
   };
 
   const handleAbstractPaymentConfirm = async () => {
     setProcessingAbstractPayment(true);
     const key = getAbstractCacheKey();
-    const success = await processSmallPayment(projectId, PRICES_USD.abstractRegen, { type: 'abstract_regen' }, async () => {
-      setGeneratingAbstract(true);
-      setError('');
-      try {
-        const { generateAbstract } = await import('../services/geminiService');
-        const text = await generateAbstract(project, generatedSubsections);
-        if (text) {
-          setPlaceholders(prev => ({ ...prev, abstractText: text }));
-          localStorage.setItem(key, text);
-        } else {
-          setError('Failed to generate abstract. Try again.');
-        }
-      } catch (e) {
-        setError('Failed to generate abstract: ' + (e.message || 'Unknown error'));
-      }
-      setGeneratingAbstract(false);
+    const success = await processSmallPayment(projectId, PRICES_GHS.abstractRegen, { type: 'abstract_regen' }, async () => {
+      await doGenerateAbstract(key);
     });
     if (success) {
       setShowAbstractPaymentModal(false);
@@ -529,13 +522,13 @@ const MergeDocument = () => {
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
             <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', textAlign: 'center', minWidth: '320px' }}>
               <p style={{ color: colors.text, fontWeight: '600', fontSize: '16px', marginBottom: '16px' }}>
-                {processingAbstractPayment ? 'Processing payment...' : `Pay ${fmt(PRICES_USD.abstractRegen)} to regenerate abstract?`}
+                {processingAbstractPayment ? 'Processing payment...' : `Pay ${fmt(PRICES_GHS.abstractRegen)} to regenerate abstract?`}
               </p>
               {processingAbstractPayment ? (
                 <div style={{ width: '48px', height: '48px', border: `4px solid ${colors.primary}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
               ) : (
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexDirection: 'column' }}>
-                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_USD.abstractRegen, false)} via Paystack</button>
+                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_GHS.abstractRegen, false)} via Paystack</button>
                   {devBypass && (
                     <button onClick={handleAbstractDevBypass} style={{ padding: '10px 24px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>⚡ Simulate Payment (Dev Mode)</button>
                   )}

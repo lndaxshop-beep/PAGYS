@@ -1,6 +1,30 @@
 import { useState, useCallback, useRef } from 'react';
 import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
+const buildThesisContext = (currentChapterId, chapters, generatedSubsections) => {
+  const chapterOrder = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
+  const currentIndex = chapterOrder.indexOf(currentChapterId);
+  if (currentIndex <= 0) return null;
+
+  const context = { previousChapters: [] };
+  for (let i = 0; i < currentIndex; i++) {
+    const chId = chapterOrder[i];
+    const ch = chapters.find(c => c.id === chId);
+    if (!ch) continue;
+    const content = generatedSubsections[chId] || {};
+    const subsectionTexts = Object.values(content).filter(v => typeof v === 'string' && v.length > 100);
+    if (subsectionTexts.length > 0) {
+      const summary = subsectionTexts.map(t => t.substring(0, 300)).join(' ');
+      context.previousChapters.push({
+        chapterId: chId,
+        title: ch.title || chId,
+        summary: summary.substring(0, 1000),
+      });
+    }
+  }
+  return context.previousChapters.length > 0 ? context : null;
+};
+
 const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', humaniseLimit = 10, feedbackLimit = 6) => {
   const [generating, setGenerating] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
@@ -80,6 +104,9 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const totalWordCount = ch.wordCount || { min: 1000, max: 2000 };
     const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsList, subTitle);
     const childrenTopics = (sub.children || []).map(c => c.title).filter(Boolean);
+
+    const thesisContext = buildThesisContext(chapterId, chapters, generatedSubsections);
+
     const { generateAcademicContent, selfReviewContent } = await import('../services/geminiService');
     const result = await generateAcademicContent({
       chapter: chapterTitle, chapterId, chapterNumber, subsection: subTitle,
@@ -90,6 +117,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       userSources, sourceMode,
       guidelines: ch.guidelines || '',
       childrenTopics,
+      thesisContext,
     });
     let generatedContent = typeof result === 'object' ? result.text : result;
     try {

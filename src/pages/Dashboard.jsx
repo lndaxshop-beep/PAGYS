@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { saveProject } from '../services/firestoreService';
 import ResearchQuestionModal from '../components/ResearchQuestionModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -17,16 +18,18 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
 import { useCurrency } from '../hooks/useCurrency';
-import { PRICES_USD } from '../constants/pricing';
+import { PRICES_GHS, getUserCountry } from '../constants/pricing';
 import OnboardingWizard from '../components/OnboardingWizard';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import SourceSetupModal from '../components/SourceSetupModal';
 import usePayment from '../hooks/usePayment';
 
+const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
+
 const Dashboard = () => {
   const { colors } = useTheme();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -75,11 +78,7 @@ const Dashboard = () => {
     setConfirmationTier(tier || 'regular');
   }, { onNotify: notify });
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) setUser(JSON.parse(savedUser));
-    else navigate('/login');
-  }, [navigate]);
+  const projectIdRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -91,10 +90,8 @@ const Dashboard = () => {
   }, [user]);
 
   const handleDismissOnboarding = () => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      const u = JSON.parse(savedUser);
-      localStorage.setItem('onboardingComplete_' + u.uid, 'true');
+    if (user) {
+      localStorage.setItem('onboardingComplete_' + user.uid, 'true');
     }
     setShowOnboarding(false);
   };
@@ -125,15 +122,27 @@ const Dashboard = () => {
         }
       }
       setShowPaymentModal(false);
+      const country = getUserCountry();
+      const priceKey = paymentIsUpgrade ? 'upgrade' : (paymentTier === 'premium' ? 'premium' : 'regular');
       const receiptData = {
         type: paymentIsUpgrade ? 'upgrade' : 'project_creation',
-        amount: paymentIsUpgrade ? PRICES_USD.upgrade : (paymentTier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular),
-        currency: 'USD',
-        reference: `PAY_${Date.now()}`,
-        email: JSON.parse(localStorage.getItem('currentUser') || '{}').email,
+        amount: PRICES_GHS[priceKey],
+        currency: 'GHS',
+        reference: paymentProject.lastPaymentReference || `PAY_${Date.now()}`,
+        email: user?.email,
         paidAt: new Date().toISOString(),
-        channel: 'card',
+        channel: DEV_BYPASS ? 'mock' : 'card',
       };
+      setPaymentReceipt(receiptData);
+      setPaymentProject(null);
+      setPaymentTier(null);
+      loadProjects();
+      if (paymentIsUpgrade) {
+      } else if (paymentTier === 'premium') {
+        setShowSourceSetup(true);
+      }
+    }
+  };
       setPaymentReceipt(receiptData);
       setPaymentProject(null);
       setPaymentTier(null);
@@ -167,12 +176,12 @@ const Dashboard = () => {
       setShowPaymentModal(false);
       const receiptData = {
         type: 'upgrade',
-        amount: PRICES_USD.upgrade,
-        currency: 'USD',
-        reference: `PAY_${Date.now()}`,
-        email: JSON.parse(localStorage.getItem('currentUser') || '{}').email,
+        amount: PRICES_GHS.upgrade,
+        currency: 'GHS',
+        reference: paymentProject.lastPaymentReference || `PAY_${Date.now()}`,
+        email: user?.email,
         paidAt: new Date().toISOString(),
-        channel: 'card',
+        channel: DEV_BYPASS ? 'mock' : 'card',
       };
       setPaymentReceipt(receiptData);
       setPaymentProject(null);

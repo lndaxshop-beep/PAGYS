@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { saveAs } from 'file-saver';
 import { INSTRUMENT_TYPES } from '../utils/instrumentHelpers';
 import { getProjects, getGeneratedContent, getChapters } from '../services/firestoreService';
@@ -12,18 +13,21 @@ import { escapeHtml } from '../utils/htmlEscape';
 import { generateChapterDocument } from '../utils/merge/chapterDownloadEngine.js';
 import { computeThesisScores } from '../utils/aiScoreUtils.js';
 import { useCurrency } from '../hooks/useCurrency';
-import { PRICES_USD } from '../constants/pricing';
+import { PRICES_GHS } from '../constants/pricing';
+import usePayment from '../hooks/usePayment';
+import MockPaymentModal from '../components/MockPaymentModal';
 
 const MyFiles = () => {
   const { colors, isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { fmt } = useCurrency();
+  const { processing: processingPayment, processSmallPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [expandedChapter, setExpandedChapter] = useState(null);
 
-  const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('chapters');
   const [abbreviations, setAbbreviations] = useState([]);
   const [defenceQuestions, setDefenceQuestions] = useState(null);
@@ -37,7 +41,6 @@ const MyFiles = () => {
   const [defenceRegenUsed, setDefenceRegenUsed] = useState(0);
   const [showRegenResetModal, setShowRegenResetModal] = useState(false);
   const [processingRegenReset, setProcessingRegenReset] = useState(false);
-  const regenResetTimeoutRef = useRef(null);
   const [rawContent, setRawContent] = useState({});
   const sourceLibrary = useSourceLibrary(selectedProject, user?.uid);
 
@@ -45,9 +48,9 @@ const MyFiles = () => {
   const baseDefenceRegenLimit = isPremium ? 2 : 1;
   const defenceRegenLeft = Math.max(0, baseDefenceRegenLimit - defenceRegenUsed);
 
-  const notify = (message, type) => setToast({ message, type });
+  const notify = useCallback((message, type) => setToast({ message, type }), []);
+  const { processing: processingPayment, processSmallPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
 
-  useEffect(() => { const savedUser = localStorage.getItem('currentUser'); if (savedUser) setUser(JSON.parse(savedUser)); }, []);
   useEffect(() => { loadProjects(); }, []);
   useEffect(() => { if (selectedProject && activeTab === 'lists') loadAbbreviations(selectedProject); }, [selectedProject, activeTab]);
   useEffect(() => { if (selectedProject && activeTab === 'defence') loadDefenceQuestions(selectedProject); }, [selectedProject, activeTab]);
@@ -185,14 +188,17 @@ const MyFiles = () => {
       setShowRegenResetModal(true);
     }
   };
-  const handleRegenResetConfirm = () => {
+  const handleRegenResetConfirm = async () => {
     if (processingRegenReset) return;
     setProcessingRegenReset(true);
-    regenResetTimeoutRef.current = setTimeout(() => {
+    const success = await processSmallPayment(selectedProject, PRICES_GHS.defenceRegen, { type: 'defence_regen_reset' }, () => {
       setDefenceRegenUsed(0);
-      setProcessingRegenReset(false);
+      try { localStorage.removeItem(`defenceRegenUsed_${selectedProject}`); } catch {}
       setShowRegenResetModal(false);
-    }, 1000);
+    });
+    if (!success) {
+      setProcessingRegenReset(false);
+    }
   };
   const getGeneratedChaptersCount = () => chapters.filter(ch => ch.generated).length;
 
@@ -567,7 +573,7 @@ const MyFiles = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_USD.defenceRegen, false)}</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_GHS.defenceRegen, false)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -577,7 +583,7 @@ const MyFiles = () => {
                 fontWeight: '600', cursor: processingRegenReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingRegenReset ? 0.7 : 1
               }}>
-                {processingRegenReset ? 'Processing...' : `Pay ${fmt(PRICES_USD.defenceRegen, false)}`}
+                {processingRegenReset ? 'Processing...' : `Pay ${fmt(PRICES_GHS.defenceRegen, false)}`}
               </button>
               <button onClick={() => setShowRegenResetModal(false)} disabled={processingRegenReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,
@@ -590,6 +596,16 @@ const MyFiles = () => {
             </div>
           </div>
         </div>
+      )}
+      {mockPaymentConfig && (
+        <MockPaymentModal
+          email={mockPaymentConfig.email}
+          amount={mockPaymentConfig.amount}
+          currency={mockPaymentConfig.currency}
+          metadata={mockPaymentConfig.metadata}
+          onClose={onMockPaymentClose}
+          onSuccess={onMockPaymentSuccess}
+        />
       )}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

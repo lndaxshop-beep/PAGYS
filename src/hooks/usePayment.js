@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { formatPrice, getUserCountry, PRICES_GHS, getCurrency } from '../constants/pricing';
+import { useAuth } from '../contexts/AuthContext';
 
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
@@ -19,45 +20,40 @@ const storePaymentRecord = async (paymentData) => {
 };
 
 const usePayment = (onNotify) => {
+  const { user, getIdToken } = useAuth();
   const [processing, setProcessing] = useState(false);
   const [mockPaymentConfig, setMockPaymentConfig] = useState(null);
-  const pendingResolveRef = useRef(null);
-
-  const updateProjectTier = useCallback(async (projectId, tier, isUpgrade) => {
-    const { updateProject } = await import('../services/firestoreService');
-    await updateProject(projectId, {
-      tier,
-      isPremium: tier === 'premium',
-    });
-    const country = getUserCountry();
-    const priceKey = isUpgrade ? 'upgrade' : tier;
-    const amount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
-    if (onNotify) onNotify(
-      isUpgrade
-        ? `Project upgraded to Premium (${formatPrice(amount, country, false)})! All features unlocked.`
-        : tier === 'premium'
-          ? 'Premium project created! All features unlocked.'
-          : 'Regular project created! You can upgrade anytime.',
-      'success'
-    );
-    window.dispatchEvent(new CustomEvent(isUpgrade ? 'projectUpgraded' : 'projectPaymentComplete', {
-      detail: { projectId, tier }
-    }));
-  }, [onNotify]);
+  const pendingCallbacksRef = useRef(new Map());
+  const intervalRefs = useRef([]);
 
   const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount, currency) => {
     try {
-      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const idToken = await getIdToken();
       const res = await fetch(`${PROXY_URL}/api/verify-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference, projectId, tier, userId: user?.uid }),
+        body: JSON.stringify({ reference, projectId, tier, userId: user?.uid, idToken }),
       });
       const data = await res.json();
       if (!res.ok || !data.verified) {
         throw new Error(data.error || 'Payment verification failed');
       }
-      await updateProjectTier(projectId, tier, isUpgrade);
+
+      const country = getUserCountry();
+      const priceKey = isUpgrade ? 'upgrade' : tier;
+      const ghsAmount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
+      if (onNotify) onNotify(
+        isUpgrade
+          ? `Project upgraded to Premium (${formatPrice(ghsAmount, country, false)})! All features unlocked.`
+          : tier === 'premium'
+            ? 'Premium project created! All features unlocked.'
+            : 'Regular project created! You can upgrade anytime.',
+        'success'
+      );
+      window.dispatchEvent(new CustomEvent(isUpgrade ? 'projectUpgraded' : 'projectPaymentComplete', {
+        detail: { projectId, tier }
+      }));
+
       await storePaymentRecord({
         userId: user?.uid,
         projectId,
@@ -77,21 +73,29 @@ const usePayment = (onNotify) => {
       if (onNotify) onNotify('Payment verification failed. Contact support.', 'error');
       return null;
     }
-  }, [onNotify, updateProjectTier]);
+  }, [onNotify, user, getIdToken]);
 
   const handleMockPaymentSuccess = useCallback(async (result) => {
     setMockPaymentConfig(null);
-    if (pendingResolveRef.current && result?.status === 'success') {
-      const { reference, projectId, tier, isUpgrade, amount, currency } = pendingResolveRef.current;
-      pendingResolveRef.current = null;
-      await verifyPayment(reference, projectId, tier, isUpgrade, amount, currency);
+    const callbacks = [...pendingCallbacksRef.current.values()];
+    pendingCallbacksRef.current.clear();
+    for (const cb of callbacks) {
+      if (result?.status === 'success') {
+        await verifyPayment(cb.reference, cb.projectId, cb.tier, cb.isUpgrade, cb.amount, cb.currency);
+        if (cb.resolve) cb.resolve({ reference: cb.reference, status: 'success' });
+        if (cb.onSuccess) cb.onSuccess();
+      } else {
+        if (cb.resolve) cb.resolve({ reference: null, status: 'closed' });
+      }
     }
   }, [verifyPayment]);
 
   const handleMockPaymentClose = useCallback(() => {
     setMockPaymentConfig(null);
-    if (pendingResolveRef.current) {
-      pendingResolveRef.current = null;
+    const callbacks = [...pendingCallbacksRef.current.values()];
+    pendingCallbacksRef.current.clear();
+    for (const cb of callbacks) {
+      if (cb.resolve) cb.resolve({ reference: null, status: 'closed' });
     }
   }, []);
 
@@ -132,25 +136,30 @@ const usePayment = (onNotify) => {
     });
   }, []);
 
+  const cleanupIntervals = useCallback(() => {
+    intervalRefs.current.forEach(clearInterval);
+    intervalRefs.current = [];
+  }, []);
+
   const processPayment = useCallback(async (projectId, tier) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const country = getUserCountry();
         const currency = getCurrency(country);
         const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
         const localAmount = Math.round(ghsPrice * currency.rate);
+        const mockRef = `mock_${Date.now()}`;
 
         return new Promise((resolve) => {
-          pendingResolveRef.current = {
-            reference: `mock_${Date.now()}`,
+          pendingCallbacksRef.current.set(mockRef, {
+            reference: mockRef,
             projectId, tier, isUpgrade: false,
             amount: localAmount, currency: currency.code,
             resolve,
-          };
+          });
           setMockPaymentConfig({
-            email: user.email || 'test@example.com',
+            email: user?.email || 'test@example.com',
             amount: localAmount,
             currency: currency.code,
             metadata: { projectId, tier, type: 'project_creation' },
@@ -158,14 +167,13 @@ const usePayment = (onNotify) => {
         });
       }
 
-      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const country = getUserCountry();
       const currency = getCurrency(country);
       const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
       const localAmount = Math.round(ghsPrice * currency.rate);
 
       const result = await openPaystackPopup(
-        user.email || 'customer@example.com',
+        user?.email || 'customer@example.com',
         localAmount,
         currency.code,
         { projectId, tier, type: 'project_creation' }
@@ -176,7 +184,7 @@ const usePayment = (onNotify) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: user.email || 'customer@example.com',
+            email: user?.email || 'customer@example.com',
             amount: localAmount,
             currency: currency.code,
             metadata: { projectId, tier, type: 'project_creation' },
@@ -184,6 +192,8 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
+        sessionStorage.setItem('paystack_return', 'true');
+        sessionStorage.setItem('paystack_reference', data.reference);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
@@ -197,6 +207,7 @@ const usePayment = (onNotify) => {
               } else { resolve(false); }
             }
           }, 500);
+          intervalRefs.current.push(checkReturn);
           setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
         });
       }
@@ -213,27 +224,27 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, updateProjectTier, openPaystackPopup]);
+  }, [onNotify, verifyPayment, user, openPaystackPopup, cleanupIntervals]);
 
   const upgradeToPremium = useCallback(async (projectId) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const country = getUserCountry();
         const currency = getCurrency(country);
         const ghsPrice = PRICES_GHS.upgrade;
         const localAmount = Math.round(ghsPrice * currency.rate);
+        const mockRef = `mock_${Date.now()}`;
 
         return new Promise((resolve) => {
-          pendingResolveRef.current = {
-            reference: `mock_${Date.now()}`,
+          pendingCallbacksRef.current.set(mockRef, {
+            reference: mockRef,
             projectId, tier: 'premium', isUpgrade: true,
             amount: localAmount, currency: currency.code,
             resolve,
-          };
+          });
           setMockPaymentConfig({
-            email: user.email || 'test@example.com',
+            email: user?.email || 'test@example.com',
             amount: localAmount,
             currency: currency.code,
             metadata: { projectId, tier: 'premium', type: 'upgrade' },
@@ -241,14 +252,13 @@ const usePayment = (onNotify) => {
         });
       }
 
-      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const country = getUserCountry();
       const currency = getCurrency(country);
       const ghsPrice = PRICES_GHS.upgrade;
       const localAmount = Math.round(ghsPrice * currency.rate);
 
       const result = await openPaystackPopup(
-        user.email || 'customer@example.com',
+        user?.email || 'customer@example.com',
         localAmount,
         currency.code,
         { projectId, tier: 'premium', type: 'upgrade' }
@@ -259,7 +269,7 @@ const usePayment = (onNotify) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: user.email || 'customer@example.com',
+            email: user?.email || 'customer@example.com',
             amount: localAmount,
             currency: currency.code,
             metadata: { projectId, tier: 'premium', type: 'upgrade' },
@@ -267,6 +277,8 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
+        sessionStorage.setItem('paystack_return', 'true');
+        sessionStorage.setItem('paystack_reference', data.reference);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
@@ -280,6 +292,7 @@ const usePayment = (onNotify) => {
               } else { resolve(false); }
             }
           }, 500);
+          intervalRefs.current.push(checkReturn);
           setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
         });
       }
@@ -296,43 +309,40 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, updateProjectTier, openPaystackPopup]);
+  }, [onNotify, verifyPayment, user, openPaystackPopup, cleanupIntervals]);
 
   const processSmallPayment = useCallback(async (projectId, ghsAmount, metadata, onSuccess) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const country = getUserCountry();
         const currency = getCurrency(country);
         const localAmount = Math.round(ghsAmount * currency.rate);
+        const mockRef = `mock_${Date.now()}`;
 
         return new Promise((resolve) => {
-          pendingResolveRef.current = {
-            reference: `mock_${Date.now()}`,
+          pendingCallbacksRef.current.set(mockRef, {
+            reference: mockRef,
             projectId, tier: metadata.tier || 'regular', isUpgrade: false,
             amount: localAmount, currency: currency.code,
+            onSuccess,
             resolve,
-          };
+          });
           setMockPaymentConfig({
-            email: user.email || 'test@example.com',
+            email: user?.email || 'test@example.com',
             amount: localAmount,
             currency: currency.code,
             metadata: { projectId, ...metadata },
           });
-        }).then((result) => {
-          if (result && onSuccess) onSuccess();
-          return result;
         });
       }
 
-      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const country = getUserCountry();
       const currency = getCurrency(country);
       const localAmount = Math.round(ghsAmount * currency.rate);
 
       const result = await openPaystackPopup(
-        user.email || 'customer@example.com',
+        user?.email || 'customer@example.com',
         localAmount,
         currency.code,
         { projectId, ...metadata }
@@ -343,7 +353,7 @@ const usePayment = (onNotify) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: user.email || 'customer@example.com',
+            email: user?.email || 'customer@example.com',
             amount: localAmount,
             currency: currency.code,
             metadata: { projectId, ...metadata },
@@ -351,6 +361,8 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
+        sessionStorage.setItem('paystack_return', 'true');
+        sessionStorage.setItem('paystack_reference', data.reference);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
@@ -367,6 +379,7 @@ const usePayment = (onNotify) => {
               } else { resolve(false); }
             }
           }, 500);
+          intervalRefs.current.push(checkReturn);
           setTimeout(() => { clearInterval(checkReturn); resolve(false); }, 120000);
         });
       }
@@ -384,7 +397,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, openPaystackPopup]);
+  }, [onNotify, verifyPayment, user, openPaystackPopup, cleanupIntervals]);
 
   return {
     processing,

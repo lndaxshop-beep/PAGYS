@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { extractTextFromFile, getFileType } from '../utils/fileExtractors';
 import { extractPaperMetadata, generateLiteratureMatrix } from '../services/gemini/sourceExtractor';
-import { saveGeneratedContent, getGeneratedContent } from '../services/firestoreService';
 
 const STORAGE_KEY = 'userSources';
 
@@ -22,7 +21,6 @@ const useSourceLibrary = (projectId, userId) => {
   const [generatingMatrix, setGeneratingMatrix] = useState(false);
   const [pendingMatrixRegen, setPendingMatrixRegen] = useState(false);
   const [processingMatrixPayment, setProcessingMatrixPayment] = useState(false);
-  const matrixPaymentTimeoutRef = null;
 
   useEffect(() => {
     const key = getCacheKey(sources, projectId);
@@ -39,9 +37,6 @@ const useSourceLibrary = (projectId, userId) => {
     try {
       localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updatedSources));
     } catch (e) { console.warn('Failed to persist sources:', e); }
-    if (userId) {
-      saveGeneratedContent({ userId, projectId, sources: updatedSources }).catch(() => {});
-    }
   };
 
   const addSource = useCallback(async (file) => {
@@ -87,9 +82,6 @@ const useSourceLibrary = (projectId, userId) => {
         try {
           localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
         } catch (e) { console.warn('Failed to persist sources:', e); }
-        if (userId) {
-          saveGeneratedContent({ userId, projectId, sources: updated }).catch(() => {});
-        }
         return updated;
       });
       return { success: true, source };

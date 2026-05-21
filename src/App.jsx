@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/layout/Header';
@@ -127,11 +128,13 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <NavigationLoadingProvider>
-          <AppContent />
-        </NavigationLoadingProvider>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <NavigationLoadingProvider>
+            <AppContent />
+          </NavigationLoadingProvider>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

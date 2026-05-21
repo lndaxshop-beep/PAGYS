@@ -143,17 +143,6 @@ const Dashboard = () => {
       }
     }
   };
-      setPaymentReceipt(receiptData);
-      setPaymentProject(null);
-      setPaymentTier(null);
-      loadProjects();
-      if (paymentIsUpgrade) {
-        // reloaded via loadProjects()
-      } else if (paymentTier === 'premium') {
-        setShowSourceSetup(true);
-      }
-    }
-  };
 
   const handleClosePayment = () => {
     setShowPaymentModal(false);

@@ -22,7 +22,6 @@ const MyFiles = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fmt } = useCurrency();
-  const { processing: processingPayment, processSmallPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -64,7 +63,6 @@ const MyFiles = () => {
     }
   }, [selectedProject]);
   useEffect(() => { try { localStorage.setItem(`defenceRegenUsed_${selectedProject}`, JSON.stringify(defenceRegenUsed)); } catch {} }, [defenceRegenUsed, selectedProject]);
-  useEffect(() => { return () => { if (regenResetTimeoutRef.current) clearTimeout(regenResetTimeoutRef.current); }; }, []);
 
    const loadProjects = async () => {
     try {

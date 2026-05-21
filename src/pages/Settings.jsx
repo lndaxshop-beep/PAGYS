@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Toast from '../components/Toast';

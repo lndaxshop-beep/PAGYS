@@ -27,6 +27,14 @@ export const getProjects = async () => {
   } catch (e) { logError('getProjects', e); throw e; }
 };
 
+export const getProject = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'projects', projectId.toString()));
+    if (snap.exists()) return { id: snap.id, ...snap.data() };
+    return null;
+  } catch (e) { logError('getProject', e); throw e; }
+};
+
 export const updateProject = async (projectId, data) => {
   try {
     await setDoc(doc(db, 'projects', projectId.toString()), data, { merge: true });

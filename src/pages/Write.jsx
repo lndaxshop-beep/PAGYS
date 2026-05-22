@@ -28,7 +28,7 @@ import LiteratureSearchModal from '../components/LiteratureSearchModal';
 import AIDetectionDashboard from '../components/AIDetectionDashboard';
 import DiffModal from '../components/DiffModal';
 import { PageSkeleton } from '../components/Skeleton';
-import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData } from '../services/firestoreService';
+import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject } from '../services/firestoreService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
 import useSourceLibrary from '../hooks/useSourceLibrary';
@@ -92,6 +92,7 @@ const Write = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
+  const projectCache = useRef({});
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -152,47 +153,62 @@ const Write = () => {
 
   useEffect(() => {
     const loadProject = async () => {
+      const cached = projectCache.current[projectId];
+      if (cached && Date.now() - cached.timestamp < 30000) {
+        const c = cached.data;
+        if (c.project) setProject(c.project);
+        if (c.chapters?.length) { setChapters(c.chapters); setChapterWordCounts(c.wordCounts); setChapterWordCountSet(c.wordCountSet); }
+        else if (c.project) initializeEmptyChapters(c.project);
+        if (c.content && Object.keys(c.content).length) setGeneratedSubsections(c.content);
+        if (c.citations && Object.keys(c.citations).length) setChapterCitations(c.citations);
+        if (c.visuals) { if (c.visuals.diagrams) setDiagramData(c.visuals.diagrams); if (c.visuals.charts) setChartData(c.visuals.charts); if (c.visuals.tables) setTableData(c.visuals.tables); }
+        setLoading(false);
+        return;
+      }
+
       try {
-        const { getProjects: fbGetProjects } = await import('../services/firestoreService');
-        const projects = await fbGetProjects();
-        const currentProject = projects.find(p => p.id.toString() === projectId);
-        if (currentProject) {
-          setProject(currentProject);
-          const savedChapters = await getChapters(projectId);
-          if (savedChapters?.length) {
-            setChapters(savedChapters);
-            const wc = {}, wcs = {};
-            savedChapters.forEach(ch => {
-              if (ch.wordCount) { wc[ch.id] = ch.wordCount; wcs[ch.id] = true; }
-              else if (ch.subsections?.length > 0 || ch.generated) { wc[ch.id] = { min: 1000, max: 2000 }; wcs[ch.id] = true; }
-            });
-            setChapterWordCounts(wc);
-            setChapterWordCountSet(wcs);
-          } else {
-            initializeEmptyChapters(currentProject);
-          }
-          const savedContent = await getGeneratedContent(projectId);
-          if (savedContent && Object.keys(savedContent).length) setGeneratedSubsections(savedContent);
-          const savedCitations = await getCitations(projectId);
-          if (savedCitations && Object.keys(savedCitations).length) setChapterCitations(savedCitations);
-          const vd = await getVisualData(projectId);
-          if (vd.diagrams) setDiagramData(vd.diagrams);
-          if (vd.charts) setChartData(vd.charts);
-          if (vd.tables) setTableData(vd.tables);
+        const [currentProject, savedChapters, savedContent, savedCitations, vd] = await Promise.all([
+          getProject(projectId),
+          getChapters(projectId),
+          getGeneratedContent(projectId),
+          getCitations(projectId),
+          getVisualData(projectId),
+        ]);
+
+        if (!currentProject) { navigate('/dashboard'); setLoading(false); return; }
+
+        setProject(currentProject);
+
+        if (savedChapters?.length) {
+          setChapters(savedChapters);
+          const wc = {}, wcs = {};
+          savedChapters.forEach(ch => {
+            if (ch.wordCount) { wc[ch.id] = ch.wordCount; wcs[ch.id] = true; }
+            else if (ch.subsections?.length > 0 || ch.generated) { wc[ch.id] = { min: 1000, max: 2000 }; wcs[ch.id] = true; }
+          });
+          setChapterWordCounts(wc);
+          setChapterWordCountSet(wcs);
         } else {
-          navigate('/dashboard');
+          initializeEmptyChapters(currentProject);
         }
+
+        if (savedContent && Object.keys(savedContent).length) setGeneratedSubsections(savedContent);
+        if (savedCitations && Object.keys(savedCitations).length) setChapterCitations(savedCitations);
+        if (vd.diagrams) setDiagramData(vd.diagrams);
+        if (vd.charts) setChartData(vd.charts);
+        if (vd.tables) setTableData(vd.tables);
+
+        projectCache.current[projectId] = {
+          timestamp: Date.now(),
+          data: { project: currentProject, chapters: savedChapters, content: savedContent, citations: savedCitations, visuals: vd, wordCounts: wc, wordCountSet: wcs },
+        };
       } catch (error) {
         console.error('Error loading project:', error);
         navigate('/dashboard');
       }
       setLoading(false);
-      endTransition();
     };
     loadProject();
-    getSubsectionVersions(projectId).then(v => {
-      if (v && Object.keys(v).length > 0) setSubsectionVersions(v);
-    }).catch(() => {});
   }, [projectId, navigate]);
 
   useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations).catch(e => console.error('Auto-save citations failed:', e)); }, [chapterCitations, projectId]);

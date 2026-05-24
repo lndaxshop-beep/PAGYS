@@ -179,9 +179,11 @@ const Write = () => {
 
         setProject(currentProject);
 
+        let wc, wcs;
+
         if (savedChapters?.length) {
           setChapters(savedChapters);
-          const wc = {}, wcs = {};
+          wc = {}; wcs = {};
           savedChapters.forEach(ch => {
             if (ch.wordCount) { wc[ch.id] = ch.wordCount; wcs[ch.id] = true; }
             else if (ch.subsections?.length > 0 || ch.generated) { wc[ch.id] = { min: 1000, max: 2000 }; wcs[ch.id] = true; }
@@ -200,7 +202,7 @@ const Write = () => {
 
         projectCache.current[projectId] = {
           timestamp: Date.now(),
-          data: { project: currentProject, chapters: savedChapters, content: savedContent, citations: savedCitations, visuals: vd, wordCounts: wc, wordCountSet: wcs },
+          data: { project: currentProject, chapters: savedChapters || [], content: savedContent, citations: savedCitations, visuals: vd, wordCounts: wc || {}, wordCountSet: wcs || {} },
         };
       } catch (error) {
         console.error('Error loading project:', error);

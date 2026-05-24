@@ -65,13 +65,4 @@ export const formatPrice = (ghsPrice, countryCode, showBoth = true) => {
   return `${localFormatted} (~${ghsFormatted})`;
 };
 
-export const PRICES_USD = {
-  regular: Math.round(PRICES_GHS.regular * COUNTRY_CURRENCIES.US.rate),
-  premium: Math.round(PRICES_GHS.premium * COUNTRY_CURRENCIES.US.rate),
-  upgrade: Math.round(PRICES_GHS.upgrade * COUNTRY_CURRENCIES.US.rate),
-  abstractRegen: Math.round(PRICES_GHS.abstractRegen * COUNTRY_CURRENCIES.US.rate),
-  matrixRegen: Math.round(PRICES_GHS.matrixRegen * COUNTRY_CURRENCIES.US.rate),
-  humaniseReset: Math.round(PRICES_GHS.humaniseReset * COUNTRY_CURRENCIES.US.rate),
-  feedbackReset: Math.round(PRICES_GHS.feedbackReset * COUNTRY_CURRENCIES.US.rate),
-  defenceRegen: Math.round(PRICES_GHS.defenceRegen * COUNTRY_CURRENCIES.US.rate),
-};
+

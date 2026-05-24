@@ -319,7 +319,7 @@ const Dashboard = () => {
         <PaymentModal
           project={paymentProject}
           tier={paymentTier}
-          amount={paymentIsUpgrade ? PRICES_USD.upgrade : (paymentTier === 'premium' ? PRICES_USD.premium : PRICES_USD.regular)}
+          amount={paymentIsUpgrade ? PRICES_GHS.upgrade : (paymentTier === 'premium' ? PRICES_GHS.premium : PRICES_GHS.regular)}
           isUpgrade={paymentIsUpgrade}
           processingPayment={processingPayment}
           onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}

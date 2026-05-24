@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCurrency } from '../hooks/useCurrency';
-import { PRICES_USD } from '../constants/pricing';
+import { PRICES_GHS } from '../constants/pricing';
 import LeftPane from '../components/writing/LeftPane';
 import DataCollectionModal from '../components/instruments/DataCollectionModal';
 import UploadFindings from '../components/UploadFindings';
@@ -582,7 +582,7 @@ const Write = () => {
 
   const handleResetConfirm = async () => {
     if (processingReset) return;
-    const resetPrice = resetModalType === 'humanise' ? PRICES_USD.humaniseReset : PRICES_USD.feedbackReset;
+    const resetPrice = resetModalType === 'humanise' ? PRICES_GHS.humaniseReset : PRICES_GHS.feedbackReset;
     setProcessingReset(true);
     const success = await processSmallPayment(projectId, resetPrice, { type: `${resetModalType}_reset` }, () => {
       if (resetModalType === 'humanise') {
@@ -939,7 +939,7 @@ const Write = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_USD.humaniseReset)}</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(resetPrice)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -949,7 +949,7 @@ const Write = () => {
                 fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingReset ? 0.7 : 1
               }}>
-                {processingReset ? 'Processing...' : `Pay ${fmt(PRICES_USD.humaniseReset)} via Paystack`}
+                {processingReset ? 'Processing...' : `Pay ${fmt(resetPrice)} via Paystack`}
               </button>
               {devBypass && (
                 <button onClick={handleResetDevBypass} disabled={processingReset} style={{

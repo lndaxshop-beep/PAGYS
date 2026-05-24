@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrency } from '../../hooks/useCurrency';
-import { PRICES_USD } from '../../constants/pricing';
+import { PRICES_GHS } from '../../constants/pricing';
 
 const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgrade }) => {
   const { colors, isDarkMode } = useTheme();
@@ -76,7 +76,7 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgr
           border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer',
           fontSize: '12px'
         }}>
-          ⚡ Upgrade to Premium (+{fmt(PRICES_USD.upgrade, false)})
+          ⚡ Upgrade to Premium (+{fmt(PRICES_GHS.upgrade, false)})
         </button>
       )}
       <button onClick={() => onContinue(project.id)} style={{

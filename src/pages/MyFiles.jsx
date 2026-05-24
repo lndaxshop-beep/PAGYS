@@ -409,7 +409,7 @@ const MyFiles = () => {
                 <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <button onClick={downloadDefence} style={{ backgroundColor: '#d97706', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>🎯 Download Defence Questions</button>
                   <button onClick={handleDefenceRegen} disabled={loadingDefence} style={{ backgroundColor: 'transparent', color: defenceRegenLeft > 0 ? colors.primary : '#dc2626', padding: '10px 20px', border: `1px solid ${defenceRegenLeft > 0 ? colors.primary : '#dc2626'}`, borderRadius: '8px', cursor: loadingDefence ? 'not-allowed' : 'pointer', fontWeight: '500', fontSize: '13px' }}>
-                    {defenceRegenLeft > 0 ? `🔄 Regenerate (${defenceRegenLeft} left)` : `🔄 Reset Regenerate (${fmt(PRICES_USD.defenceRegen)})`}
+                    {defenceRegenLeft > 0 ? `🔄 Regenerate (${defenceRegenLeft} left)` : `🔄 Reset Regenerate (${fmt(PRICES_GHS.defenceRegen)})`}
                   </button>
                 </div>
               </div>

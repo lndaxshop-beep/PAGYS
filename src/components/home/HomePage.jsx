@@ -5,7 +5,7 @@ import Footer from '../layout/Footer';
 import FeatureCard from './FeatureCard';
 import TestimonialCard from './TestimonialCard';
 import { useCurrency } from '../../hooks/useCurrency';
-import { PRICES_USD } from '../../constants/pricing';
+import { PRICES_GHS } from '../../constants/pricing';
 
 const HomePage = () => {
   const { colors, isDarkMode } = useTheme();
@@ -100,7 +100,7 @@ const HomePage = () => {
             <button onClick={handleGetStarted} style={heroButtonStyle}
               onMouseEnter={(e) => { e.target.style.backgroundColor = colors.primaryDark; e.target.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { e.target.style.backgroundColor = colors.primary; e.target.style.transform = 'translateY(0)'; }}>
-               Get Started @ Just {fmt(PRICES_USD.regular)}<span style={{ fontSize: '20px' }}>→</span>
+               Get Started @ Just {fmt(PRICES_GHS.regular)}<span style={{ fontSize: '20px' }}>→</span>
             </button>
             <a href="#features" style={learnMoreStyle}
               onMouseEnter={(e) => { e.target.style.backgroundColor = colors.hover; e.target.style.borderColor = colors.primary; }}

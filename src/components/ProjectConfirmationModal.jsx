@@ -1,13 +1,13 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCurrency } from '../hooks/useCurrency';
-import { PRICES_USD } from '../constants/pricing';
+import { PRICES_GHS } from '../constants/pricing';
 
 const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }) => {
   const { colors, isDarkMode } = useTheme();
   const { fmt } = useCurrency();
   const isPremium = tier === 'premium';
-  const amount = isPremium ? PRICES_USD.premium : PRICES_USD.regular;
+  const amount = isPremium ? PRICES_GHS.premium : PRICES_GHS.regular;
 
   const rowStyle = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

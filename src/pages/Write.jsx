@@ -209,9 +209,10 @@ const Write = () => {
         navigate('/dashboard');
       }
       setLoading(false);
+      if (endTransition) endTransition();
     };
     loadProject();
-  }, [projectId, navigate]);
+  }, [projectId, navigate, endTransition]);
 
   useEffect(() => { if (projectId && Object.keys(chapterCitations).length) saveCitations(projectId, chapterCitations).catch(e => console.error('Auto-save citations failed:', e)); }, [chapterCitations, projectId]);
   useEffect(() => { if (projectId && Object.keys(diagramData).length) saveVisualData(projectId, 'diagrams', diagramData).catch(e => console.error('Auto-save diagrams failed:', e)); }, [diagramData, projectId]);

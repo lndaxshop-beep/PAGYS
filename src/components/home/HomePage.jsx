@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Footer from '../layout/Footer';
 import FeatureCard from './FeatureCard';
 import TestimonialCard from './TestimonialCard';
@@ -9,23 +10,10 @@ import { PRICES_GHS } from '../../constants/pricing';
 
 const HomePage = () => {
   const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { fmt } = useCurrency();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const checkLogin = () => {
-      const savedUser = localStorage.getItem('currentUser');
-      setIsLoggedIn(!!savedUser);
-    };
-    checkLogin();
-    window.addEventListener('focus', checkLogin);
-    window.addEventListener('storage', checkLogin);
-    return () => {
-      window.removeEventListener('focus', checkLogin);
-      window.removeEventListener('storage', checkLogin);
-    };
-  }, []);
+  const isLoggedIn = !!user;
 
   const handleGetStarted = () => {
     if (isLoggedIn) { navigate('/dashboard'); }

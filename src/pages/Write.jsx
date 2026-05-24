@@ -716,6 +716,7 @@ const Write = () => {
   };
 
   const currentWordCount = currentContent ? currentContent.split(/\s+/).filter(Boolean).length : 0;
+  const resetPrice = resetModalType === 'humanise' ? PRICES_GHS.humaniseReset : PRICES_GHS.feedbackReset;
 
   if (loading) return <PageSkeleton />;
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;

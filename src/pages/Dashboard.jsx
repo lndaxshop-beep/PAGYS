@@ -122,7 +122,7 @@ const Dashboard = () => {
         }
       }
       setShowPaymentModal(false);
-      const country = getUserCountry();
+      const country = getUserCountry(user);
       const priceKey = paymentIsUpgrade ? 'upgrade' : (paymentTier === 'premium' ? 'premium' : 'regular');
       const receiptData = {
         type: paymentIsUpgrade ? 'upgrade' : 'project_creation',

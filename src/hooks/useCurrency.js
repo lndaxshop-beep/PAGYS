@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import { getUserCountry, formatPrice, convertPrice, PRICES_GHS } from '../constants/pricing';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useCurrency = () => {
-  const [country] = useState(getUserCountry());
+  const { user } = useAuth();
+  const country = getUserCountry(user);
   return {
     country,
     fmt: (ghsPrice, showBoth = true) => formatPrice(ghsPrice, country, showBoth),

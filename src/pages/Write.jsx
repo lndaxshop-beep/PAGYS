@@ -163,6 +163,7 @@ const Write = () => {
         if (c.citations && Object.keys(c.citations).length) setChapterCitations(c.citations);
         if (c.visuals) { if (c.visuals.diagrams) setDiagramData(c.visuals.diagrams); if (c.visuals.charts) setChartData(c.visuals.charts); if (c.visuals.tables) setTableData(c.visuals.tables); }
         setLoading(false);
+        if (endTransition) endTransition();
         return;
       }
 
@@ -175,7 +176,7 @@ const Write = () => {
           getVisualData(projectId),
         ]);
 
-        if (!currentProject) { navigate('/dashboard'); setLoading(false); return; }
+        if (!currentProject) { navigate('/dashboard'); setLoading(false); if (endTransition) endTransition(); return; }
 
         setProject(currentProject);
 
@@ -206,6 +207,7 @@ const Write = () => {
         };
       } catch (error) {
         console.error('Error loading project:', error);
+        if (endTransition) endTransition();
         navigate('/dashboard');
       }
       setLoading(false);

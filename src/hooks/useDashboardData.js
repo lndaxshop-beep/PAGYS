@@ -37,7 +37,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
   const [loading, setLoading] = useState(true);
   const [progressLoading, setProgressLoading] = useState(false);
   const navigate = useNavigate();
-  const { startTransition } = useNavigationLoading();
+  const { startTransition, endTransition } = useNavigationLoading();
   const prevProjectIdsRef = useRef('');
 
   const loadProjects = async () => {
@@ -189,6 +189,11 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
 
   const continueProject = (id) => {
     startTransition();
+    // Fallback to clear splash screen if Write.jsx fails to load fully.
+    // Write.jsx calls endTransition() on successful load, making this a no-op then.
+    setTimeout(() => {
+      endTransition();
+    }, 8000);
     navigate(`/write/${id}`);
   };
 

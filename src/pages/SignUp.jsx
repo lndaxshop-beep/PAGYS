@@ -61,15 +61,6 @@ const SignUp = () => {
         createdAt: new Date().toISOString(),
       });
 
-      localStorage.setItem('currentUser', JSON.stringify({
-        uid: fbUser.uid,
-        fullName: formData.fullName,
-        username: formData.username,
-        email: formData.email,
-        country: formData.country,
-        university: formData.university,
-      }));
-
       navigate('/dashboard');
     } catch (err) {
       if (fbUser?.uid) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { db, auth } from '../firebase';
@@ -10,8 +11,8 @@ import { clearAllProjectCache } from '../utils/cacheUtils';
 
 const Settings = () => {
   const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -27,24 +28,19 @@ const Settings = () => {
   const notify = (message, type) => setToast({ message, type });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setUser(parsed);
-        setFullName(parsed.fullName || '');
-        setEmail(parsed.email || '');
-        setUsername(parsed.username || '');
-        setCountry(parsed.country || '');
-      } catch (e) { console.warn('Failed to parse cached user:', e); }
+    if (user) {
+      setFullName(user.fullName || '');
+      setEmail(user.email || '');
+      setUsername(user.username || '');
+      setCountry(user.country || '');
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const loadProjects = async () => {
       try {
         const { getProjects } = await import('../services/firestoreService');
-        const data = await getProjects();
+        const data = await getProjects(user?.uid);
         setProjects(data);
       } catch (e) { console.error('Failed to load projects:', e); }
     };
@@ -83,8 +79,6 @@ const Settings = () => {
         return;
       }
     }
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    setUser(updatedUser);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

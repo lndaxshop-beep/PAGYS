@@ -66,7 +66,7 @@ const MyFiles = () => {
 
    const loadProjects = async () => {
     try {
-      const projectsList = await getProjects();
+      const projectsList = await getProjects(user?.uid);
       setProjects(projectsList);
       if (projectsList.length > 0) {
         setSelectedProject(projectsList[0].id);

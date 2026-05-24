@@ -5,23 +5,21 @@ const logError = (context, e) => {
   console.error(`Firestore error [${context}]:`, e?.message || e);
 };
 
-export const saveProject = async (project) => {
+export const saveProject = async (project, userId) => {
   try {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) throw new Error('User not authenticated');
+    if (!userId) throw new Error('User not authenticated');
     await setDoc(doc(db, 'projects', project.id.toString()), {
       ...project,
-      userId: user.uid,
+      userId,
       updatedAt: new Date().toISOString(),
     });
   } catch (e) { logError('saveProject', e); throw e; }
 };
 
-export const getProjects = async () => {
+export const getProjects = async (userId) => {
   try {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) return [];
-    const q = query(collection(db, 'projects'), where('userId', '==', user.uid));
+    if (!userId) return [];
+    const q = query(collection(db, 'projects'), where('userId', '==', userId));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (e) { logError('getProjects', e); throw e; }
@@ -95,21 +93,19 @@ export const getCitations = async (projectId) => {
   } catch (e) { logError('getCitations', e); throw e; }
 };
 
-export const saveDeletedProject = async (project) => {
+export const saveDeletedProject = async (project, userId) => {
   try {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) throw new Error('User not authenticated');
+    if (!userId) throw new Error('User not authenticated');
     await setDoc(doc(db, 'deletedProjects', project.id.toString()), {
-      ...project, userId: user.uid,
+      ...project, userId,
     });
   } catch (e) { logError('saveDeletedProject', e); throw e; }
 };
 
-export const getDeletedProjects = async () => {
+export const getDeletedProjects = async (userId) => {
   try {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (!user) return [];
-    const q = query(collection(db, 'deletedProjects'), where('userId', '==', user.uid));
+    if (!userId) return [];
+    const q = query(collection(db, 'deletedProjects'), where('userId', '==', userId));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (e) { logError('getDeletedProjects', e); throw e; }

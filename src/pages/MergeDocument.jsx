@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { saveAs } from 'file-saver';
 import { getProjects, getGeneratedContent, getChapters } from '../services/firestoreService';
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
@@ -45,6 +46,7 @@ const MergeDocument = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth();
   const { fmt } = useCurrency();
   const [toast, setToast] = useState(null);
   const notify = (message, type) => setToast({ message, type });
@@ -194,7 +196,7 @@ const MergeDocument = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const projectsList = await getProjects();
+        const projectsList = await getProjects(user?.uid);
         const currentProject = projectsList.find(p => p.id.toString() === projectId);
         if (!currentProject) { navigate('/dashboard'); return; }
         setProject(currentProject);

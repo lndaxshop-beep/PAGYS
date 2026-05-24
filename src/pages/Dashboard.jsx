@@ -65,7 +65,7 @@ const Dashboard = () => {
     loadProjects, loadDeletedProjects,
     handleDeleteProject, handleRestoreProject, handlePermanentDelete, handleEmptyRecycleBin,
     continueProject
-  } = useDashboardData({ confirmAction, notify });
+  } = useDashboardData({ confirmAction, notify, userId: user?.uid });
 
   const {
     form, handleChange, useOrganization, setUseOrganization,
@@ -116,7 +116,7 @@ const Dashboard = () => {
     if (success) {
       if (!paymentIsUpgrade) {
         try {
-          await saveProject(paymentProject);
+          await saveProject(paymentProject, user?.uid);
         } catch (e) {
           notify('Project saved but payment recorded. Contact support if the project does not appear.', 'warning');
         }

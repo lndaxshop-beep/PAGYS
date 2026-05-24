@@ -42,18 +42,6 @@ const Login = () => {
         return;
       }
 
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
-
-      localStorage.setItem('currentUser', JSON.stringify({
-        uid: user.uid,
-        fullName: userData?.fullName || '',
-        username: userData?.username || '',
-        email: user.email,
-        country: userData?.country || '',
-        university: userData?.university || '',
-      }));
-
       navigate('/dashboard');
     } catch (err) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {

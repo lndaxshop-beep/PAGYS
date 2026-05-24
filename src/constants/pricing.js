@@ -37,11 +37,13 @@ export const PRICES_GHS = {
   defenceRegen: 1,
 };
 
-export const getUserCountry = () => {
+export const getUserCountry = (user) => {
+  const raw = user?.country || '';
+  if (raw) return COUNTRY_NAME_TO_ISO[raw] || raw;
   try {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const raw = user?.country || '';
-    return COUNTRY_NAME_TO_ISO[raw] || raw || 'GH';
+    const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const storedCountry = stored?.country || '';
+    return COUNTRY_NAME_TO_ISO[storedCountry] || storedCountry || 'GH';
   } catch { return 'GH'; }
 };
 

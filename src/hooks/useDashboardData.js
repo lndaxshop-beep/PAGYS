@@ -30,7 +30,7 @@ const setCachedProgress = (projectId, progress) => {
   } catch { /* silent */ }
 };
 
-export const useDashboardData = ({ confirmAction = () => Promise.resolve(false), notify = () => {} } = {}) => {
+export const useDashboardData = ({ confirmAction = () => Promise.resolve(false), notify = () => {}, userId } = {}) => {
   const [projects, setProjects] = useState([]);
   const [deletedProjects, setDeletedProjects] = useState([]);
   const [projectsWithProgress, setProjectsWithProgress] = useState([]);
@@ -43,7 +43,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
   const loadProjects = async () => {
     setLoading(true);
     try {
-      const data = await getProjects();
+      const data = await getProjects(userId);
       setProjects(data);
     } catch (e) {
       console.error('Error loading projects:', e);
@@ -53,7 +53,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
 
   const loadDeletedProjects = async () => {
     try {
-      const data = await getDeletedProjects();
+      const data = await getDeletedProjects(userId);
       setDeletedProjects(data);
     } catch (e) {
       console.error('Error loading deleted projects:', e);
@@ -120,7 +120,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     const project = projects.find(p => p.id === id);
     try {
       await deleteProject(id);
-      await saveDeletedProject({ ...project, deletedAt: new Date().toISOString() });
+      await saveDeletedProject({ ...project, deletedAt: new Date().toISOString() }, userId);
       invalidateProgressCache(id);
       loadProjects();
       loadDeletedProjects();
@@ -135,7 +135,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     const project = deletedProjects.find(p => p.id === id);
     if (!project) { notify('Project not found.', 'error'); return; }
     try {
-      await saveProject(project);
+      await saveProject(project, userId);
       await permanentlyDeleteProject(id);
       invalidateProgressCache(id);
       loadProjects();

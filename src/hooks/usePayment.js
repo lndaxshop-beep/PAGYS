@@ -39,7 +39,7 @@ const usePayment = (onNotify) => {
         throw new Error(data.error || 'Payment verification failed');
       }
 
-      const country = getUserCountry();
+      const country = getUserCountry(user);
       const priceKey = isUpgrade ? 'upgrade' : tier;
       const ghsAmount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
       if (onNotify) onNotify(
@@ -145,7 +145,7 @@ const usePayment = (onNotify) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        const country = getUserCountry();
+        const country = getUserCountry(user);
         const currency = getCurrency(country);
         const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
         const localAmount = Math.round(ghsPrice * currency.rate);
@@ -167,7 +167,7 @@ const usePayment = (onNotify) => {
         });
       }
 
-      const country = getUserCountry();
+      const country = getUserCountry(user);
       const currency = getCurrency(country);
       const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
       const localAmount = Math.round(ghsPrice * currency.rate);
@@ -230,7 +230,7 @@ const usePayment = (onNotify) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        const country = getUserCountry();
+        const country = getUserCountry(user);
         const currency = getCurrency(country);
         const ghsPrice = PRICES_GHS.upgrade;
         const localAmount = Math.round(ghsPrice * currency.rate);
@@ -252,7 +252,7 @@ const usePayment = (onNotify) => {
         });
       }
 
-      const country = getUserCountry();
+      const country = getUserCountry(user);
       const currency = getCurrency(country);
       const ghsPrice = PRICES_GHS.upgrade;
       const localAmount = Math.round(ghsPrice * currency.rate);
@@ -315,7 +315,7 @@ const usePayment = (onNotify) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
-        const country = getUserCountry();
+        const country = getUserCountry(user);
         const currency = getCurrency(country);
         const localAmount = Math.round(ghsAmount * currency.rate);
         const mockRef = `mock_${Date.now()}`;
@@ -337,7 +337,7 @@ const usePayment = (onNotify) => {
         });
       }
 
-      const country = getUserCountry();
+      const country = getUserCountry(user);
       const currency = getCurrency(country);
       const localAmount = Math.round(ghsAmount * currency.rate);
 

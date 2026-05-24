@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const CATEGORIES = ['Bug Report', 'Feature Request', 'General Feedback', 'Other'];
 
 const AppFeedbackModal = ({ isOpen, onClose }) => {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [category, setCategory] = useState('General Feedback');
   const [message, setMessage] = useState('');
@@ -16,19 +18,13 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        try {
-          const u = JSON.parse(stored);
-          if (u.email) setEmail(u.email);
-        } catch {}
-      }
+      if (user?.email) setEmail(user.email);
       setMessage('');
       setCategory('General Feedback');
       setSubmitted(false);
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,15 +33,7 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
     setError('');
 
     try {
-      const user = auth.currentUser;
-      let userName = '';
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        try {
-          const u = JSON.parse(stored);
-          userName = u.fullName || u.username || '';
-        } catch {}
-      }
+      const userName = user?.fullName || user?.username || '';
 
       await addDoc(collection(db, 'feedback'), {
         userId: user?.uid || null,

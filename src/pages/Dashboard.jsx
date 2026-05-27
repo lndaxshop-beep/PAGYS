@@ -324,7 +324,7 @@ const Dashboard = () => {
           processingPayment={processingPayment}
           onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}
           onCancel={handleClosePayment}
-          onDevBypass={handleDevBypass}
+          onDevBypass={DEV_BYPASS ? handleDevBypass : undefined}
         />
       )}
 

@@ -22,9 +22,15 @@ let adminDb;
 try {
   if (admin.apps.length === 0) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-      });
+      const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        const minified = raw.replace(/\n/g, ' ').replace(/\r/g, '');
+        parsed = JSON.parse(minified);
+      }
+      admin.initializeApp({ credential: admin.credential.cert(parsed) });
     } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
       admin.initializeApp({
         credential: admin.credential.cert({

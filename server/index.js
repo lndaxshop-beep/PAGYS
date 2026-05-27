@@ -1,10 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import Paystack from 'paystack';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -291,9 +295,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: !!paystack, firebaseAdmin: !!adminDb });
 });
 
+// Serve built frontend in production
+const distPath = path.resolve(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// SPA fallback — any non-API GET route serves index.html
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) return;
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`PAGYS API Proxy running on port ${PORT}`);
   console.log(`Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
   console.log(`Paystack configured: ${!!paystack}`);
   console.log(`Firebase Admin: ${!!adminDb}`);
+  console.log(`Frontend: ${distPath}`);
 });

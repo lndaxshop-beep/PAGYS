@@ -4,7 +4,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import Paystack from 'paystack';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
 
@@ -16,7 +15,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
-const paystack = PAYSTACK_SECRET_KEY ? new Paystack(PAYSTACK_SECRET_KEY) : null;
+const paystackConfigured = !!PAYSTACK_SECRET_KEY;
 
 // Initialize Firebase Admin
 let adminDb;
@@ -112,30 +111,40 @@ app.post('/api/initialize-payment', async (req, res) => {
     const { email, amount, currency, metadata } = req.body;
     if (!email || !amount) return res.status(400).json({ error: 'Missing email or amount' });
 
-    if (!paystack) {
+    if (!paystackConfigured) {
       return res.status(500).json({ error: 'Payment gateway not configured' });
     }
 
     const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${ALLOWED_ORIGINS[0]}/dashboard`;
-    const paystackCurrency = (currency || 'GHS').toLowerCase();
+    const paystackCurrency = (currency || 'GHS').toUpperCase();
     const amountInSubunit = Math.round(amount * 100);
 
-    console.log(`[Paystack] Initializing: ${amount} ${paystackCurrency.toUpperCase()} for ${email}`);
+    console.log(`[Paystack] Initializing: ${amount} ${paystackCurrency} for ${email}`);
 
-    const response = await paystack.transaction.initialize({
-      email,
-      amount: amountInSubunit,
-      currency: paystackCurrency,
-      callback_url: callbackUrl,
-      metadata: {
-        ...metadata,
-        custom_fields: [
-          { display_name: 'Project Type', variable_name: 'project_type', value: metadata?.type || 'project_creation' },
-        ],
+    const response = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        email,
+        amount: amountInSubunit,
+        currency: paystackCurrency,
+        callback_url: callbackUrl,
+        metadata: {
+          ...metadata,
+          custom_fields: [
+            { display_name: 'Project Type', variable_name: 'project_type', value: metadata?.type || 'project_creation' },
+          ],
+        },
+      }),
     });
 
-    res.json({ authorizationUrl: response.data.authorization_url, reference: response.data.reference, accessCode: response.data.access_code });
+    const data = await response.json();
+    if (!data.status) throw new Error(data.message || 'Paystack initialization failed');
+
+    res.json({ authorizationUrl: data.data.authorization_url, reference: data.data.reference, accessCode: data.data.access_code });
   } catch (err) {
     console.error('Payment initialization error:', err.message);
     res.status(500).json({ error: 'Payment initialization failed' });
@@ -219,7 +228,7 @@ app.post('/api/verify-payment', async (req, res) => {
     const { reference, projectId, tier, userId, idToken } = req.body;
     if (!reference) return res.status(400).json({ error: 'Missing payment reference' });
 
-    if (!paystack) {
+    if (!paystackConfigured) {
       return res.status(500).json({ error: 'Payment gateway not configured' });
     }
 
@@ -233,25 +242,31 @@ app.post('/api/verify-payment', async (req, res) => {
       }
     }
 
-    const response = await paystack.transaction.verify(reference);
+    const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}` },
+    });
 
-    if (response.data.status === 'success') {
+    const verifyData = await verifyResponse.json();
+    if (!verifyData.status) throw new Error(verifyData.message || 'Paystack verification failed');
+
+    if (verifyData.data.status === 'success') {
       const paymentData = {
         success: true,
         verified: true,
-        amount: response.data.amount / 100,
-        currency: response.data.currency,
-        reference: response.data.reference,
-        email: response.data.customer?.email,
-        paidAt: response.data.paid_at,
-        channel: response.data.channel,
-        metadata: response.data.metadata,
+        amount: verifyData.data.amount / 100,
+        currency: verifyData.data.currency,
+        reference: verifyData.data.reference,
+        email: verifyData.data.customer?.email,
+        paidAt: verifyData.data.paid_at,
+        channel: verifyData.data.channel,
+        metadata: verifyData.data.metadata,
       };
 
       if (adminDb && projectId) {
         try {
-          const isUpgrade = response.data.metadata?.type === 'upgrade';
-          const projectTier = response.data.metadata?.tier || tier || 'regular';
+          const isUpgrade = verifyData.data.metadata?.type === 'upgrade';
+          const projectTier = verifyData.data.metadata?.tier || tier || 'regular';
           const projectRef = adminDb.collection('projects').doc(projectId);
           await projectRef.update({
             tier: projectTier,
@@ -292,7 +307,7 @@ app.post('/api/verify-payment', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: !!paystack, firebaseAdmin: !!adminDb });
+  res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: paystackConfigured, firebaseAdmin: !!adminDb });
 });
 
 // Serve built frontend in production
@@ -308,7 +323,7 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`PAGYS API Proxy running on port ${PORT}`);
   console.log(`Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
-  console.log(`Paystack configured: ${!!paystack}`);
+  console.log(`Paystack configured: ${paystackConfigured}`);
   console.log(`Firebase Admin: ${!!adminDb}`);
   console.log(`Frontend: ${distPath}`);
 });

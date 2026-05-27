@@ -22,16 +22,16 @@ let adminDb;
 try {
   if (admin.apps.length === 0) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-      let parsed;
       try {
-        parsed = JSON.parse(raw);
-      } catch {
-        const minified = raw.replace(/\n/g, ' ').replace(/\r/g, '');
-        parsed = JSON.parse(minified);
+        const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+        const cleaned = raw.replace(/^["']|["']$/g, '');
+        const minified = cleaned.replace(/\n/g, ' ').replace(/\r/g, '');
+        admin.initializeApp({ credential: admin.credential.cert(JSON.parse(minified)) });
+      } catch (e) {
+        console.warn('FIREBASE_SERVICE_ACCOUNT parse failed, trying individual vars:', e.message);
       }
-      admin.initializeApp({ credential: admin.credential.cert(parsed) });
-    } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    }
+    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
@@ -39,7 +39,8 @@ try {
           privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n'),
         }),
       });
-    } else {
+    }
+    if (admin.apps.length === 0) {
       console.warn('Firebase Admin: No credentials provided. Server-side Firestore updates disabled.');
     }
   }

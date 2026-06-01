@@ -29,10 +29,10 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if (authUser && !loading) {
+    if (authUser && !authLoading) {
       navigate('/dashboard', { replace: true });
     }
-  }, [authUser, loading, navigate]);
+  }, [authUser, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,7 +53,6 @@ const Login = () => {
       }
 
       console.log('Login successful for', user.email);
-      navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err.code, err.message);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {

@@ -55,7 +55,7 @@ const Header = () => {
                 onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.borderColor = colors.border; }}
               >
                 <span style={{ fontSize: '18px' }}>👤</span>
-                {user?.fullName?.split(' ')[0] || user?.username}
+                {user?.fullName?.split(' ')[0] || user?.username || user?.email?.split('@')[0]}
                 <span style={{ fontSize: '12px' }}>{showProfileMenu ? '▲' : '▼'}</span>
               </button>
               {showProfileMenu && (

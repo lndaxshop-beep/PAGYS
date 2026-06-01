@@ -63,6 +63,7 @@ const SignUp = () => {
 
       navigate('/dashboard');
     } catch (err) {
+      console.error('SignUp error:', err.code, err.message);
       if (fbUser?.uid) {
         try { await deleteUser(fbUser); } catch (e) { console.error('Error cleaning up auth user:', e); }
       }
@@ -76,8 +77,14 @@ const SignUp = () => {
         setError('Too many attempts. Please wait and try again.');
       } else if (err.code === 'auth/network-request-failed') {
         setError('Network error. Please check your connection.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/password sign-in is not enabled in Firebase Console. Please contact support.');
+      } else if (err.code === 'auth/unauthorized-continue-uri' || err.code === 'auth/invalid-continue-uri') {
+        setError('Sign up configuration error. Please contact support.');
+      } else if (err.code === 'permission-denied') {
+        setError('Database permission denied. Please contact support.');
       } else {
-        setError('Sign up failed. Please try again.');
+        setError('Sign up failed (' + (err.code || 'unknown') + '). ' + (err.message || 'Please try again.'));
       }
     }
 

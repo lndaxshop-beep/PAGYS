@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -10,7 +9,6 @@ import Toast from '../components/Toast';
 
 const Login = () => {
   const { colors, isDarkMode } = useTheme();
-  const { user: authUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -27,12 +25,6 @@ const Login = () => {
     setFormData({ ...formData, [e.target.name]: value });
     setError('');
   };
-
-  useEffect(() => {
-    if (authUser && !authLoading) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [authUser, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,6 +45,7 @@ const Login = () => {
       }
 
       console.log('Login successful for', user.email);
+      navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err.code, err.message);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import Toast from '../components/Toast';
 
 const Login = () => {
   const { colors, isDarkMode } = useTheme();
+  const { user: authUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -25,6 +27,12 @@ const Login = () => {
     setFormData({ ...formData, [e.target.name]: value });
     setError('');
   };
+
+  useEffect(() => {
+    if (authUser && !loading) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [authUser, loading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

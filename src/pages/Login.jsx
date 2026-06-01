@@ -71,14 +71,19 @@ const Login = () => {
     }
     try {
       await sendPasswordResetEmail(auth, formData.email);
-      setToast({ message: 'Password reset email sent! Check your inbox.', type: 'success' });
+      setToast({ message: 'Password reset email sent! Check your inbox (and spam/promotions folder).', type: 'success' });
     } catch (err) {
+      console.error('Password reset error:', err.code, err.message);
       if (err.code === 'auth/user-not-found') {
         setToast({ message: 'No account found with this email.', type: 'error' });
       } else if (err.code === 'auth/invalid-email') {
         setToast({ message: 'Please enter a valid email address.', type: 'error' });
+      } else if (err.code === 'auth/too-many-requests') {
+        setToast({ message: 'Too many attempts. Please wait a few minutes before trying again.', type: 'error' });
+      } else if (err.code === 'auth/network-request-failed') {
+        setToast({ message: 'Network error. Please check your connection.', type: 'error' });
       } else {
-        setToast({ message: 'Failed to send reset email. Please try again.', type: 'error' });
+        setToast({ message: 'Failed to send reset email. Try again or contact support.', type: 'error' });
       }
     }
   };

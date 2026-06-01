@@ -37,25 +37,28 @@ const Login = () => {
 
       if (!user.emailVerified) {
         await user.sendEmailVerification();
-        setError('Please verify your email address before logging in. A new verification email has been sent.');
+        console.warn('Login blocked: email not verified for', user.email);
+        setError('Please verify your email before logging in. A new verification email has been sent to ' + user.email);
         await auth.signOut();
+        setLoading(false);
         return;
       }
 
+      console.log('Login successful for', user.email);
       navigate('/dashboard');
     } catch (err) {
+      console.error('Login error:', err.code, err.message);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password. Please try again.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
       } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many login attempts. Please wait and try again.');
+        setError('Too many login attempts. Please wait a few minutes and try again.');
       } else if (err.code === 'auth/network-request-failed') {
         setError('Network error. Please check your connection.');
       } else if (err.code === 'auth/user-disabled') {
         setError('This account has been disabled. Please contact support.');
       } else {
-        console.error('Login error:', err.code, err.message);
         setError('Login failed. Please try again.');
       }
     }

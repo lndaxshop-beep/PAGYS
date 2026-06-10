@@ -2,19 +2,28 @@ import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import CountryFlag from '../CountryFlag';
 import { getWelcomeMessage } from '../../utils/dashboardHelpers';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const DashboardHeader = ({ user, showRecycleBin, onToggleRecycleBin, onCreateProject, deletedCount }) => {
   const { colors } = useTheme();
+  const { isMobile } = useResponsive();
   const welcome = getWelcomeMessage(user);
   const message = typeof welcome === 'object' ? welcome.text : welcome;
   const isFirstVisit = typeof welcome === 'object' ? welcome.isFirstVisit : true;
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row',
+      justifyContent: 'space-between',
+      alignItems: isMobile ? 'stretch' : 'center',
+      marginBottom: isMobile ? '20px' : '32px',
+      gap: isMobile ? '16px' : 0,
+    }}>
       <div>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>
+        <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>
           {message}
         </h1>
-        <p style={{ color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+        <p style={{ color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', fontSize: isMobile ? '14px' : '15px' }}>
           {user?.country && (
             <>
               <CountryFlag countryCode={user.country} size={20} />
@@ -25,12 +34,13 @@ const DashboardHeader = ({ user, showRecycleBin, onToggleRecycleBin, onCreatePro
           {isFirstVisit ? 'Start a new project.' : 'Continue from where you left off.'}
         </p>
       </div>
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button onClick={onToggleRecycleBin} style={{
           backgroundColor: showRecycleBin ? colors.primary : 'transparent',
           color: showRecycleBin ? 'white' : colors.text,
-          padding: '12px 24px', border: `1px solid ${colors.border}`, borderRadius: '8px',
-          fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+          padding: isMobile ? '10px 16px' : '12px 24px', border: `1px solid ${colors.border}`, borderRadius: '8px',
+          fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+          fontSize: isMobile ? '13px' : '14px', flex: isMobile ? 1 : 'initial', justifyContent: 'center',
         }}>
           🗑️ {showRecycleBin ? 'Hide' : 'Recycle Bin'}
           {deletedCount > 0 && (
@@ -42,9 +52,11 @@ const DashboardHeader = ({ user, showRecycleBin, onToggleRecycleBin, onCreatePro
           )}
         </button>
         <button onClick={onCreateProject} style={{
-          backgroundColor: colors.primary, color: 'white', padding: '12px 24px',
+          backgroundColor: colors.primary, color: 'white',
+          padding: isMobile ? '10px 16px' : '12px 24px',
           border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '8px'
+          display: 'flex', alignItems: 'center', gap: '8px',
+          fontSize: isMobile ? '13px' : '14px', flex: isMobile ? 1 : 'initial', justifyContent: 'center',
         }}>
           <span style={{ fontSize: '20px' }}>+</span> Create New Project
         </button>

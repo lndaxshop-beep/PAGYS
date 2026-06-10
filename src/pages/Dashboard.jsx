@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { saveProject } from '../services/firestoreService';
 import ResearchQuestionModal from '../components/ResearchQuestionModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -28,6 +29,7 @@ const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
 
 const Dashboard = () => {
   const { colors } = useTheme();
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
@@ -226,7 +228,7 @@ const Dashboard = () => {
   if (!user) return <PageSkeleton />;
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: colors.background, padding: '32px', transition: 'all 0.3s' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: colors.background, padding: isMobile ? '16px' : '32px', transition: 'all 0.3s' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <DashboardHeader
           user={user}
@@ -258,8 +260,8 @@ const Dashboard = () => {
             onTierChange={setSelectedTier}
           />
         )}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px', color: colors.text }}>Your Projects</h2>
+        <div style={{ marginBottom: isMobile ? '20px' : '32px' }}>
+          <h2 style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: '600', marginBottom: '16px', color: colors.text }}>Your Projects</h2>
           <ProjectsList
             projects={projectsWithProgress}
             loading={loading}

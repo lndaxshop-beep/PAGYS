@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { SUPPORT_EMAIL } from '../constants/app';
 
 const PrivacyPolicy = () => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
 
   return (

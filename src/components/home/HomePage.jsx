@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import Footer from '../layout/Footer';
 import FeatureCard from './FeatureCard';
 import TestimonialCard from './TestimonialCard';
@@ -10,6 +11,7 @@ import { PRICES_GHS } from '../../constants/pricing';
 
 const HomePage = () => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { fmt } = useCurrency();
@@ -70,47 +72,47 @@ const HomePage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: colors.background, minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: colors.background, minHeight: isMobile ? 'calc(100vh - 60px)' : 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
       <div style={{
         background: isDarkMode ? 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)' : 'linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%)',
-        padding: '80px 20px 60px', borderBottom: `1px solid ${colors.border}`
+        padding: isMobile ? '60px 16px 40px' : '80px 20px 60px', borderBottom: `1px solid ${colors.border}`
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ display: 'inline-block', backgroundColor: colors.primary + '20', color: colors.primary, padding: '8px 16px', borderRadius: '30px', fontSize: '15px', fontWeight: '700', marginBottom: '24px' }}>Trusted by 10,000+ Students & Professionals</div>
+          <div style={{ display: 'inline-block', backgroundColor: colors.primary + '20', color: colors.primary, padding: '8px 16px', borderRadius: '30px', fontSize: isMobile ? '13px' : '15px', fontWeight: '700', marginBottom: '24px' }}>Trusted by 10,000+ Students & Professionals</div>
           <h1 style={{ fontSize: 'clamp(25px, 5vw, 56px)', fontWeight: '800', color: colors.text, marginBottom: '20px', lineHeight: '1.2' }}>
             Write Your Thesis{' '}
             <span key={isDarkMode ? 'dark' : 'light'} style={{ background: `linear-gradient(135deg, ${colors.primary}, #9583b988)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>Like A Pro</span>
           </h1>
-          <p style={{ fontSize: '18px', color: colors.textSecondary, maxWidth: '700px', margin: '0 auto 32px', lineHeight: '1.6' }}>
+          <p style={{ fontSize: isMobile ? '16px' : '18px', color: colors.textSecondary, maxWidth: '700px', margin: '0 auto 32px', lineHeight: '1.6' }}>
             From your research topic to a complete, submission-ready thesis — PAGYS walks you through every step. Structured outlines, verified academic references, professional tables and charts, and one-click document assembly. Everything you need, nothing you don't.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={handleGetStarted} style={heroButtonStyle}
+            <button onClick={handleGetStarted} style={{ ...heroButtonStyle, fontSize: isMobile ? '16px' : '18px', padding: isMobile ? '14px 24px' : '16px 32px' }}
               onMouseEnter={(e) => { e.target.style.backgroundColor = colors.primaryDark; e.target.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { e.target.style.backgroundColor = colors.primary; e.target.style.transform = 'translateY(0)'; }}>
                Get Started @ Just {fmt(PRICES_GHS.regular)}<span style={{ fontSize: '20px' }}>→</span>
             </button>
-            <a href="#features" style={learnMoreStyle}
+            <a href="#features" style={{ ...learnMoreStyle, fontSize: isMobile ? '16px' : '18px', padding: isMobile ? '14px 24px' : '16px 32px' }}
               onMouseEnter={(e) => { e.target.style.backgroundColor = colors.hover; e.target.style.borderColor = colors.primary; }}
               onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.borderColor = colors.border; }}>
               Learn More
             </a>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '48px', marginTop: '48px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: isMobile ? '24px' : '48px', marginTop: '48px', flexWrap: 'wrap' }}>
             {stats.map((stat, index) => (
               <div key={index} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '23px', fontWeight: 'bold', color: colors.primary, marginBottom: '4px' }}>{stat.number}</div>
-                <div style={{ color: colors.textSecondary, fontSize: '14px' }}>{stat.label}</div>
+                <div style={{ fontSize: isMobile ? '20px' : '23px', fontWeight: 'bold', color: colors.primary, marginBottom: '4px' }}>{stat.number}</div>
+                <div style={{ color: colors.textSecondary, fontSize: isMobile ? '13px' : '14px' }}>{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div id="features" style={{ padding: '80px 20px' }}>
+      <div id="features" style={{ padding: isMobile ? '48px 16px' : '80px 20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>Your Complete Thesis Toolkit</h2>
-          <p style={{ fontSize: '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '640px', margin: '0 auto 48px', lineHeight: '1.6' }}>Twelve features designed to take you from your research topic to a submission-ready thesis — no gaps, no guesswork.</p>
+          <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: '12px' }}>Your Complete Thesis Toolkit</h2>
+          <p style={{ fontSize: isMobile ? '15px' : '16px', color: colors.textSecondary, textAlign: 'center', maxWidth: '640px', margin: '0 auto 48px', lineHeight: '1.6' }}>Twelve features designed to take you from your research topic to a submission-ready thesis — no gaps, no guesswork.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '28px' }}>
             {features.map((feature, index) => (
               <FeatureCard key={index} icon={feature.icon} title={feature.title} description={feature.description} colors={colors} isDarkMode={isDarkMode} index={index} />
@@ -137,10 +139,10 @@ const HomePage = () => {
         </div>
       </div>
 
-      <div style={{ padding: '80px 20px', flex: 1 }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', backgroundColor: colors.surface, padding: '60px 40px', borderRadius: '24px', border: `1px solid ${colors.border}`, boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.4)' : '0 20px 40px rgba(0,0,0,0.1)' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, marginBottom: '16px' }}>Ready to Start Your Thesis?</h2>
-          <p style={{ fontSize: '18px', color: colors.textSecondary, marginBottom: '32px', maxWidth: '500px', margin: '0 auto 32px' }}>Join thousands of students who have already aced their thesis with PAGYS</p>
+      <div style={{ padding: isMobile ? '48px 16px' : '80px 20px', flex: 1 }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', backgroundColor: colors.surface, padding: isMobile ? '40px 24px' : '60px 40px', borderRadius: isMobile ? '16px' : '24px', border: `1px solid ${colors.border}`, boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.4)' : '0 20px 40px rgba(0,0,0,0.1)' }}>
+          <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: 'bold', color: colors.text, marginBottom: '16px' }}>Ready to Start Your Thesis?</h2>
+          <p style={{ fontSize: isMobile ? '16px' : '18px', color: colors.textSecondary, marginBottom: '32px', maxWidth: '500px', margin: '0 auto 32px' }}>Join thousands of students who have already aced their thesis with PAGYS</p>
           <button onClick={handleGetStarted} style={heroButtonStyle}
             onMouseEnter={(e) => { e.target.style.backgroundColor = colors.primaryDark; e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = `0 12px 24px ${colors.primary}60`; }}
             onMouseLeave={(e) => { e.target.style.backgroundColor = colors.primary; e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = `0 8px 16px ${colors.primary}40`; }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { db, auth } from '../firebase';
@@ -11,6 +12,7 @@ import { clearAllProjectCache } from '../utils/cacheUtils';
 
 const Settings = () => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
@@ -184,11 +186,11 @@ const Settings = () => {
         </div>
       </header>
 
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '48px 32px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '32px' }}>Settings</h1>
+      <div style={{ maxWidth: '700px', margin: '0 auto', padding: isMobile ? '24px 16px' : '48px 32px' }}>
+        <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 'bold', color: colors.text, marginBottom: isMobile ? '24px' : '32px' }}>Settings</h1>
 
-        <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', border: `1px solid ${colors.border}`, marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '24px' }}>Profile Information</h2>
+        <div style={{ backgroundColor: colors.surface, borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '20px' : '32px', border: `1px solid ${colors.border}`, marginBottom: '24px' }}>
+          <h2 style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: '600', color: colors.text, marginBottom: '24px' }}>Profile Information</h2>
           <div style={{ display: 'grid', gap: '20px' }}>
             <div>
               <label htmlFor="settingsFullName" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Full Name</label>

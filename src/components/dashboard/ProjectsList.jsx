@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ProjectCard from './ProjectCard';
 import { CardSkeleton } from '../Skeleton';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const SkeletonCard = ({ colors, isDarkMode }) => (
   <div style={{
@@ -22,22 +23,23 @@ const SkeletonCard = ({ colors, isDarkMode }) => (
 
 const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHover, onContinue, onDelete, onCreateFirst, onUpgrade }) => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   if (loading) return <CardSkeleton count={3} />;
   if (!projects.length) {
     return (
-      <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '48px 48px 56px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
+      <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: isMobile ? '32px 20px' : '48px 48px 56px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
         <div style={{
           width: '64px', height: '64px', margin: '0 auto 20px', borderRadius: '50%',
           backgroundColor: isDarkMode ? '#2d2d2d' : '#f3f4f6',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '28px'
         }}>📝</div>
-        <p style={{ color: colors.textSecondary, marginBottom: '4px', fontWeight: '500', fontSize: '16px' }}>No projects yet</p>
-        <p style={{ color: colors.textSecondary, marginBottom: '24px', fontSize: '14px' }}>Start your first thesis and turn ideas into a polished document.</p>
+        <p style={{ color: colors.textSecondary, marginBottom: '4px', fontWeight: '500', fontSize: isMobile ? '15px' : '16px' }}>No projects yet</p>
+        <p style={{ color: colors.textSecondary, marginBottom: '24px', fontSize: isMobile ? '13px' : '14px' }}>Start your first thesis and turn ideas into a polished document.</p>
         <button onClick={onCreateFirst} style={{
-          backgroundColor: colors.primary, color: 'white', padding: '14px 32px',
+          backgroundColor: colors.primary, color: 'white', padding: isMobile ? '12px 24px' : '14px 32px',
           border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer',
-          fontSize: '15px', transition: 'transform 0.2s', display: 'inline-flex', alignItems: 'center', gap: '8px'
+          fontSize: isMobile ? '14px' : '15px', transition: 'transform 0.2s', display: 'inline-flex', alignItems: 'center', gap: '8px'
         }}>
           <span style={{ fontSize: '20px' }}>+</span> Create Your First Project
         </button>
@@ -46,7 +48,11 @@ const ProjectsList = ({ projects, loading, progressLoading, hoveredProject, onHo
   }
   return (
     <>
-      <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}>
+      <div style={{
+        display: 'grid',
+        gap: isMobile ? '12px' : '16px',
+        gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? '100%' : '350px'}, 1fr))`,
+      }}>
         {progressLoading
           ? Array.from({ length: projects.length }).map((_, i) => (
               <SkeletonCard key={`skeleton-${i}`} colors={colors} isDarkMode={isDarkMode} />

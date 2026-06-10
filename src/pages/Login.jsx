@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import Toast from '../components/Toast';
 
 const Login = () => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -102,7 +104,7 @@ const Login = () => {
 
   return (
     <div style={{
-      minHeight: 'calc(100vh - 80px)',
+      minHeight: isMobile ? 'calc(100vh - 60px)' : 'calc(100vh - 80px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -112,20 +114,22 @@ const Login = () => {
       padding: '20px'
     }}>
       <div style={{
-        maxWidth: '450px', width: '100%', backgroundColor: colors.surface, borderRadius: '24px', padding: '40px',
+        maxWidth: '450px', width: '100%', backgroundColor: colors.surface, borderRadius: isMobile ? '16px' : '24px',
+        padding: isMobile ? '24px' : '40px',
         boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)' : '0 20px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.02)',
         transition: 'all 0.3s'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? '24px' : '32px' }}>
           <div style={{
-            width: '80px', height: '80px', backgroundColor: colors.primary, borderRadius: '50%',
-            margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: isMobile ? '64px' : '80px', height: isMobile ? '64px' : '80px',
+            backgroundColor: colors.primary, borderRadius: '50%',
+            margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: `0 10px 20px ${colors.primary}40`
           }}>
-            <span style={{ fontSize: '36px', color: 'white' }}>🔐</span>
+            <span style={{ fontSize: isMobile ? '28px' : '36px', color: 'white' }}>🔐</span>
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px', letterSpacing: '-0.5px' }}>Welcome Back</h1>
-          <p style={{ color: colors.textSecondary, fontSize: '15px' }}>Log in to continue your thesis journey</p>
+          <h1 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 'bold', color: colors.text, marginBottom: '4px', letterSpacing: '-0.5px' }}>Welcome Back</h1>
+          <p style={{ color: colors.textSecondary, fontSize: isMobile ? '14px' : '15px' }}>Log in to continue your thesis journey</p>
         </div>
 
         {error && (

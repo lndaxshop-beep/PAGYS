@@ -1,24 +1,26 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { SUPPORT_EMAIL } from '../constants/app';
 
 const TermsOfService = () => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: colors.background }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '24px 16px' : '48px 32px' }}>
         <button onClick={() => navigate(-1)} style={{
           background: 'none', border: 'none', color: colors.primary,
-          cursor: 'pointer', fontSize: '14px', fontWeight: '500',
+          cursor: 'pointer', fontSize: isMobile ? '13px' : '14px', fontWeight: '500',
           padding: 0, marginBottom: '16px', display: 'inline-flex',
           alignItems: 'center', gap: '4px'
         }}>← Back</button>
-        <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', border: `1px solid ${colors.border}` }}>
-          <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Terms of Service</h1>
-          <p style={{ color: colors.textSecondary, marginBottom: '32px' }}>Last updated: January 2026</p>
+        <div style={{ backgroundColor: colors.surface, borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '24px' : '40px', border: `1px solid ${colors.border}` }}>
+          <h1 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Terms of Service</h1>
+          <p style={{ color: colors.textSecondary, marginBottom: isMobile ? '24px' : '32px', fontSize: isMobile ? '14px' : '15px' }}>Last updated: January 2026</p>
 
           <p style={{ color: colors.text, lineHeight: '1.8', marginBottom: '24px' }}>
             Welcome to PAGYS, operated by A&P Firms. By accessing or using our thesis generation platform, you agree to these Terms of Service. Please read them carefully.

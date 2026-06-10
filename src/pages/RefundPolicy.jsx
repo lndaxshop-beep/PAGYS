@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { SUPPORT_EMAIL } from '../constants/app';
 
 const RefundPolicy = () => {
   const { colors, isDarkMode } = useTheme();
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
 
   return (
@@ -22,10 +24,10 @@ const RefundPolicy = () => {
         onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)'; }}
       >← Back</button>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 32px' }}>
-        <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', border: `1px solid ${colors.border}` }}>
-          <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Refund Policy</h1>
-          <p style={{ color: colors.textSecondary, marginBottom: '32px' }}>Last updated: January 2026</p>
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '24px 16px' : '48px 32px' }}>
+        <div style={{ backgroundColor: colors.surface, borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '24px' : '40px', border: `1px solid ${colors.border}` }}>
+          <h1 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>Refund Policy</h1>
+          <p style={{ color: colors.textSecondary, marginBottom: isMobile ? '24px' : '32px', fontSize: isMobile ? '14px' : '15px' }}>Last updated: January 2026</p>
 
           <Section title="No Refunds" colors={colors}>
             <p style={{ lineHeight: '1.8', marginBottom: '16px' }}>

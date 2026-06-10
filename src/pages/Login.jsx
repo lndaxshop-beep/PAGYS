@@ -37,15 +37,6 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      if (!user.emailVerified) {
-        await user.sendEmailVerification();
-        console.warn('Login blocked: email not verified for', user.email);
-        setError('Please verify your email before logging in. A new verification email has been sent to ' + user.email);
-        await auth.signOut();
-        setLoading(false);
-        return;
-      }
-
       console.log('Login successful for', user.email);
       navigate('/dashboard');
     } catch (err) {

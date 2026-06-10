@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { doc, updateDoc, deleteDoc, collection, query, where, getDocs, setDoc, getDoc, orderBy, limit } from 'firebase/firestore';
-import { deleteUser, sendEmailVerification } from 'firebase/auth';
+import { deleteUser } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
@@ -83,23 +83,6 @@ const Settings = () => {
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
-  };
-
-  const handleVerifyEmail = async () => {
-    try {
-      const currentUser = auth.currentUser;
-      if (currentUser && !currentUser.emailVerified) {
-        await sendEmailVerification(currentUser);
-        notify('Verification email sent. Check your inbox.', 'success');
-      } else if (currentUser?.emailVerified) {
-        notify('Email already verified.', 'info');
-      } else {
-        notify('No authenticated user found.', 'error');
-      }
-    } catch (err) {
-      console.error('Error sending verification email:', err);
-      notify('Failed to send verification email.', 'error');
-    }
   };
 
   const executeDelete = async () => {
@@ -199,13 +182,9 @@ const Settings = () => {
             </div>
             <div>
               <label htmlFor="settingsEmail" style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: colors.text }}>Email Address</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+                  <div>
                 <input id="settingsEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  style={{ flex: 1, padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
-                <button onClick={handleVerifyEmail}
-                  style={{ padding: '12px 16px', border: `1px solid ${colors.primary}`, borderRadius: '8px', fontSize: '13px', backgroundColor: 'transparent', color: colors.primary, cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap' }}>
-                  Verify Email
-                </button>
+                  style={{ width: '100%', padding: '12px', border: `1px solid ${colors.inputBorder}`, borderRadius: '8px', fontSize: '14px', backgroundColor: colors.input, color: colors.text }} />
               </div>
             </div>
             <div>

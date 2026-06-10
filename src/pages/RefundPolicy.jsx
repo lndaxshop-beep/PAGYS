@@ -46,13 +46,13 @@ const RefundPolicy = () => {
 
           <Section title="Technical Issues" colors={colors}>
             <p style={{ lineHeight: '1.8' }}>
-              If you experience technical issues that prevent you from using PAGYS, please report them immediately to <strong>${SUPPORT_EMAIL}</strong>. We will investigate and resolve issues promptly. While we do not offer refunds, we are committed to ensuring you receive the service you paid for.
+              If you experience technical issues that prevent you from using PAGYS, please report them immediately to <strong>{SUPPORT_EMAIL}</strong>. We will investigate and resolve issues promptly. While we do not offer refunds, we are committed to ensuring you receive the service you paid for.
             </p>
           </Section>
 
           <Section title="Contact" colors={colors}>
             <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-              <p><strong>Email:</strong> ${SUPPORT_EMAIL}</p>
+              <p><strong>Email:</strong> {SUPPORT_EMAIL}</p>
               <p><strong>Business:</strong> A&P Firms</p>
             </div>
           </Section>

@@ -324,6 +324,7 @@ app.use(express.static(distPath));
 // SPA fallback — any non-API GET route serves index.html
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return;
+  res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 

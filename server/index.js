@@ -135,9 +135,7 @@ app.post('/api/initialize-payment', async (req, res) => {
     }
 
     const callbackUrl = process.env.PAYSTACK_CALLBACK_URL || `${ALLOWED_ORIGINS[0]}/dashboard`;
-    const rawCurrency = (currency || 'GHS').toUpperCase();
-    const PAYSTACK_SUPPORTED = ['GHS', 'NGN', 'USD', 'ZAR'];
-    const paystackCurrency = PAYSTACK_SUPPORTED.includes(rawCurrency) ? rawCurrency : 'GHS';
+    const paystackCurrency = 'GHS';
     const amountInSubunit = Math.round(amount * 100);
 
     console.log(`[Paystack] Initializing: ${amount} ${paystackCurrency} for ${email}`);

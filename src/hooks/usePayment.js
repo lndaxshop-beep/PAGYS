@@ -5,8 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
-const PAYSTACK_SUPPORTED = ['GHS', 'NGN', 'USD', 'ZAR'];
-const getPaystackCurrency = (code) => PAYSTACK_SUPPORTED.includes(code) ? code : 'GHS';
 
 const PENDING_PAYMENT_KEYS = [
   'paystack_return', 'paystack_reference', 'paystack_projectId',
@@ -132,7 +130,7 @@ const usePayment = (onNotify) => {
     }
   }, []);
 
-  const openPaystackPopup = useCallback((email, amount, currencyCode, metadata) => {
+  const openPaystackPopup = useCallback((email, amount, metadata) => {
     return new Promise((resolve) => {
       if (typeof PaystackPop === 'undefined') {
         console.warn('PaystackPop not loaded, falling back to server redirect');
@@ -145,7 +143,7 @@ const usePayment = (onNotify) => {
           key: PAYSTACK_PUBLIC_KEY,
           email,
           amount: Math.round(amount * 100),
-          currency: getPaystackCurrency(currencyCode.toUpperCase()),
+          currency: 'GHS',
           ref: `PAGYS_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
           metadata: {
             custom_fields: [{
@@ -207,8 +205,7 @@ const usePayment = (onNotify) => {
 
       const result = await openPaystackPopup(
         user?.email || 'customer@example.com',
-        localAmount,
-        currency.code,
+        ghsPrice,
         { projectId, tier, type: 'project_creation' }
       );
 
@@ -218,14 +215,14 @@ const usePayment = (onNotify) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: user?.email || 'customer@example.com',
-            amount: localAmount,
-            currency: currency.code,
+            amount: ghsPrice,
+            currency: 'GHS',
             metadata: { projectId, tier, type: 'project_creation' },
           }),
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        storePaymentSessionData(data.reference, projectId, tier, false, localAmount, currency.code);
+        storePaymentSessionData(data.reference, projectId, tier, false, ghsPrice, 'GHS');
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
@@ -242,7 +239,7 @@ const usePayment = (onNotify) => {
       }
 
       if (result.status === 'success' && result.reference) {
-        const verified = await verifyPayment(result.reference, projectId, tier, false, localAmount, currency.code);
+        const verified = await verifyPayment(result.reference, projectId, tier, false, ghsPrice, 'GHS');
         return !!verified;
       }
       return false;
@@ -288,8 +285,7 @@ const usePayment = (onNotify) => {
 
       const result = await openPaystackPopup(
         user?.email || 'customer@example.com',
-        localAmount,
-        currency.code,
+        ghsPrice,
         { projectId, tier: 'premium', type: 'upgrade' }
       );
 
@@ -299,14 +295,14 @@ const usePayment = (onNotify) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: user?.email || 'customer@example.com',
-            amount: localAmount,
-            currency: currency.code,
+            amount: ghsPrice,
+            currency: 'GHS',
             metadata: { projectId, tier: 'premium', type: 'upgrade' },
           }),
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        storePaymentSessionData(data.reference, projectId, 'premium', true, localAmount, currency.code);
+        storePaymentSessionData(data.reference, projectId, 'premium', true, ghsPrice, 'GHS');
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
@@ -323,7 +319,7 @@ const usePayment = (onNotify) => {
       }
 
       if (result.status === 'success' && result.reference) {
-        const verified = await verifyPayment(result.reference, projectId, 'premium', true, localAmount, currency.code);
+        const verified = await verifyPayment(result.reference, projectId, 'premium', true, ghsPrice, 'GHS');
         return !!verified;
       }
       return false;
@@ -368,8 +364,7 @@ const usePayment = (onNotify) => {
 
       const result = await openPaystackPopup(
         user?.email || 'customer@example.com',
-        localAmount,
-        currency.code,
+        ghsAmount,
         { projectId, ...metadata }
       );
 
@@ -379,14 +374,14 @@ const usePayment = (onNotify) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: user?.email || 'customer@example.com',
-            amount: localAmount,
-            currency: currency.code,
+            amount: ghsAmount,
+            currency: 'GHS',
             metadata: { projectId, ...metadata },
           }),
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        storePaymentSessionData(data.reference, projectId, metadata.tier || 'regular', false, localAmount, currency.code);
+        storePaymentSessionData(data.reference, projectId, metadata.tier || 'regular', false, ghsAmount, 'GHS');
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
@@ -406,7 +401,7 @@ const usePayment = (onNotify) => {
       }
 
       if (result.status === 'success' && result.reference) {
-        const verified = await verifyPayment(result.reference, projectId, metadata.tier || 'regular', false, localAmount, currency.code);
+        const verified = await verifyPayment(result.reference, projectId, metadata.tier || 'regular', false, ghsAmount, 'GHS');
         if (verified && onSuccess) onSuccess();
         return !!verified;
       }

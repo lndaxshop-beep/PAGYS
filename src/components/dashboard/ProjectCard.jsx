@@ -76,7 +76,7 @@ const ProjectCard = ({ project, isHovered, onHover, onContinue, onDelete, onUpgr
           border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer',
           fontSize: '12px'
         }}>
-          ⚡ Upgrade to Premium (+{fmt(PRICES_GHS.upgrade, false)})
+          ⚡ Upgrade to Premium (+{fmt(PRICES_GHS.upgrade)})
         </button>
       )}
       <button onClick={() => onContinue(project.id)} style={{

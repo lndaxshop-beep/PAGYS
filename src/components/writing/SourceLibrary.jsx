@@ -279,7 +279,7 @@ const SourceLibrary = ({
             ) : (
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button onClick={onMatrixPaymentCancel} style={{ padding: '10px 24px', backgroundColor: colors.border, color: colors.text, border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-                <button onClick={onMatrixPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_GHS.matrixRegen, false)}</button>
+                <button onClick={onMatrixPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_GHS.matrixRegen)}</button>
               </div>
             )}
           </div>

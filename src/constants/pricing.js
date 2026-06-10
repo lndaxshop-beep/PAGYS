@@ -56,13 +56,10 @@ export const convertPrice = (ghsPrice, countryCode) => {
   return Math.round(ghsPrice * currency.rate);
 };
 
-export const formatPrice = (ghsPrice, countryCode, showBoth = true) => {
+export const formatPrice = (ghsPrice, countryCode) => {
   const currency = getCurrency(countryCode);
   const local = Math.round(ghsPrice * currency.rate);
-  const localFormatted = `${currency.symbol}${local.toLocaleString()}`;
-  if (countryCode === 'GH' || !showBoth) return localFormatted;
-  const ghsFormatted = `₵${ghsPrice.toFixed(2)}`;
-  return `${localFormatted} (~${ghsFormatted})`;
+  return `${currency.symbol}${local.toLocaleString()}`;
 };
 
 

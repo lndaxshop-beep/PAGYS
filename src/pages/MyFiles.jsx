@@ -571,7 +571,7 @@ const MyFiles = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_GHS.defenceRegen, false)}</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(PRICES_GHS.defenceRegen)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -581,7 +581,7 @@ const MyFiles = () => {
                 fontWeight: '600', cursor: processingRegenReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingRegenReset ? 0.7 : 1
               }}>
-                {processingRegenReset ? 'Processing...' : `Pay ${fmt(PRICES_GHS.defenceRegen, false)}`}
+                {processingRegenReset ? 'Processing...' : `Pay ${fmt(PRICES_GHS.defenceRegen)}`}
               </button>
               <button onClick={() => setShowRegenResetModal(false)} disabled={processingRegenReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,

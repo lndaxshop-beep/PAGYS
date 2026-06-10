@@ -52,7 +52,7 @@ const ContentButtons = ({
                       color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
                       fontWeight: '600', fontSize: '13px', cursor: 'pointer'
                     }}>
-                      🔄 Reset Humanise ({fmt(PRICES_GHS.humaniseReset, false)})
+                      🔄 Reset Humanise ({fmt(PRICES_GHS.humaniseReset)})
                     </button>
                   )}
                   {feedbackLeft > 0 ? (
@@ -68,7 +68,7 @@ const ContentButtons = ({
                       color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
                       fontWeight: '600', fontSize: '13px', cursor: 'pointer'
                     }}>
-                      🔄 Reset Feedback ({fmt(PRICES_GHS.feedbackReset, false)})
+                      🔄 Reset Feedback ({fmt(PRICES_GHS.feedbackReset)})
                     </button>
                   )}
                   <button data-tour="versions-btn" onClick={onOpenVersions} style={{

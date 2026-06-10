@@ -530,7 +530,7 @@ const MergeDocument = () => {
                 <div style={{ width: '48px', height: '48px', border: `4px solid ${colors.primary}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
               ) : (
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexDirection: 'column' }}>
-                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_GHS.abstractRegen, false)} via Paystack</button>
+                  <button onClick={handleAbstractPaymentConfirm} style={{ padding: '10px 24px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Pay {fmt(PRICES_GHS.abstractRegen)} via Paystack</button>
                   {devBypass && (
                     <button onClick={handleAbstractDevBypass} style={{ padding: '10px 24px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}>⚡ Simulate Payment (Dev Mode)</button>
                   )}

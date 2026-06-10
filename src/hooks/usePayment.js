@@ -77,7 +77,7 @@ const usePayment = (onNotify) => {
       const ghsAmount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
       if (onNotify) onNotify(
         isUpgrade
-          ? `Project upgraded to Premium (${formatPrice(ghsAmount, country, false)})! All features unlocked.`
+          ? `Project upgraded to Premium (${formatPrice(ghsAmount, country)})! All features unlocked.`
           : tier === 'premium'
             ? 'Premium project created! All features unlocked.'
             : 'Regular project created! You can upgrade anytime.',

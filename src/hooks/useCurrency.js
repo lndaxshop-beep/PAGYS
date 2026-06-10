@@ -6,7 +6,7 @@ export const useCurrency = () => {
   const country = getUserCountry(user);
   return {
     country,
-    fmt: (ghsPrice, showBoth = true) => formatPrice(ghsPrice, country, showBoth),
+    fmt: (ghsPrice) => formatPrice(ghsPrice, country),
     conv: (ghsPrice) => convertPrice(ghsPrice, country),
     prices: PRICES_GHS,
   };

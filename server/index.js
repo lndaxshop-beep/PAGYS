@@ -331,7 +331,7 @@ app.get('/api/health', (req, res) => {
 
 // Serve built frontend in production
 const distPath = path.resolve(__dirname, '..', 'dist');
-app.use(express.static(distPath));
+app.use(express.static(distPath, { maxAge: 0 }));
 
 app.post('/api/send-email', async (req, res) => {
   try {

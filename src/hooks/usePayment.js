@@ -6,6 +6,37 @@ const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
+const PENDING_PAYMENT_KEYS = [
+  'paystack_return', 'paystack_reference', 'paystack_projectId',
+  'paystack_tier', 'paystack_isUpgrade', 'paystack_amount', 'paystack_currency',
+];
+
+const storePaymentSessionData = (reference, projectId, tier, isUpgrade, amount, currency) => {
+  sessionStorage.setItem('paystack_return', 'true');
+  sessionStorage.setItem('paystack_reference', reference);
+  sessionStorage.setItem('paystack_projectId', projectId);
+  sessionStorage.setItem('paystack_tier', tier);
+  sessionStorage.setItem('paystack_isUpgrade', String(!!isUpgrade));
+  sessionStorage.setItem('paystack_amount', String(amount));
+  sessionStorage.setItem('paystack_currency', currency);
+};
+
+export const clearPendingPayment = () => {
+  PENDING_PAYMENT_KEYS.forEach(k => sessionStorage.removeItem(k));
+};
+
+export const getPendingPayment = () => {
+  if (sessionStorage.getItem('paystack_return') !== 'true') return null;
+  return {
+    reference: sessionStorage.getItem('paystack_reference'),
+    projectId: sessionStorage.getItem('paystack_projectId'),
+    tier: sessionStorage.getItem('paystack_tier'),
+    isUpgrade: sessionStorage.getItem('paystack_isUpgrade') === 'true',
+    amount: Number(sessionStorage.getItem('paystack_amount')) || 0,
+    currency: sessionStorage.getItem('paystack_currency') || 'GHS',
+  };
+};
+
 const storePaymentRecord = async (paymentData) => {
   try {
     const { db } = await import('../firebase');
@@ -192,19 +223,15 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        sessionStorage.setItem('paystack_return', 'true');
-        sessionStorage.setItem('paystack_reference', data.reference);
+        storePaymentSessionData(data.reference, projectId, tier, false, localAmount, currency.code);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
-            const returned = sessionStorage.getItem('paystack_return');
-            if (returned) {
+            const pending = getPendingPayment();
+            if (pending) {
               clearInterval(checkReturn);
-              sessionStorage.removeItem('paystack_return');
-              const ref = sessionStorage.getItem('paystack_reference');
-              if (ref) {
-                verifyPayment(ref, projectId, tier, false, localAmount, currency.code).then((v) => resolve(!!v));
-              } else { resolve(false); }
+              clearPendingPayment();
+              verifyPayment(pending.reference, pending.projectId, pending.tier, pending.isUpgrade, pending.amount, pending.currency).then((v) => resolve(!!v));
             }
           }, 500);
           intervalRefs.current.push(checkReturn);
@@ -277,19 +304,15 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        sessionStorage.setItem('paystack_return', 'true');
-        sessionStorage.setItem('paystack_reference', data.reference);
+        storePaymentSessionData(data.reference, projectId, 'premium', true, localAmount, currency.code);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
-            const returned = sessionStorage.getItem('paystack_return');
-            if (returned) {
+            const pending = getPendingPayment();
+            if (pending) {
               clearInterval(checkReturn);
-              sessionStorage.removeItem('paystack_return');
-              const ref = sessionStorage.getItem('paystack_reference');
-              if (ref) {
-                verifyPayment(ref, projectId, 'premium', true, localAmount, currency.code).then((v) => resolve(!!v));
-              } else { resolve(false); }
+              clearPendingPayment();
+              verifyPayment(pending.reference, pending.projectId, pending.tier, pending.isUpgrade, pending.amount, pending.currency).then((v) => resolve(!!v));
             }
           }, 500);
           intervalRefs.current.push(checkReturn);
@@ -361,22 +384,18 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        sessionStorage.setItem('paystack_return', 'true');
-        sessionStorage.setItem('paystack_reference', data.reference);
+        storePaymentSessionData(data.reference, projectId, metadata.tier || 'regular', false, localAmount, currency.code);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
-            const returned = sessionStorage.getItem('paystack_return');
-            if (returned) {
+            const pending = getPendingPayment();
+            if (pending) {
               clearInterval(checkReturn);
-              sessionStorage.removeItem('paystack_return');
-              const ref = sessionStorage.getItem('paystack_reference');
-              if (ref) {
-                verifyPayment(ref, projectId, metadata.tier || 'regular', false, localAmount, currency.code).then((v) => {
+              clearPendingPayment();
+              verifyPayment(pending.reference, pending.projectId, pending.tier, pending.isUpgrade, pending.amount, pending.currency).then((v) => {
                   if (v && onSuccess) onSuccess();
                   resolve(!!v);
                 });
-              } else { resolve(false); }
             }
           }, 500);
           intervalRefs.current.push(checkReturn);
@@ -404,6 +423,7 @@ const usePayment = (onNotify) => {
     processPayment,
     upgradeToPremium,
     processSmallPayment,
+    verifyPayment,
     devBypass: DEV_BYPASS,
     mockPaymentConfig,
     onMockPaymentSuccess: handleMockPaymentSuccess,

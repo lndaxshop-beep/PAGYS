@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { getPendingPayment, clearPendingPayment } from '../hooks/usePayment';
 import { saveProject } from '../services/firestoreService';
 import ResearchQuestionModal from '../components/ResearchQuestionModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -60,7 +61,7 @@ const Dashboard = () => {
     setToast({ message, type });
   }, []);
 
-  const { processing: processingPayment, processPayment, upgradeToPremium, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
+  const { processing: processingPayment, processPayment, upgradeToPremium, verifyPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
 
   const {
     projects, deletedProjects, projectsWithProgress, loading, progressLoading,
@@ -90,6 +91,14 @@ const Dashboard = () => {
       loadDeletedProjects();
     }
   }, [user]);
+
+  useEffect(() => {
+    const pending = getPendingPayment();
+    if (pending) {
+      clearPendingPayment();
+      verifyPayment(pending.reference, pending.projectId, pending.tier, pending.isUpgrade, pending.amount, pending.currency);
+    }
+  }, []);
 
   const handleDismissOnboarding = () => {
     if (user) {

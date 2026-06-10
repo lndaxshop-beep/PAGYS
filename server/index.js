@@ -6,6 +6,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
+import nodemailer from 'nodemailer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +17,17 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
 const paystackConfigured = !!PAYSTACK_SECRET_KEY;
+
+const SMTP_USER = process.env.SMTP_USER || 'support@pagyss.com';
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.hostinger.com',
+  port: parseInt(process.env.SMTP_PORT || '465', 10),
+  secure: true,
+  auth: {
+    user: SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 // Initialize Firebase Admin
 let adminDb;
@@ -320,6 +332,27 @@ app.get('/api/health', (req, res) => {
 // Serve built frontend in production
 const distPath = path.resolve(__dirname, '..', 'dist');
 app.use(express.static(distPath));
+
+app.post('/api/send-email', async (req, res) => {
+  try {
+    const { to, subject, text, html } = req.body;
+    if (!to || !subject || !text) {
+      return res.status(400).json({ error: 'Missing required fields: to, subject, text' });
+    }
+    const info = await transporter.sendMail({
+      from: SMTP_USER,
+      to,
+      subject,
+      text,
+      html: html || undefined,
+    });
+    console.log('Email sent:', info.messageId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Email send error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // SPA fallback — any non-API GET route serves index.html
 app.get('*', (req, res) => {

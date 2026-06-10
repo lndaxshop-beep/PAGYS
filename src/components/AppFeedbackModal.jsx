@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { FEEDBACK_CATEGORY_EMAILS } from '../constants/app';
 
 const CATEGORIES = ['Bug Report', 'Feature Request', 'General Feedback', 'Other'];
 
@@ -33,23 +32,37 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
     setError('');
 
     try {
-      const userName = user?.fullName || user?.username || '';
+      const to = FEEDBACK_CATEGORY_EMAILS[category] || FEEDBACK_CATEGORY_EMAILS['Other'];
+      const userName = user?.fullName || user?.username || user?.email?.split('@')[0] || 'Anonymous';
+      const subject = `[PAGYS Feedback] ${category}`;
+      const text = `Category: ${category}\nFrom: ${userName} (${email})\nPage: ${window.location.pathname}\n\n${message.trim()}`;
+      const html = `
+        <h3>${category}</h3>
+        <p><strong>From:</strong> ${userName} (${email})</p>
+        <p><strong>Page:</strong> ${window.location.pathname}</p>
+        <hr>
+        <p>${message.trim().replace(/\n/g, '<br>')}</p>
+      `;
 
-      await addDoc(collection(db, 'feedback'), {
-        userId: user?.uid || null,
-        userEmail: email || '',
-        userName,
-        message: message.trim(),
-        category,
-        page: window.location.pathname,
-        createdAt: serverTimestamp(),
-        status: 'new',
+      const apiUrl = import.meta.env.VITE_API_PROXY_URL
+        ? `${import.meta.env.VITE_API_PROXY_URL}/api/send-email`
+        : '/api/send-email';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, text, html }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
 
       setSubmitted(true);
       setTimeout(() => onClose(), 2000);
     } catch (err) {
-      console.error('Feedback submit error:', err);
+      console.error('Feedback send error:', err);
       setError('Failed to send feedback. Please try again.');
     } finally {
       setSubmitting(false);

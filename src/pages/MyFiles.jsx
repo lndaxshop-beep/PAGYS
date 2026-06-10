@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { saveAs } from 'file-saver';
 import { INSTRUMENT_TYPES } from '../utils/instrumentHelpers';
 import { getProjects, getGeneratedContent, getChapters } from '../services/firestoreService';
@@ -18,6 +19,7 @@ import usePayment from '../hooks/usePayment';
 import MockPaymentModal from '../components/MockPaymentModal';
 
 const MyFiles = () => {
+  const { isMobile } = useResponsive();
   const { colors, isDarkMode } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -280,7 +282,7 @@ const MyFiles = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: colors.background, padding: '32px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: colors.background, padding: isMobile ? '16px' : '32px' }}>
       {(preparingDownload) && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
           <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '40px', textAlign: 'center', minWidth: '300px' }}>
@@ -315,12 +317,14 @@ const MyFiles = () => {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
-          {['chapters','lists','defence','instruments','sources','aiscore'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '12px 24px', backgroundColor: activeTab === tab ? colors.primary : 'transparent', color: activeTab === tab ? 'white' : colors.text, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: '500' }}>
-              {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : tab === 'sources' ? '📚 Sources' : '🤖 AI Score'}
-            </button>
-          ))}
+        <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {['chapters','lists','defence','instruments','sources','aiscore'].map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: isMobile ? '8px 12px' : '12px 24px', backgroundColor: activeTab === tab ? colors.primary : 'transparent', color: activeTab === tab ? 'white' : colors.text, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : tab === 'sources' ? '📚 Sources' : '🤖 AI Score'}
+              </button>
+            ))}
+          </div>
         </div>
         {(activeTab === 'chapters' && getGeneratedChaptersCount() > 0) && (
           <div style={{ marginBottom: '24px' }}>

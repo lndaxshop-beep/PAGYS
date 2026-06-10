@@ -208,7 +208,10 @@ const SignUp = () => {
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginTop: '8px' }}>
               <input id="agreeToTerms" type="checkbox" name="agreeToTerms" checked={formData.agreeToTerms} onChange={handleChange} required style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: colors.primary }} />
-              <label htmlFor="agreeToTerms" style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: '1.5' }}>I agree to the Terms of Service and Privacy Policy *</label>
+              <label htmlFor="agreeToTerms" style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: '1.5' }}>
+                I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: colors.primary, textDecoration: 'underline' }}>Terms of Service</a>
+                {' '}and{' '}<a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: colors.primary, textDecoration: 'underline' }}>Privacy Policy</a> *
+              </label>
             </div>
 
             <button type="submit" disabled={loading}

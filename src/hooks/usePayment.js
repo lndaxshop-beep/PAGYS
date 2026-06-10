@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+const PAYSTACK_SUPPORTED = ['GHS', 'NGN', 'USD', 'ZAR'];
+const getPaystackCurrency = (code) => PAYSTACK_SUPPORTED.includes(code) ? code : 'GHS';
 
 const PENDING_PAYMENT_KEYS = [
   'paystack_return', 'paystack_reference', 'paystack_projectId',
@@ -143,7 +145,7 @@ const usePayment = (onNotify) => {
           key: PAYSTACK_PUBLIC_KEY,
           email,
           amount: Math.round(amount * 100),
-          currency: currencyCode.toLowerCase(),
+          currency: getPaystackCurrency(currencyCode.toUpperCase()),
           ref: `PAGYS_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
           metadata: {
             custom_fields: [{

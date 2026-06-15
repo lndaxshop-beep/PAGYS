@@ -187,7 +187,6 @@ const Write = () => {
           wc = {}; wcs = {};
           savedChapters.forEach(ch => {
             if (ch.wordCount) { wc[ch.id] = ch.wordCount; wcs[ch.id] = true; }
-            else if (ch.subsections?.length > 0 || ch.generated) { wc[ch.id] = { min: 1000, max: 2000 }; wcs[ch.id] = true; }
           });
           setChapterWordCounts(wc);
           setChapterWordCountSet(wcs);

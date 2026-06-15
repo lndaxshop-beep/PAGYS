@@ -60,13 +60,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setChapterWordCountSet(prev => ({ ...prev, [pendingChapterAfterWordCount]: true }));
     setChapters(prev => prev.map(ch => ch.id === pendingChapterAfterWordCount ? { ...ch, wordCount: range, wordCountSet: true } : ch));
     setShowWordCountModal(false);
-    if (pendingChapterAfterWordCount) {
-      const chapter = chapters.find(c => c.id === pendingChapterAfterWordCount);
-      if (chapter) {
-        if (pendingChapterAfterWordCount !== 'chapter4' && (!chapter.generated || chapter.subsections.length === 0)) generateSubtopicsForChapter(pendingChapterAfterWordCount);
-      }
-    }
-  }, [chapters, setChapters, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter]);
+  }, [setChapters, setChapterWordCounts, setChapterWordCountSet]);
 
   const handleCustomizeSubsection = useCallback((subsectionId, value) => {
     setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, customValue: value } : s) } : ch));

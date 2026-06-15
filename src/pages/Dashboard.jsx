@@ -26,7 +26,7 @@ import useSourceLibrary from '../hooks/useSourceLibrary';
 import SourceSetupModal from '../components/SourceSetupModal';
 import usePayment from '../hooks/usePayment';
 
-const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
+const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const Dashboard = () => {
   const { colors } = useTheme();

@@ -3,7 +3,7 @@ import { formatPrice, getUserCountry, PRICES_GHS, getCurrency } from '../constan
 import { useAuth } from '../contexts/AuthContext';
 
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
-const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true';
+const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
 const PENDING_PAYMENT_KEYS = [

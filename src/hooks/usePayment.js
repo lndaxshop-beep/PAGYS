@@ -58,6 +58,37 @@ const usePayment = (onNotify) => {
   const intervalRefs = useRef([]);
 
   const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount, currency) => {
+    if (reference && reference.startsWith('mock_')) {
+      const country = getUserCountry(user);
+      const priceKey = isUpgrade ? 'upgrade' : tier;
+      const ghsAmount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
+      if (onNotify) onNotify(
+        isUpgrade
+          ? `Project upgraded to Premium (${formatPrice(ghsAmount, country)})! All features unlocked.`
+          : tier === 'premium'
+            ? 'Premium project created! All features unlocked.'
+            : 'Regular project created! You can upgrade anytime.',
+        'success'
+      );
+      window.dispatchEvent(new CustomEvent(isUpgrade ? 'projectUpgraded' : 'projectPaymentComplete', {
+        detail: { projectId, tier }
+      }));
+      await storePaymentRecord({
+        userId: user?.uid,
+        projectId,
+        tier,
+        amount,
+        currency: currency || 'GHS',
+        reference,
+        email: user?.email,
+        paidAt: new Date().toISOString(),
+        channel: 'mock',
+        type: isUpgrade ? 'upgrade' : 'project_creation',
+        status: 'verified',
+      });
+      return { verified: true, amount, currency: currency || 'GHS' };
+    }
+
     try {
       const idToken = await getIdToken();
       const res = await fetch(`${PROXY_URL}/api/verify-payment`, {

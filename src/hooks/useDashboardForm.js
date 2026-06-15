@@ -39,12 +39,17 @@ Requirements:
 - Each question: 8-20 words, concise but with natural, grammatically correct academic English
 - Avoid awkward or truncated phrasing — the sentence must read naturally
 - Match the depth and terminology to the specified academic level and field
-- Return ONLY a numbered list, one question per line`
+- Return ONLY a numbered list, one question per line
+
+Examples:
+1. How does AI affect cancer diagnosis accuracy?
+2. What is the effect of water pH on maize germination?
+3. How does internal auditing reduce fraud in banks?`
         }),
       });
       const geminiData = await geminiRes.json();
       const text = geminiData.text || '';
-      questions = text.split('\n').filter(l => l.match(/^\d+\.\s/)).map(l => l.replace(/^\d+\.\s*/, '').trim()).slice(0, 8);
+      questions = text.split('\n').filter(l => l.match(/^\s*(?:\d+[.)]\s|[-•*]\s)/)).map(l => l.replace(/^\s*\d+[.)]\s*|^\s*[-•*]\s*/, '').trim()).slice(0, 8);
     } catch (e) {
       console.error('AI question generation failed:', e);
     }

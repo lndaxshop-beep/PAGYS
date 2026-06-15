@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getCurrency, getUserCountry } from '../constants/pricing';
 
@@ -10,6 +10,7 @@ const MockPaymentModal = ({ email, amount, currency, metadata, onClose, onSucces
   const [cvv, setCvv] = useState('123');
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const successTimerRef = useRef(null);
 
   const curr = getCurrency(getUserCountry());
   const currencyCode = currency || curr.code;
@@ -36,7 +37,7 @@ const MockPaymentModal = ({ email, amount, currency, metadata, onClose, onSucces
           clearInterval(interval);
           setStep('success');
           const ref = `MOCK_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
-          setTimeout(() => onSuccess({ reference: ref, status: 'success' }), 1500);
+          successTimerRef.current = setTimeout(() => onSuccess({ reference: ref, status: 'success' }), 1500);
           return 100;
         }
         return prev + Math.random() * 15 + 5;
@@ -52,7 +53,10 @@ const MockPaymentModal = ({ email, amount, currency, metadata, onClose, onSucces
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape' && !processing) handleCancel(); };
     window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
   }, [handleCancel, processing]);
 
   if (step === 'success') {

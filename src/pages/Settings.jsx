@@ -71,10 +71,15 @@ const Settings = () => {
   }, [user]);
 
   const handleSave = async () => {
-    const updatedUser = { ...user, fullName, email, username, country };
+    const stripTags = (s) => (typeof s === 'string' ? s.replace(/<[^>]*>/g, '').trim() : '');
+    const cleanFullName = stripTags(fullName).slice(0, 100);
+    const cleanEmail = stripTags(email).slice(0, 254);
+    const cleanUsername = stripTags(username).slice(0, 50);
+    const cleanCountry = stripTags(country).slice(0, 50);
+    const updatedUser = { ...user, fullName: cleanFullName, email: cleanEmail, username: cleanUsername, country: cleanCountry };
     if (user?.uid) {
       try {
-        await updateDoc(doc(db, 'users', user.uid), { fullName, email, username, country });
+        await updateDoc(doc(db, 'users', user.uid), { fullName: cleanFullName, email: cleanEmail, username: cleanUsername, country: cleanCountry });
       } catch (e) {
         console.error('Error updating profile:', e);
         notify('Failed to save profile. Please try again.', 'error');

@@ -54,12 +54,13 @@ const SignUp = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       fbUser = userCredential.user;
 
+      const stripTags = (s) => (typeof s === 'string' ? s.replace(/<[^>]*>/g, '').trim() : '');
       await setDoc(doc(db, 'users', fbUser.uid), {
-        fullName: formData.fullName,
-        username: formData.username,
-        email: formData.email,
-        country: formData.country,
-        university: formData.university,
+        fullName: stripTags(formData.fullName).slice(0, 100),
+        username: stripTags(formData.username).slice(0, 50),
+        email: stripTags(formData.email).slice(0, 254),
+        country: stripTags(formData.country).slice(0, 50),
+        university: stripTags(formData.university).slice(0, 100),
         createdAt: new Date().toISOString(),
       });
 

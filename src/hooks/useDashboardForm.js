@@ -14,13 +14,6 @@ export const useDashboardForm = (onSuccess, { onNotify } = {}) => {
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const extractKeyword = () => {
-    const t = form.title.trim();
-    const stopWords = ['a', 'an', 'the', 'of', 'in', 'on', 'for', 'to', 'and', 'or', 'is', 'are', 'with', 'from', 'by', 'at', 'impact', 'study', 'analysis', 'research', 'effects', 'role'];
-    const words = t.replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3 && !stopWords.includes(w.toLowerCase()));
-    return words.slice(0, 3).join(' ') || t.slice(0, 40);
-  };
-
   const generateResearchQuestions = async () => {
     if (!form.title.trim()) {
       onNotify?.('Please enter a thesis title first', 'error');
@@ -35,7 +28,7 @@ export const useDashboardForm = (onSuccess, { onNotify } = {}) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'gemini-2.5-flash',
-          prompt: `You are an academic research advisor. Generate 6 professional, SHORT research questions for a thesis.
+          prompt: `You are an academic research advisor. Generate 6 concise, well-formed research questions for a thesis.
 
 TOPIC: "${form.title}"
 FIELD: ${form.field || 'general'}
@@ -43,14 +36,10 @@ LEVEL: ${form.level}
 ${organizationName ? `ORGANIZATION: ${organizationName}` : ''}
 
 Requirements:
-- Keep each question SHORT and DIRECT (under 15 words)
-- Use simple, clear language
-- Return ONLY a numbered list, one question per line
-
-Examples:
-1. How does AI affect cancer diagnosis accuracy?
-2. What is the effect of water pH on maize germination?
-3. How does internal auditing reduce fraud in banks?`
+- Each question: 8-20 words, concise but with natural, grammatically correct academic English
+- Avoid awkward or truncated phrasing — the sentence must read naturally
+- Match the depth and terminology to the specified academic level and field
+- Return ONLY a numbered list, one question per line`
         }),
       });
       const geminiData = await geminiRes.json();
@@ -61,15 +50,8 @@ Examples:
     }
     setLoadingQuestions(false);
     if (!questions.length) {
-      const kw = extractKeyword();
-      questions = [
-        `How does ${kw} affect outcomes in ${form.field || 'this field'}?`,
-        `What factors influence the effectiveness of ${kw}?`,
-        `How does ${kw} perform across different contexts?`,
-        `What are the main barriers to ${kw}?`,
-        `How do stakeholders perceive the impact of ${kw}?`,
-        `What strategies improve ${kw} outcomes?`,
-      ];
+      onNotify?.('Could not generate questions. Please try again or type your own.', 'error');
+      return;
     }
     setQuestionModal({
       title: form.title, questions,

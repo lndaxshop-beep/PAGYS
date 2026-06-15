@@ -37,7 +37,6 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      console.log('Login successful for', user.email);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err.code, err.message);

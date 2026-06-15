@@ -343,7 +343,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     if (diagrams.length === 0) return;
     try {
       const mermaid = (await import('mermaid')).default;
-      mermaid.initialize({ startOnLoad: false, theme: isDarkMode ? 'dark' : 'base', securityLevel: 'loose' });
+      mermaid.initialize({ startOnLoad: false, theme: isDarkMode ? 'dark' : 'base', securityLevel: 'strict' });
       const renderedDiagrams = {};
       for (let i = 0; i < diagrams.length; i++) {
         try {

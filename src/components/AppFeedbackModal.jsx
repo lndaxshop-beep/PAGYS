@@ -48,9 +48,10 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
         ? `${import.meta.env.VITE_API_PROXY_URL}/api/send-email`
         : '/api/send-email';
 
+      const token = await (async () => { try { const { getAuth } = await import('firebase/auth'); const u = getAuth().currentUser; return u ? await u.getIdToken() : null; } catch { return null; } })();
       const res = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify({ to, subject, text, html }),
       });
 

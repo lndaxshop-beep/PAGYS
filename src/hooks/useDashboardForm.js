@@ -23,9 +23,10 @@ export const useDashboardForm = (onSuccess, { onNotify } = {}) => {
     setLoadingQuestions(true);
     try {
       const proxyUrl = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
+      const token = await (async () => { try { const { getAuth } = await import('firebase/auth'); const u = getAuth().currentUser; return u ? await u.getIdToken() : null; } catch { return null; } })();
       const geminiRes = await fetch(`${proxyUrl}/api/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           model: 'gemini-2.5-flash',
           prompt: `You are an academic research advisor. Generate 6 concise, well-formed research questions for a thesis.

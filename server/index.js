@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
@@ -64,8 +65,22 @@ try {
   console.warn('Firebase Admin not initialized:', err.message);
 }
 
+app.use(helmet());
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: '10mb' }));
+
+const requireAuth = async (req, res, next) => {
+  const idToken = req.headers.authorization?.replace('Bearer ', '');
+  if (!idToken) return res.status(401).json({ error: 'Authentication required' });
+  if (admin.apps.length === 0) return res.status(500).json({ error: 'Auth service not configured' });
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedToken;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
@@ -83,7 +98,7 @@ app.use('/api/initialize-payment', paymentLimiter);
 app.use('/api/verify-payment', paymentLimiter);
 app.use('/api/upgrade-tier', paymentLimiter);
 
-app.post('/api/generate', async (req, res) => {
+app.post('/api/generate', requireAuth, async (req, res) => {
   try {
     const { prompt, model } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
@@ -189,7 +204,9 @@ app.post('/api/paystack-webhook', async (req, res) => {
       .update(rawBody)
       .digest('hex');
 
-    if (signature !== expectedSignature) {
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
       console.error('Webhook signature verification failed');
       return res.status(401).json({ error: 'Invalid signature' });
     }
@@ -338,7 +355,7 @@ app.get('/api/health', (req, res) => {
 const distPath = path.resolve(__dirname, '..', 'dist');
 app.use(express.static(distPath, { maxAge: 0 }));
 
-app.post('/api/send-email', async (req, res) => {
+app.post('/api/send-email', requireAuth, async (req, res) => {
   try {
     const { to, subject, text, html } = req.body;
     if (!to || !subject || !text) {

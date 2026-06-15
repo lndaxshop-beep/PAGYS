@@ -175,7 +175,7 @@ const usePayment = (onNotify) => {
           email,
           amount: Math.round(amount * 100),
           currency: 'GHS',
-          ref: `PAGYS_${Date.now()}_${Math.floor(Math.random() * 1000000)}`,
+          ref: `PAGYS_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
           metadata: {
             custom_fields: [{
               display_name: 'Project Type',

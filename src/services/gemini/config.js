@@ -1,12 +1,23 @@
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
 
+const getAuthToken = async () => {
+  try {
+    const { getAuth } = await import('firebase/auth');
+    const user = getAuth().currentUser;
+    return user ? await user.getIdToken() : null;
+  } catch { return null; }
+};
+
 const callProxy = async (promptOrRequest, modelName, tools) => {
   const body = { prompt: promptOrRequest, model: modelName };
   if (tools) body.tools = tools;
+  const token = await getAuthToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const response = await fetch(`${PROXY_URL}/api/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   });
 

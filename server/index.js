@@ -114,11 +114,11 @@ app.post('/api/generate', async (req, res) => {
       const errorText = await response.text();
       console.error('Gemini API error:', response.status, errorText.substring(0, 300));
       const messages = {
-        429: 'AI service is temporarily unavailable (quota exceeded). Please try again later.',
-        403: 'AI service authentication failed. Please check your API key.',
-        400: 'AI service rejected the request due to invalid input.',
+        429: 'Service is temporarily unavailable (quota exceeded). Please try again later.',
+        403: 'Service authentication failed. Please check your API key.',
+        400: 'Service rejected the request due to invalid input.',
       };
-      return res.status(response.status).json({ error: messages[response.status] || 'AI service error. Please try again.' });
+      return res.status(response.status).json({ error: messages[response.status] || 'Service error. Please try again.' });
     }
 
     const data = await response.json();

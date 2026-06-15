@@ -102,7 +102,7 @@ const SubsectionItem = ({
         }
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', paddingRight: '28px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: '500', color: colors.text, fontSize: '14px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {editing ? (
@@ -128,7 +128,7 @@ const SubsectionItem = ({
                 onClick={handleStartEdit}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: '12px', color: colors.textSecondary, padding: '2px',
+                  fontSize: '12px', color: colors.textSecondary, padding: '6px',
                   borderRadius: '4px', opacity: 0.5, lineHeight: 1
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = colors.primary; }}
@@ -178,7 +178,9 @@ const SubsectionItem = ({
               fontSize: '16px',
               cursor: 'pointer',
               color: colors.textSecondary,
-              padding: '4px',
+              padding: '8px',
+              minWidth: '36px',
+              textAlign: 'center',
               borderRadius: '4px',
               transition: 'all 0.2s'
             }}
@@ -199,7 +201,7 @@ const SubsectionItem = ({
       {isDraggable && (
         <div style={{
           position: 'absolute',
-          right: '8px',
+          right: '2px',
           top: '50%',
           transform: 'translateY(-50%)',
           fontSize: '12px',

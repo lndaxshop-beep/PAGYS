@@ -93,6 +93,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     }).catch(e => {
       if (!cancelled) {
         console.error('Error loading progress:', e);
+        setProjectsWithProgress(projects.map(p => ({ ...p, progress: 0 })));
         setProgressLoading(false);
       }
     });

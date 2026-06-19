@@ -111,6 +111,20 @@ export const getDeletedProjects = async (userId) => {
   } catch (e) { logError('getDeletedProjects', e); throw e; }
 };
 
+export const getPayments = async (userId) => {
+  try {
+    if (!userId) return [];
+    const q = query(
+      collection(db, 'payments'),
+      where('userId', '==', userId),
+      where('type', '==', 'project_creation'),
+      where('status', '==', 'verified')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { logError('getPayments', e); throw e; }
+};
+
 export const permanentlyDeleteProject = async (projectId) => {
   try {
     await deleteDoc(doc(db, 'deletedProjects', projectId.toString()));

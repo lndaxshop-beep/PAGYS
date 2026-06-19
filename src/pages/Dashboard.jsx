@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { getPendingPayment, clearPendingPayment } from '../hooks/usePayment';
-import { saveProject } from '../services/firestoreService';
+import { saveProject, getPayments } from '../services/firestoreService';
 import ResearchQuestionModal from '../components/ResearchQuestionModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
@@ -61,6 +61,72 @@ const Dashboard = () => {
     setToast({ message, type });
   }, []);
 
+  const recoverLostProjects = useCallback(async (uid) => {
+    try {
+      const payments = await getPayments(uid);
+      if (payments.length === 0) return 0;
+      const { getProjects } = await import('../services/firestoreService');
+      const existingProjects = await getProjects(uid);
+      const existingIds = new Set(existingProjects.map(p => p.id));
+      let count = 0;
+
+      for (const payment of payments) {
+        if (existingIds.has(payment.projectId)) continue;
+        await saveProject({
+          id: payment.projectId,
+          userId: uid,
+          tier: payment.tier || 'regular',
+          isPremium: (payment.tier || 'regular') === 'premium',
+          title: 'Recovered Project',
+          topic: '',
+          field: 'Not specified',
+          level: 'undergraduate',
+          methodology: 'mixed methods',
+          status: 'active',
+          unlocked: true,
+          useOrganization: false,
+          hideOrganization: false,
+          progress: 0,
+          createdAt: payment.paidAt || new Date().toISOString(),
+          lastEdited: new Date().toISOString(),
+        }, uid);
+        existingIds.add(payment.projectId);
+        count++;
+      }
+
+      return count;
+    } catch (e) {
+      console.error('recoverLostProjects error:', e);
+      return 0;
+    }
+  }, []);
+
+  const restorePendingBackup = useCallback(async (uid) => {
+    const keys = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith('pendingProject_')) keys.push(key);
+    }
+    let restored = 0;
+    for (const key of keys) {
+      const projectId = key.replace('pendingProject_', '');
+      try {
+        const project = JSON.parse(sessionStorage.getItem(key));
+        const { getProject } = await import('../services/firestoreService');
+        const existing = await getProject(projectId);
+        if (existing) { sessionStorage.removeItem(key); continue; }
+        project.userId = uid;
+        await saveProject(project, uid);
+        sessionStorage.removeItem(key);
+        restored++;
+      } catch (e) {
+        console.error('Failed to restore pending project:', e);
+        sessionStorage.removeItem(key);
+      }
+    }
+    return restored;
+  }, []);
+
   const { processing: processingPayment, processPayment, upgradeToPremium, verifyPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
 
   const {
@@ -87,8 +153,16 @@ const Dashboard = () => {
     if (user) {
       const onboarded = localStorage.getItem('onboardingComplete_' + user.uid);
       if (!onboarded) setShowOnboarding(true);
-      loadProjects();
-      loadDeletedProjects();
+      (async () => {
+        await loadProjects();
+        await loadDeletedProjects();
+        const restored = await restorePendingBackup(user.uid);
+        const recovered = await recoverLostProjects(user.uid);
+        if (restored > 0 || recovered > 0) {
+          notify(`${restored + recovered} project(s) recovered.`, 'success');
+          loadProjects();
+        }
+      })();
     }
   }, [user]);
 
@@ -126,10 +200,12 @@ const Dashboard = () => {
     const success = await processPayment(paymentProject.id, paymentTier);
     if (success) {
       if (!paymentIsUpgrade) {
+        sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
         try {
           await saveProject(paymentProject, user?.uid);
+          sessionStorage.removeItem('pendingProject_' + paymentProject.id);
         } catch (e) {
-          notify('Payment successful but project could not be saved. Your receipt is recorded. Contact support and we will restore it.', 'error');
+          notify('Payment successful but project could not be saved. Your receipt is recorded. It will be restored automatically on your next visit.', 'error');
           setShowPaymentModal(false);
           setPaymentProject(null);
           setPaymentTier(null);
@@ -201,10 +277,12 @@ const Dashboard = () => {
     } else {
       const result = await processPayment(paymentProject.id, paymentTier);
       if (result && result.status === 'success') {
+        sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
         try {
           await saveProject(paymentProject, user?.uid);
+          sessionStorage.removeItem('pendingProject_' + paymentProject.id);
         } catch (e) {
-          notify('Project could not be saved. Please try again.', 'error');
+          notify('Project could not be saved. It will be restored automatically on your next visit.', 'error');
           setShowPaymentModal(false);
           setPaymentProject(null);
           setPaymentTier(null);

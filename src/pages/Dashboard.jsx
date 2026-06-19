@@ -129,7 +129,11 @@ const Dashboard = () => {
         try {
           await saveProject(paymentProject, user?.uid);
         } catch (e) {
-          notify('Project saved but payment recorded. Contact support if the project does not appear.', 'warning');
+          notify('Payment successful but project could not be saved. Your receipt is recorded. Contact support and we will restore it.', 'error');
+          setShowPaymentModal(false);
+          setPaymentProject(null);
+          setPaymentTier(null);
+          return;
         }
       }
       setShowPaymentModal(false);
@@ -195,7 +199,19 @@ const Dashboard = () => {
     if (paymentIsUpgrade) {
       await upgradeToPremium(paymentProject.id);
     } else {
-      await processPayment(paymentProject.id, paymentTier);
+      const result = await processPayment(paymentProject.id, paymentTier);
+      if (result && result.status === 'success') {
+        try {
+          await saveProject(paymentProject, user?.uid);
+        } catch (e) {
+          notify('Project could not be saved. Please try again.', 'error');
+          setShowPaymentModal(false);
+          setPaymentProject(null);
+          setPaymentTier(null);
+          setPaymentIsUpgrade(false);
+          return;
+        }
+      }
     }
     setShowPaymentModal(false);
     setPaymentProject(null);

@@ -25,7 +25,6 @@ import ChapterStructureModal from '../components/writing/ChapterStructureModal';
 import FeedbackModal from '../components/writing/FeedbackModal';
 
 import LiteratureSearchModal from '../components/LiteratureSearchModal';
-import AIDetectionDashboard from '../components/AIDetectionDashboard';
 import DiffModal from '../components/DiffModal';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject } from '../services/firestoreService';
@@ -35,7 +34,6 @@ import useSourceLibrary from '../hooks/useSourceLibrary';
 import VersionBrowser from '../components/writing/VersionBrowser';
 import HelpModal from '../components/writing/HelpModal';
 import { saveSubsectionVersions, getSubsectionVersions } from '../services/firestoreService';
-import { fixBannedPhrase, fixBurstiness, fixTransitionOveruse, humaniseContent } from '../services/gemini/aiCorrectionService';
 import usePayment from '../hooks/usePayment';
 import MockPaymentModal from '../components/MockPaymentModal';
 
@@ -79,13 +77,11 @@ const Write = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
   const [showLitSearchModal, setShowLitSearchModal] = useState(false);
-  const [showAIDetection, setShowAIDetection] = useState(false);
   const [diffModal, setDiffModal] = useState({ show: false, oldText: '', newText: '', onAccept: null, title: '' });
   const [subsectionVersions, setSubsectionVersions] = useState({});
   const [versionBrowserSubsection, setVersionBrowserSubsection] = useState(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [highlightRanges, setHighlightRanges] = useState([]);
-  const [applyingAICorrection, setApplyingAICorrection] = useState(false);
   const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
   const [plagiarismResult, setPlagiarismResult] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -135,7 +131,6 @@ const Write = () => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         setShowLitSearchModal(false);
-        setShowAIDetection(false);
         setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
         modals.setShowFeedbackModal(false);
         modals.setShowWordCountModal(false);
@@ -721,60 +716,6 @@ const Write = () => {
 
   const handleHelpClose = () => setShowHelpModal(false);
 
-  const handleAICorrection = async (suggestion) => {
-    if (!currentContent || !currentSubsection) return;
-    setApplyingAICorrection(true);
-    try {
-      const subId = currentSubsection.id;
-      let result;
-      if (suggestion.type === 'banned') {
-        let corrected = currentContent;
-        for (const phrase of suggestion.data.phrases) {
-          const ctxStart = Math.max(0, currentContent.toLowerCase().indexOf(phrase.toLowerCase()) - 40);
-          const ctxEnd = Math.min(currentContent.length, currentContent.toLowerCase().indexOf(phrase.toLowerCase()) + phrase.length + 40);
-          const context = currentContent.slice(ctxStart, ctxEnd);
-          const res = await fixBannedPhrase(corrected, phrase, context);
-          corrected = res.correctedContent;
-        }
-        result = { correctedContent: corrected };
-      } else if (suggestion.type === 'burstiness') {
-        result = await fixBurstiness(currentContent);
-      } else if (suggestion.type === 'transitions') {
-        result = await fixTransitionOveruse(currentContent);
-      } else if (suggestion.type === 'humanise') {
-        const humaniseKey = activeChapter;
-        if ((humaniseUsed[humaniseKey] || 0) >= humaniseBase) {
-          addToast('Humanise limit reached for this chapter. Use Reset Humanise to restore your chapter pool.', 'error');
-          setApplyingAICorrection(false);
-          return;
-        }
-        result = await humaniseContent(currentContent);
-        if (result?.correctedContent) {
-          setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
-        }
-      }
-      if (!result || !result.correctedContent || result.correctedContent === currentContent) return;
-      setDiffModal({
-        show: true,
-        oldText: currentContent,
-        newText: result.correctedContent,
-        title: 'AI Fix Changes',
-        onAccept: () => {
-          captureVersion(activeChapter, subId, currentContent, 'AI Score Suggestion');
-          setCurrentContent(result.correctedContent);
-          setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subId]: result.correctedContent } }));
-          setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
-          addToast('AI fix applied! New score will show when you open AI Score again.', 'success');
-        },
-      });
-    } catch (error) {
-      console.error('AI Correction failed:', error);
-      addToast('AI correction failed. Please try again.', 'error');
-    } finally {
-      setApplyingAICorrection(false);
-    }
-  };
-
   const overallProgress = calculateOverallProgress(chapters, generatedSubsections);
   const totalActive = activeSubsections.length;
   const generatedActive = activeSubsections.filter(s => s.generated).length;
@@ -837,7 +778,7 @@ const Write = () => {
               ☰
             </button>
             <div style={{ flex: 1 }}>
-              <WriteHeader onBack={() => navigate('/dashboard')} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowHelpModal(true)} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
+              <WriteHeader onBack={() => navigate('/dashboard')} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleTour={() => setShowHelpModal(true)} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
             </div>
           </div>
 
@@ -947,10 +888,7 @@ const Write = () => {
                 onOpenVersions={() => setVersionBrowserSubsection(currentSubsection)}
                />
                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
-                 <button onClick={() => setShowAIDetection(true)} style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '6px', backgroundColor: '#0891b2', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
-                   🤖 AI Score
-                 </button>
-                 <button onClick={async () => {
+                  <button onClick={async () => {
                    if (!currentContent) return;
                    const { checkPlagiarism } = await import('../utils/plagiarismChecker.js');
                    const result = checkPlagiarism(currentContent, sourceLibrary?.sources || []);
@@ -1064,7 +1002,6 @@ const Write = () => {
         </div>
       )}
 
-      <AIDetectionDashboard isOpen={showAIDetection} onClose={() => setShowAIDetection(false)} content={currentContent} onApplyCorrection={handleAICorrection} applyingCorrection={applyingAICorrection} />
       {mockPaymentConfig && (
         <MockPaymentModal
           email={mockPaymentConfig.email}

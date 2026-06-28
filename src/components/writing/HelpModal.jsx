@@ -55,11 +55,6 @@ const FEATURES = [
     description: 'Mark a chapter as complete and move to the next one. The final chapter shows "Complete & View Files" to access your downloads.',
   },
   {
-    icon: '🤖',
-    title: 'AI Score',
-    description: 'Check your content against AI detection patterns. Get a percentage score and detailed analysis of sections that may need refinement.',
-  },
-  {
     icon: '⌨️',
     title: 'Keyboard Shortcuts',
     description: 'Use Ctrl+S to save, Ctrl+Z/Y for undo/redo, Ctrl+E to toggle edit mode, Ctrl+/ to view all shortcuts, and Escape to close any modal.',

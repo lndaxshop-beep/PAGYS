@@ -8,7 +8,6 @@ const LABEL_COLORS = {
   'Feedback Applied': { bg: '#dbeafe', text: '#1e40af' },
   'Manual Edit': { bg: '#d1fae5', text: '#065f46' },
   'Restored': { bg: '#f3e8ff', text: '#7c3aed' },
-  'AI Score Suggestion': { bg: '#ccfbf1', text: '#0f766e' },
 };
 
 const DiffSegment = ({ segment }) => {

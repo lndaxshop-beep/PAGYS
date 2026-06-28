@@ -50,6 +50,20 @@ const storePaymentRecord = async (paymentData) => {
   }
 };
 
+const saveProjectTier = async (projectId, tier, isUpgrade) => {
+  try {
+    const { db } = await import('../firebase');
+    const { doc, setDoc } = await import('firebase/firestore');
+    await setDoc(doc(db, 'projects', projectId), {
+      tier: isUpgrade ? 'premium' : (tier || 'regular'),
+      isPremium: isUpgrade || tier === 'premium',
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (e) {
+    console.error('Failed to save project tier:', e);
+  }
+};
+
 const usePayment = (onNotify) => {
   const { user, getIdToken } = useAuth();
   const [processing, setProcessing] = useState(false);
@@ -86,6 +100,7 @@ const usePayment = (onNotify) => {
         type: isUpgrade ? 'upgrade' : 'project_creation',
         status: 'verified',
       });
+      await saveProjectTier(projectId, tier, isUpgrade);
       return { verified: true, amount, currency: currency || 'GHS' };
     }
 
@@ -129,6 +144,7 @@ const usePayment = (onNotify) => {
         type: isUpgrade ? 'upgrade' : 'project_creation',
         status: 'verified',
       });
+      await saveProjectTier(projectId, tier, isUpgrade);
       return data;
     } catch (e) {
       console.error('Payment verification error:', e);

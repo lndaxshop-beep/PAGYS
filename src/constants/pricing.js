@@ -26,30 +26,16 @@ const COUNTRY_NAME_TO_ISO = {
   'Seychelles': 'SC', 'Malawi': 'MW', 'Lesotho': 'LS', 'Eswatini': 'SZ',
 };
 
-const PRICES_FULL = {
-  regular: 30,
-  premium: 40,
-  upgrade: 10,
+export const PRICES_GHS = {
+  regular: 50,
+  premium: 70,
+  upgrade: 2,
   abstractRegen: 2,
   matrixRegen: 2,
   humaniseReset: 2,
   feedbackReset: 2,
-  defenceRegen: 1,
+  defenceRegen: 2,
 };
-
-const PRICES_SALE = {
-  regular: 3,
-  premium: 4,
-  upgrade: 1,
-  abstractRegen: 1,
-  matrixRegen: 1,
-  humaniseReset: 1,
-  feedbackReset: 1,
-  defenceRegen: 1,
-};
-
-export const USE_SALE_PRICES = true;
-export const PRICES_GHS = USE_SALE_PRICES ? PRICES_SALE : PRICES_FULL;
 
 export const getUserCountry = (user) => {
   const raw = user?.country || '';

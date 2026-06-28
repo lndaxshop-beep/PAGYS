@@ -170,7 +170,11 @@ const SignUp = () => {
               <span style={iconStyle}>🔒</span>
               <input id="password" type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={eyeBtnStyle} tabIndex={-1} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? '👁‍🗨' : '👁'}</button>
-              <p style={helperStyle}>Minimum 8 characters</p>
+              <div style={{ marginTop: '6px', marginLeft: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span style={{ fontSize: '12px', color: formData.password.length >= 8 ? '#16a34a' : (formData.password.length > 0 ? '#dc2626' : colors.textSecondary) }}>
+                  {formData.password.length >= 8 ? '✓' : '○'} At least 8 characters
+                </span>
+              </div>
             </div>
 
             <div style={fieldContainerStyle}>
@@ -179,6 +183,11 @@ const SignUp = () => {
               <input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required onFocus={handleFocus} onBlur={handleBlur} style={inputStyle} placeholder="••••••••" />
               <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={eyeBtnStyle} tabIndex={-1} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>{showConfirmPassword ? '👁‍🗨' : '👁'}</button>
             </div>
+            {(formData.confirmPassword || formData.password) && (
+              <span style={{ fontSize: '12px', color: formData.password === formData.confirmPassword ? '#16a34a' : '#dc2626', marginTop: '-10px', marginLeft: '8px' }}>
+                {formData.password === formData.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+              </span>
+            )}
 
             <div style={fieldContainerStyle}>
               <label htmlFor="country" style={labelStyle}>Country *</label>

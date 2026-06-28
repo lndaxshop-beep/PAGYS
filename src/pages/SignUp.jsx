@@ -44,7 +44,22 @@ const SignUp = () => {
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError('Password must be at least 8 characters with uppercase, number, and special character');
+      setLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter');
+      setLoading(false);
+      return;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      setError('Password must contain at least one number');
+      setLoading(false);
+      return;
+    }
+    if (!/[\W_]/.test(formData.password)) {
+      setError('Password must contain at least one special character');
       setLoading(false);
       return;
     }
@@ -73,7 +88,7 @@ const SignUp = () => {
       if (err.code === 'auth/email-already-in-use') {
         setError('Email already registered. Please login instead.');
       } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak. Use at least 8 characters.');
+        setError('Password is too weak. Must be at least 8 characters with uppercase, number, and special character.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
       } else if (err.code === 'auth/too-many-requests') {
@@ -173,6 +188,15 @@ const SignUp = () => {
               <div style={{ marginTop: '6px', marginLeft: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <span style={{ fontSize: '12px', color: formData.password.length >= 8 ? '#16a34a' : (formData.password.length > 0 ? '#dc2626' : colors.textSecondary) }}>
                   {formData.password.length >= 8 ? '✓' : '○'} At least 8 characters
+                </span>
+                <span style={{ fontSize: '12px', color: /[A-Z]/.test(formData.password) ? '#16a34a' : (formData.password.length > 0 ? '#dc2626' : colors.textSecondary) }}>
+                  {/[A-Z]/.test(formData.password) ? '✓' : '○'} One uppercase letter
+                </span>
+                <span style={{ fontSize: '12px', color: /[0-9]/.test(formData.password) ? '#16a34a' : (formData.password.length > 0 ? '#dc2626' : colors.textSecondary) }}>
+                  {/[0-9]/.test(formData.password) ? '✓' : '○'} One number
+                </span>
+                <span style={{ fontSize: '12px', color: /[\W_]/.test(formData.password) ? '#16a34a' : (formData.password.length > 0 ? '#dc2626' : colors.textSecondary) }}>
+                  {/[\W_]/.test(formData.password) ? '✓' : '○'} One special character
                 </span>
               </div>
             </div>

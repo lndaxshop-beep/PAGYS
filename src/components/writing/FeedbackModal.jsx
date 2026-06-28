@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
-const MAX_WORDS = 50;
+const MAX_WORDS = 100;
 
 const countWords = (text) => text.trim() ? text.trim().split(/\s+/).length : 0;
 

@@ -311,7 +311,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   const handleApplyFeedback = useCallback(async (currentContentText, feedbackText, feedbackFiles, currentFeedbackSubsection) => {
     if (!feedbackText && feedbackFiles.length === 0) return { error: true, message: 'Please enter feedback or upload files' };
     const wc = feedbackText.trim() ? feedbackText.trim().split(/\s+/).length : 0;
-    if (wc > 50) return { error: true, message: 'Feedback exceeds 50 words. Please shorten it.' };
+    if (wc > 100) return { error: true, message: 'Feedback exceeds 100 words. Please shorten it.' };
     const feedbackKey = activeChapter;
     if ((feedbackUsed[feedbackKey] || 0) >= feedbackLimit) return { error: true, message: `Feedback limit reached (${feedbackLimit}/${feedbackLimit}) for this chapter.` };
     setApplyingSubFeedback(true);

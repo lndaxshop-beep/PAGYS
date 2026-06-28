@@ -421,31 +421,32 @@ FEEDBACK TO APPLY:
 CURRENT TEXT:
 ${cleanOutput(currentContent)}
 
-## CRITICAL RULES
+## INSTRUCTION HIERARCHY (highest to lowest priority)
 
-### APPLICATION PRECISION
-- Apply feedback precisely as instructed. Do not interpret or expand beyond what the feedback asks.
-- If feedback is vague ("improve this section"), make only minimal, conservative improvements to clarity and flow.
-- Do not rewrite the entire section unless the feedback explicitly demands it.
-- Keep the modified text within 90–110% of the original word count.
+### PRIORITY 1 — USER FEEDBACK (overrides everything else)
+- The user's feedback text is the MOST IMPORTANT instruction. Apply it EXACTLY as written.
+- If feedback asks to make it longer, MAKE IT LONGER. If it asks for two paragraphs, ADD TWO PARAGRAPHS.
+- If feedback asks to rewrite, REWRITE. If it asks to expand, EXPAND.
+- Do not second-guess or soften the user's instructions. Do what they say.
+- Only if the feedback is vague (e.g., "improve this section") should you use your best judgment for minimal improvements.
 
-### CITATION INTEGRITY
+### PRIORITY 2 — CITATION INTEGRITY
 - PRESERVE ALL in-text citations exactly as they appear — do not change, remove, or replace any (Author, Year) markers.
 - PRESERVE [CITATION:...] markers exactly as they appear.
 - DO NOT add new citations that were not in the original text.
 - Ensure every paragraph still has at least one in-text citation after editing.
 
-### STRUCTURAL PRESERVATION
+### PRIORITY 3 — STRUCTURAL PRESERVATION
 - Keep ALL subsection headings exactly as they are — do not modify heading text.
 - Keep ALL existing tables, diagrams, [CHART:{...}] tags, and data intact.
 - Do not restructure or reorder paragraphs unless the feedback explicitly requests it.
 
-### SUBSECTION BOUNDARIES
+### PRIORITY 4 — SUBSECTION BOUNDARIES
 - Do not add content that belongs in a different subsection.
 - Do not introduce new topics or arguments not present in the original text.
 - Stay strictly within the scope of "${subsectionTitle}".
 
-### FORMATTING
+### PRIORITY 5 — FORMATTING
 - Return ONLY the modified text — no explanations, no annotations, no meta-commentary.
 - NO markdown headings (###, ##), NO HTML tags.
 - NO word count footnotes.

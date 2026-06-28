@@ -124,6 +124,7 @@ const useSourceLibrary = (projectId, userId) => {
         try {
           localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
         } catch (e) { console.warn('Failed to persist sources:', e); }
+        persistToFirestore(projectId, updated);
         return updated;
       });
       return { success: true, source };
@@ -141,6 +142,7 @@ const useSourceLibrary = (projectId, userId) => {
       try {
         localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
       } catch (e) { console.warn('Failed to persist sources:', e); }
+      persistToFirestore(projectId, updated);
       return updated;
     });
   }, [projectId, userId]);
@@ -197,6 +199,7 @@ const useSourceLibrary = (projectId, userId) => {
     setSources([]);
     setMatrix(null);
     try { localStorage.removeItem(`${STORAGE_KEY}_${projectId}`); } catch {}
+    persistToFirestore(projectId, []);
   }, [projectId]);
 
   const getActiveSources = useCallback(() => {
@@ -210,6 +213,7 @@ const useSourceLibrary = (projectId, userId) => {
       try {
         localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updated));
       } catch (e) { console.warn('Failed to persist sources:', e); }
+      persistToFirestore(projectId, updated);
       return updated;
     });
   }, [projectId]);

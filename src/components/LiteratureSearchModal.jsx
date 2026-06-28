@@ -77,6 +77,7 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
     if (selected.length === 0) return;
     const sources = selected.map(r => ({
       id: `litsearch_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      fileType: 'literature',
       title: r.title,
       authors: r.authors,
       year: parseInt(r.year) || new Date().getFullYear(),

@@ -29,7 +29,7 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
     setResults([]);
     try {
       const searchQuery = encodeURIComponent(query.trim());
-      const url = `https://api.openalex.org/works?search=${searchQuery}&per_page=10&sort=relevance_score:desc&filter=open_access.is_oa:true`;
+      const url = `https://api.openalex.org/works?search=${searchQuery}&per_page=20&sort=relevance_score:desc&filter=open_access.is_oa:true`;
       const response = await fetch(url, {
         headers: { 'Accept': 'application/json' }
       });
@@ -162,36 +162,58 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
               Searching academic sources...
             </div>
           ) : results.length > 0 ? (
-            results.map((r, i) => (
-              <div key={i} onClick={() => toggleSelect(i)} style={resultStyle(i)}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '600', fontSize: '14px', color: colors.text, marginBottom: '4px' }}>{r.title}</div>
-                    <div style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '2px' }}>{r.authors} ({r.year})</div>
-                    {r.journal && <div style={{ fontSize: '11px', color: colors.textSecondary, fontStyle: 'italic' }}>{r.journal}</div>}
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                      {r.isOpenAccess && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#d1fae5', color: '#059669', fontWeight: '600' }}>Open Access</span>}
-                      {r.doi && <span style={{ fontSize: '10px', color: colors.primary }}>DOI: {r.doi}</span>}
-                      {r.citedBy > 0 && <span style={{ fontSize: '10px', color: colors.textSecondary }}>Cited by {r.citedBy}</span>}
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', color: colors.textSecondary }}>
+                  {results.length} results found
+                </span>
+                <button
+                  onClick={() => {
+                    if (selectedIds.size === results.length) setSelectedIds(new Set());
+                    else setSelectedIds(new Set(results.map((_, i) => i)));
+                  }}
+                  style={{
+                    fontSize: '12px', padding: '4px 10px', borderRadius: '4px',
+                    backgroundColor: selectedIds.size === results.length ? 'transparent' : colors.primary,
+                    color: selectedIds.size === results.length ? colors.textSecondary : 'white',
+                    border: `1px solid ${selectedIds.size === results.length ? colors.border : colors.primary}`,
+                    cursor: 'pointer', fontWeight: '500',
+                  }}
+                >
+                  {selectedIds.size === results.length ? '☐ Deselect All' : '☑ Select All'}
+                </button>
+              </div>
+              {results.map((r, i) => (
+                <div key={i} onClick={() => toggleSelect(i)} style={resultStyle(i)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: colors.text, marginBottom: '4px' }}>{r.title}</div>
+                      <div style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '2px' }}>{r.authors} ({r.year})</div>
+                      {r.journal && <div style={{ fontSize: '11px', color: colors.textSecondary, fontStyle: 'italic' }}>{r.journal}</div>}
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                        {r.isOpenAccess && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#d1fae5', color: '#059669', fontWeight: '600' }}>Open Access</span>}
+                        {r.doi && <span style={{ fontSize: '10px', color: colors.primary }}>DOI: {r.doi}</span>}
+                        {r.citedBy > 0 && <span style={{ fontSize: '10px', color: colors.textSecondary }}>Cited by {r.citedBy}</span>}
+                      </div>
+                      {r.abstract && <div style={{ fontSize: '12px', color: colors.text, marginTop: '4px', lineHeight: '1.4' }}>{r.abstract}</div>}
+                      {r.uri && <div style={{ fontSize: '11px', color: colors.primary, marginTop: '2px', wordBreak: 'break-all' }}>{r.uri}</div>}
                     </div>
-                    {r.abstract && <div style={{ fontSize: '12px', color: colors.text, marginTop: '4px', lineHeight: '1.4' }}>{r.abstract}</div>}
-                    {r.uri && <div style={{ fontSize: '11px', color: colors.primary, marginTop: '2px', wordBreak: 'break-all' }}>{r.uri}</div>}
-                  </div>
-                  <div style={{
-                    width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0, marginTop: '2px',
-                    backgroundColor: selectedIds.has(i) ? '#059669' : 'transparent',
-                    border: `2px solid ${selectedIds.has(i) ? '#059669' : colors.border}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '14px', fontWeight: '700',
-                  }}>
-                    {selectedIds.has(i) ? '✓' : ''}
+                    <div style={{
+                      width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0, marginTop: '2px',
+                      backgroundColor: selectedIds.has(i) ? '#059669' : 'transparent',
+                      border: `2px solid ${selectedIds.has(i) ? '#059669' : colors.border}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', fontSize: '14px', fontWeight: '700',
+                    }}>
+                      {selectedIds.has(i) ? '✓' : ''}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px', color: colors.textSecondary, fontSize: '14px' }}>
-              {results.length === 0 ? 'Enter a search query above to find open-access academic papers. Results will appear here.' : ''}
+              Enter a search query above to find open-access academic papers. Results will appear here.
             </div>
           )}
         </div>

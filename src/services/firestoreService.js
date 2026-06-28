@@ -147,6 +147,22 @@ export const getSubsectionVersions = async (projectId) => {
   } catch (e) { logError('getSubsectionVersions', e); throw e; }
 };
 
+export const saveSources = async (projectId, sources) => {
+  try {
+    await setDoc(doc(db, 'sourceLibraries', projectId.toString()), {
+      sources, updatedAt: new Date().toISOString(),
+    });
+  } catch (e) { logError('saveSources', e); throw e; }
+};
+
+export const getSources = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'sourceLibraries', projectId.toString()));
+    if (snap.exists()) return snap.data().sources || [];
+    return [];
+  } catch (e) { logError('getSources', e); throw e; }
+};
+
 export const saveVisualData = async (projectId, type, data) => {
   try {
     await setDoc(doc(db, 'visuals', projectId.toString()), {

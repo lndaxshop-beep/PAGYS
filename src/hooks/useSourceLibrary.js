@@ -1,20 +1,69 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { extractTextFromFile, getFileType } from '../utils/fileExtractors';
 import { extractPaperMetadata, generateLiteratureMatrix } from '../services/gemini/sourceExtractor';
 
 const STORAGE_KEY = 'userSources';
+const SAVE_DEBOUNCE = 2000;
 
 const getCacheKey = (sources, projectId) => {
   const hash = sources.length.toString(36) + sources.reduce((s, src) => s + (src.title?.length || 0) + (src.authors?.length || 0), 0).toString(36);
   return `litmatrix_${projectId}_${hash}`;
 };
 
+const persistToLocal = (projectId, sources) => {
+  try {
+    localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(sources));
+  } catch (e) { console.warn('Failed to persist sources to localStorage:', e); }
+};
+
+const persistToFirestore = async (projectId, sources) => {
+  try {
+    const { saveSources } = await import('../services/firestoreService');
+    await saveSources(projectId, sources);
+  } catch (e) { console.error('Failed to persist sources to Firestore:', e); }
+};
+
 const useSourceLibrary = (projectId, userId) => {
-  const [sources, setSources] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(`${STORAGE_KEY}_${projectId}`) || '[]');
-    } catch { return []; }
-  });
+  const [loaded, setLoaded] = useState(false);
+  const [sources, setSources] = useState([]);
+  const saveTimerRef = useRef(null);
+
+  // Load from Firestore on mount, fall back to localStorage
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getSources } = await import('../services/firestoreService');
+        const firestoreSources = await getSources(projectId);
+        if (cancelled) return;
+        if (firestoreSources.length > 0) {
+          setSources(firestoreSources);
+          persistToLocal(projectId, firestoreSources);
+        } else {
+          const local = JSON.parse(localStorage.getItem(`${STORAGE_KEY}_${projectId}`) || '[]');
+          if (!cancelled) setSources(local);
+        }
+      } catch {
+        if (!cancelled) {
+          const local = JSON.parse(localStorage.getItem(`${STORAGE_KEY}_${projectId}`) || '[]');
+          setSources(local);
+        }
+      }
+      if (!cancelled) setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [projectId]);
+
+  // Debounced Firestore save whenever sources change
+  useEffect(() => {
+    if (!loaded || !projectId) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      persistToFirestore(projectId, sources);
+    }, SAVE_DEBOUNCE);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [sources, loaded, projectId]);
   const [sourceMode, setSourceMode] = useState('ai-only');
   const [extracting, setExtracting] = useState(false);
   const [matrix, setMatrix] = useState(null);
@@ -31,13 +80,6 @@ const useSourceLibrary = (projectId, userId) => {
       setMatrix(null);
     }
   }, [sources.length, projectId]);
-
-  const persistSources = (updatedSources) => {
-    setSources(updatedSources);
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(updatedSources));
-    } catch (e) { console.warn('Failed to persist sources:', e); }
-  };
 
   const addSource = useCallback(async (file) => {
     setExtracting(true);

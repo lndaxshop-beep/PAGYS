@@ -23,13 +23,13 @@ import ContentArea from '../components/writing/ContentArea';
 import ContentButtons from '../components/writing/ContentButtons';
 import ChapterStructureModal from '../components/writing/ChapterStructureModal';
 import FeedbackModal from '../components/writing/FeedbackModal';
-import ShortcutsModal from '../components/ShortcutsModal';
+
 import LiteratureSearchModal from '../components/LiteratureSearchModal';
 import AIDetectionDashboard from '../components/AIDetectionDashboard';
 import DiffModal from '../components/DiffModal';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject } from '../services/firestoreService';
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+
 import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import VersionBrowser from '../components/writing/VersionBrowser';
@@ -78,7 +78,6 @@ const Write = () => {
   const [isViewingReferences, setIsViewingReferences] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [confirmModal, setConfirmModal] = useState(null);
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [showLitSearchModal, setShowLitSearchModal] = useState(false);
   const [showAIDetection, setShowAIDetection] = useState(false);
   const [diffModal, setDiffModal] = useState({ show: false, oldText: '', newText: '', onAccept: null, title: '' });
@@ -131,18 +130,10 @@ const Write = () => {
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    handlers: {
-      save: () => {
-        const saveBtn = document.querySelector('[data-save-btn]');
-        if (saveBtn) saveBtn.click();
-        toastSuccess('Content saved');
-      },
-      toggleEdit: () => setIsPreviewMode(prev => !prev),
-      toggleShortcuts: () => setShowShortcutsModal(prev => !prev),
-      escape: () => {
-        setShowShortcutsModal(false);
+  // Global escape handler
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
         setShowLitSearchModal(false);
         setShowAIDetection(false);
         setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
@@ -152,8 +143,10 @@ const Write = () => {
         modals.setShowChapterStructureModal(false);
         modals.setShowDataCollectionModal(false);
       }
-    }
-  });
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [modals]);
 
   useEffect(() => {
     const loadProject = async () => {
@@ -844,7 +837,7 @@ const Write = () => {
               ☰
             </button>
             <div style={{ flex: 1 }}>
-              <WriteHeader onBack={() => navigate('/dashboard')} onToggleShortcuts={() => setShowShortcutsModal(true)} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowHelpModal(true)} projectId={projectId} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceMode={sourceLibrary.sourceMode} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
+              <WriteHeader onBack={() => navigate('/dashboard')} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleAIDetection={() => setShowAIDetection(true)} onToggleTour={() => setShowHelpModal(true)} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
             </div>
           </div>
 
@@ -1125,7 +1118,6 @@ const Write = () => {
         onSaveSources={handleSaveLitSources}
         project={project}
       />
-      <ShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
       <DiffModal
         isOpen={diffModal.show}
         oldText={diffModal.oldText}

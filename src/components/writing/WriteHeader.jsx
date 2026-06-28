@@ -53,33 +53,27 @@ const WordCount = ({ count }) => {
   );
 };
 
-const SourceModeBadge = ({ sourceMode, sourceCount }) => {
-  const config = {
-    'user-only': { icon: '📚', label: 'My Sources', bg: '#f5f3ff', color: '#7c3aed' },
-    'ai-only': { icon: '🤖', label: 'AI Sources', bg: '#f0fdf4', color: '#16a34a' },
-    'combine': { icon: '🔗', label: 'Combined', bg: '#fff7ed', color: '#ea580c' },
-  };
-  const c = config[sourceMode] || config['ai-only'];
+const LiteratureApplied = ({ count }) => {
+  if (count === undefined || count === null) return null;
   return (
-    <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '12px', backgroundColor: c.bg, color: c.color, fontWeight: '500', whiteSpace: 'nowrap' }}>
-      {c.icon} {c.label}{sourceCount > 0 ? ` (${sourceCount})` : ''}
+    <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 10px', borderRadius: '12px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '500', whiteSpace: 'nowrap' }}>
+      📖 Literature Applied{count > 0 ? ` (${count})` : ''}
     </span>
   );
 };
 
-const WriteHeader = ({ onBack, onToggleShortcuts, onToggleLitSearch, onToggleAIDetection, onToggleTour, projectId, saveStatus, lastSaved, onSaveNow, wordCount, sourceMode, sourceCount, isPremium }) => {
+const WriteHeader = ({ onBack, onToggleLitSearch, onToggleAIDetection, onToggleTour, saveStatus, lastSaved, onSaveNow, wordCount, sourceCount, isPremium }) => {
   const { colors } = useTheme();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <button onClick={onBack} style={{ color: colors.primary, background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>← Back to Dashboard</button>
-        {sourceMode && <SourceModeBadge sourceMode={sourceMode} sourceCount={sourceCount || 0} />}
+        <LiteratureApplied count={sourceCount || 0} />
         <SaveIndicator saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={onSaveNow} />
         <WordCount count={wordCount} />
       </div>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <button onClick={onToggleTour} title="Feature Tour" style={{ backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', lineHeight: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>?</button>
-        <button onClick={onToggleShortcuts} title="Keyboard Shortcuts" style={{ backgroundColor: 'transparent', color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '6px 8px', fontSize: '14px', cursor: 'pointer', lineHeight: '1' }}>⌨</button>
         {isPremium && <button data-tour="literature-btn" onClick={onToggleLitSearch} title="Literature Search" style={{ backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(79,70,229,0.3)' }}>📚 Search Literature</button>}
         <button onClick={onToggleAIDetection} title="Check content originality" style={{ backgroundColor: '#0891b2', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', boxShadow: '0 1px 3px rgba(8,145,178,0.3)' }}>🤖 AI Score</button>
       </div>

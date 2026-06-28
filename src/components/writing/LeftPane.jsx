@@ -15,7 +15,7 @@ const LeftPane = ({
   onDeleteSubsection, onRestoreSubsection, onRenameSubsection, generatingSubtopics,
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
   draggedItem, dragOverItem, chapterWordCounts,
-  generatingAll, onGenerateAll,
+  generatingAll, onGenerateAll, onPauseWriteAll, onCancelWriteAll, onContinueWriteAll,
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
   onUpdateGuidelines, isPremium,
   onEditWordCount, regeneratingChapter,
@@ -270,8 +270,64 @@ const LeftPane = ({
                   <AddSubsection onAdd={(title) => onAddSubsection(title, chapter.id)} />
                   {isPremium && onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
                     generatingAll && generatingAll.chapterId === chapter.id ? (
-                      <div style={{ marginTop: '12px', padding: '8px', fontSize: '12px', color: colors.primary, textAlign: 'center', backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
-                        Writing {generatingAll.completed}/{generatingAll.total}...
+                      <div style={{
+                        marginTop: '12px', padding: '12px',
+                        backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff',
+                        borderRadius: '8px', border: `1px solid ${colors.border}`
+                      }}>
+                        <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', color: colors.textSecondary }}>
+                            Writing {generatingAll.completed}/{generatingAll.total}
+                          </span>
+                          <span style={{ fontSize: '11px', color: colors.primary, fontWeight: '600' }}>
+                            {generatingAll.total > 0 ? Math.round((generatingAll.completed / generatingAll.total) * 100) : 0}%
+                          </span>
+                        </div>
+                        <div style={{
+                          height: '6px', backgroundColor: isDarkMode ? '#3d3d3d' : '#e5e7eb',
+                          borderRadius: '999px', overflow: 'hidden', marginBottom: '8px'
+                        }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${generatingAll.total > 0 ? (generatingAll.completed / generatingAll.total) * 100 : 0}%`,
+                            backgroundColor: colors.primary, borderRadius: '999px',
+                            transition: 'width 0.3s'
+                          }} />
+                        </div>
+                        {generatingAll.currentTitle && (
+                          <p style={{ fontSize: '11px', color: colors.text, margin: '0 0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            Currently writing: <strong>"{generatingAll.currentTitle}"</strong>
+                          </p>
+                        )}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {generatingAll.paused ? (
+                            <button onClick={onContinueWriteAll} style={{
+                              padding: '6px 12px', fontSize: '11px',
+                              backgroundColor: colors.primary, color: 'white',
+                              border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500',
+                              flex: 1
+                            }}>
+                              ▶ Continue
+                            </button>
+                          ) : (
+                            <button onClick={onPauseWriteAll} style={{
+                              padding: '6px 12px', fontSize: '11px',
+                              backgroundColor: '#d97706', color: 'white',
+                              border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500',
+                              flex: 1
+                            }}>
+                              ⏸ Pause
+                            </button>
+                          )}
+                          <button onClick={onCancelWriteAll} style={{
+                            padding: '6px 12px', fontSize: '11px',
+                            backgroundColor: '#dc2626', color: 'white',
+                            border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500',
+                            flex: 1
+                          }}>
+                            ✕ Cancel
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button

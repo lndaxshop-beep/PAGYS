@@ -9,13 +9,14 @@ const ContentButtons = ({
   referencesSub, referencesGenerated,
   onGenerate, onHumanise, onFeedback, onPrev, onNext, onComplete, getButtonText,
   humaniseAvailable, feedbackAvailable, humaniseLeft, feedbackLeft,
-  onResetHumanise, onResetFeedback, onOpenVersions
+  onResetHumanise, onResetFeedback, onOpenVersions,
+  generatingAll,
 }) => {
   const { colors } = useTheme();
   const { fmt } = useCurrency();
   const sub = activeSubsections[currentSubsectionIndex];
   const subId = sub?.id || '';
-  const canGenerate = !generating && currentSubsection && !currentSubsection?.generated;
+  const canGenerate = !generating && !generatingAll && currentSubsection && !currentSubsection?.generated;
   const canHumanise = !humanising && currentSubsection?.generated && humaniseAvailable;
   const canFeedback = currentSubsection?.generated && feedbackAvailable;
 

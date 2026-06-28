@@ -92,6 +92,8 @@ const Write = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [regeneratingChapter, setRegeneratingChapter] = useState(null);
   const [isEditingWordCount, setIsEditingWordCount] = useState(null);
+  const writeAllStateRef = useRef({ paused: false, cancelled: false });
+  const pauseResolveRef = useRef(null);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
   const projectCache = useRef({});
@@ -419,6 +421,7 @@ const Write = () => {
   };
 
   const wrappedGenerateCurrent = async () => {
+    if (generatingAll) { toastError('Please wait for Write All to complete first.'); return; }
     try {
       const result = await handleGenerateCurrent(activeSubsections);
       if (!result || result.error) { toastError(result?.message || 'Writing failed.'); return; }
@@ -596,34 +599,71 @@ const Write = () => {
   };
 
   const handleGenerateAll = async (chapterId) => {
+    writeAllStateRef.current = { paused: false, cancelled: false };
     const chapter = chapters.find(c => c.id === chapterId);
     if (!chapter) return;
     const subs = chapter.subsections.filter(s => !s.generated && s.type !== 'references' && !s.deleted);
     if (subs.length === 0) { toastError('All subsections already written.'); return; }
-    setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId });
+    setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId, currentTitle: '', paused: false });
     const activeSubsList = chapter.subsections.filter(s => !s.deleted && s.type !== 'references');
     let errorCount = 0;
+    let wasCancelled = false;
     for (let i = 0; i < subs.length; i++) {
+      if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
+      while (writeAllStateRef.current.paused) {
+        await new Promise(resolve => { pauseResolveRef.current = resolve; });
+        if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
+      }
+      if (wasCancelled) break;
       const sub = subs[i];
+      setGeneratingAll(prev => prev ? { ...prev, currentTitle: sub.title } : null);
       const subIndex = activeSubsList.findIndex(s => s.id === sub.id);
       if (subIndex === -1) continue;
+      if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
       const result = await generateSubsectionContent(chapterId, sub.title, sub.id, subIndex, activeSubsList);
-      if (result?.error) { errorCount++; setGeneratingAll(prev => prev ? { ...prev, errors: prev.errors + 1, completed: prev.completed + 1 } : null); continue; }
-      if (result?.skipped) { setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null); continue; }
+      if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
+      if (result?.error) { errorCount++; setGeneratingAll(prev => prev ? { ...prev, errors: prev.errors + 1, completed: prev.completed + 1, currentTitle: '' } : null); continue; }
+      if (result?.skipped) { setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1, currentTitle: '' } : null); continue; }
       setChapterCitations(prev => ({ ...prev, [chapterId]: [...new Set([...(prev[chapterId] || []), ...result.citations])] }));
       setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], [result.subsectionId]: result.content } }));
       setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: ch.subsections.map(s => s.id === result.subsectionId ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s) } : ch));
-      setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1 } : null);
+      setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1, currentTitle: '' } : null);
     }
     setGeneratingAll(null);
-    if (errorCount > 0) toastError(`${errorCount} subsection(s) failed to write.`);
-    else {
+    if (wasCancelled) {
+      toastSuccess('Write All cancelled.');
+    } else if (errorCount > 0) {
+      toastError(`${errorCount} subsection(s) failed to write.`);
+    } else if (subs.length > 0) {
       toastSuccess(`All ${subs.length} subsection(s) written successfully!`);
       autoGenerateReferences(chapterId, true).then(refResult => {
         if (refResult && refResult.content) {
           setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
         }
       }).catch(e => console.error('Auto-generate references failed:', e));
+    }
+  };
+
+  const handlePauseWriteAll = () => {
+    writeAllStateRef.current.paused = true;
+    setGeneratingAll(prev => prev ? { ...prev, paused: true } : null);
+  };
+
+  const handleContinueWriteAll = () => {
+    writeAllStateRef.current.paused = false;
+    if (pauseResolveRef.current) {
+      pauseResolveRef.current();
+      pauseResolveRef.current = null;
+    }
+    setGeneratingAll(prev => prev ? { ...prev, paused: false } : null);
+  };
+
+  const handleCancelWriteAll = () => {
+    writeAllStateRef.current.cancelled = true;
+    writeAllStateRef.current.paused = false;
+    if (pauseResolveRef.current) {
+      pauseResolveRef.current();
+      pauseResolveRef.current = null;
     }
   };
 
@@ -788,7 +828,7 @@ const Write = () => {
           onAddSubsection={handleAddSubsection} onSubsectionClick={wrappedHandleSubsectionClick} generatingSubtopics={generatingSubtopics}
           generatedSubsections={generatedSubsections} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleWrappedDrop}
           onDragEnd={handleDragEnd} draggedItem={draggedItem} dragOverItem={dragOverItem} chapterWordCounts={chapterWordCounts}
-          generatingAll={generatingAll} onGenerateAll={handleGenerateAll}
+          generatingAll={generatingAll} onGenerateAll={handleGenerateAll} onPauseWriteAll={handlePauseWriteAll} onCancelWriteAll={handleCancelWriteAll} onContinueWriteAll={handleContinueWriteAll}
           onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
           onUpdateGuidelines={handleUpdateGuidelines}
           isPremium={project?.tier === 'premium'}
@@ -891,6 +931,7 @@ const Write = () => {
                 activeSubsections={activeSubsections}
                 generating={generating}
                 humanising={humanising}
+                generatingAll={generatingAll}
                 chapterComplete={chapterComplete}
                 overallProgress={overallProgress}
                 generatedActive={generatedActive}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import CountryFlag from '../CountryFlag';
 import { getWelcomeMessage } from '../../utils/dashboardHelpers';
@@ -7,7 +7,8 @@ import { useResponsive } from '../../hooks/useResponsive';
 const DashboardHeader = ({ user, showRecycleBin, onToggleRecycleBin, onCreateProject, deletedCount }) => {
   const { colors } = useTheme();
   const { isMobile } = useResponsive();
-  const welcome = getWelcomeMessage(user);
+  const [welcome, setWelcome] = useState(() => getWelcomeMessage(user));
+  useEffect(() => { setWelcome(getWelcomeMessage(user)); }, [user]);
   const message = typeof welcome === 'object' ? welcome.text : welcome;
   const isFirstVisit = typeof welcome === 'object' ? welcome.isFirstVisit : true;
   return (

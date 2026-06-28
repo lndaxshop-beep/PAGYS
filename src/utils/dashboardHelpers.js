@@ -17,8 +17,9 @@ export const calculateProjectProgress = (project, chapters, content) => {
 
 export const getDisplayName = (user) => {
   if (!user) return 'Guest';
+  if (user.username) return user.username;
   if (user.fullName) return user.fullName.split(' ')[0];
-  return user.username || user.email?.split('@')[0] || 'Guest';
+  return user.email?.split('@')[0] || 'Guest';
 };
 
 export const getWelcomeMessage = (user) => {

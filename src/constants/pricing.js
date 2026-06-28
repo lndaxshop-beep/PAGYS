@@ -35,6 +35,7 @@ export const PRICES_GHS = {
   humaniseReset: 2,
   feedbackReset: 2,
   defenceRegen: 2,
+  wordCountEdit: 5,
 };
 
 export const getUserCountry = (user) => {

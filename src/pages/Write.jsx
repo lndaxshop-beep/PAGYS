@@ -90,6 +90,8 @@ const Write = () => {
   const [showPlagiarismModal, setShowPlagiarismModal] = useState(false);
   const [plagiarismResult, setPlagiarismResult] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [regeneratingChapter, setRegeneratingChapter] = useState(null);
+  const [isEditingWordCount, setIsEditingWordCount] = useState(null);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
   const projectCache = useRef({});
@@ -244,6 +246,37 @@ const Write = () => {
     return () => window.removeEventListener('projectUpgraded', onUpgraded);
   }, [projectId]);
 
+  useEffect(() => {
+    if (!regeneratingChapter) return;
+    const doRegenerate = async () => {
+      const chapter = chapters.find(c => c.id === regeneratingChapter);
+      if (!chapter) { setRegeneratingChapter(null); return; }
+      const activeSubsList = chapter.subsections.filter(s => !s.deleted && s.type !== 'references');
+      const generatedSubs = activeSubsList.filter(s => s.generated);
+      if (generatedSubs.length === 0) { setRegeneratingChapter(null); toastSuccess('Word count updated!'); return; }
+      for (let i = 0; i < generatedSubs.length; i++) {
+        const sub = generatedSubs[i];
+        const subIndex = activeSubsList.findIndex(s => s.id === sub.id);
+        if (subIndex === -1) continue;
+        const result = await generateSubsectionContent(regeneratingChapter, sub.title, sub.id, subIndex, activeSubsList, true);
+        if (result?.error) { toastError(`Failed to regenerate "${sub.title}": ${result.message}`); continue; }
+        if (result?.skipped) continue;
+        setChapterCitations(prev => ({ ...prev, [regeneratingChapter]: [...new Set([...(prev[regeneratingChapter] || []), ...result.citations])] }));
+        setGeneratedSubsections(prev => ({ ...prev, [regeneratingChapter]: { ...prev[regeneratingChapter], [result.subsectionId]: result.content } }));
+        const derivedCurrentSub = activeSubsections.find(s => s.id === currentSubsection?.id);
+        if (derivedCurrentSub?.id === result.subsectionId) setCurrentContent(result.content);
+      }
+      setRegeneratingChapter(null);
+      toastSuccess('Content regenerated with new word count!');
+      autoGenerateReferences(regeneratingChapter, true).then(refResult => {
+        if (refResult && refResult.content) {
+          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+        }
+      }).catch(e => console.error('Auto-generate references failed:', e));
+    };
+    doRegenerate();
+  }, [regeneratingChapter, chapters, generateSubsectionContent]);
+
   const handleDeleteWithUndo = (subsectionId, chapterId) => {
     const chapter = chapters.find(c => c.id === (chapterId || activeChapter));
     const sub = chapter?.subsections.find(s => s.id === subsectionId);
@@ -318,13 +351,28 @@ const Write = () => {
     return await previewSubtopics(chapterId, referenceData);
   };
 
-  const wrappedHandleWordCountSubmit = (range, useCustom) => {
-    handleWordCountSubmit(range, useCustom, modals.pendingChapterAfterWordCount, modals.setShowWordCountModal);
+  const wrappedHandleWordCountSubmit = async (range, useCustom) => {
+    const chapterId = modals.pendingChapterAfterWordCount;
+    if (isEditingWordCount) {
+      const success = await processSmallPayment(projectId, PRICES_GHS.wordCountEdit,
+        { type: 'wordcount_edit', chapter: isEditingWordCount },
+        () => {
+          handleWordCountSubmit(range, useCustom, chapterId, modals.setShowWordCountModal, true);
+          setRegeneratingChapter(chapterId);
+        }
+      );
+      if (success) {
+        setIsEditingWordCount(null);
+        modals.setPendingChapterAfterWordCount(null);
+      }
+      return;
+    }
+    handleWordCountSubmit(range, useCustom, chapterId, modals.setShowWordCountModal, false);
     modals.setShowWordCountModal(false);
-    if (modals.pendingChapterAfterWordCount) {
-      const chapter = chapters.find(c => c.id === modals.pendingChapterAfterWordCount);
+    if (chapterId) {
+      const chapter = chapters.find(c => c.id === chapterId);
       if (chapter) {
-        setActiveChapter(modals.pendingChapterAfterWordCount); setIsViewingReferences(false); setIsPreviewMode(true);
+        setActiveChapter(chapterId); setIsViewingReferences(false); setIsPreviewMode(true);
         const idx = chapter.subsections.findIndex(s => s.type !== 'references');
         setCurrentSubsectionIndex(idx >= 0 ? idx : 0); setCurrentContent(''); setShowReferenceInTextarea(false);
       }
@@ -516,6 +564,12 @@ const Write = () => {
       console.error('Feedback application failed:', error);
       toastError('Feedback application failed: ' + error.message);
     }
+  };
+
+  const handleEditWordCount = (chapterId) => {
+    setIsEditingWordCount(chapterId);
+    modals.setPendingChapterAfterWordCount(chapterId);
+    modals.setShowWordCountModal(true);
   };
 
   const handleLiteratureTypeSubmit = (type) => {
@@ -738,6 +792,8 @@ const Write = () => {
           onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
           onUpdateGuidelines={handleUpdateGuidelines}
           isPremium={project?.tier === 'premium'}
+          onEditWordCount={handleEditWordCount}
+          regeneratingChapter={regeneratingChapter}
           />
       </div>
 
@@ -877,7 +933,7 @@ const Write = () => {
 
       {modals.showDataCollectionModal && project && <DataCollectionModal project={project} onClose={() => modals.setShowDataCollectionModal(false)} onDownload={handleInstrumentsDownload} onNotify={toastError} />}
       {modals.showUploadFindings && project && <UploadFindings project={project} onClose={() => modals.setShowUploadFindings(false)} onUpload={handleUploadFindings} onGenerateWithAI={handleGenerateWithAI} />}
-      {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={handleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); }} stepIndicator={modals.pendingChapterAfterWordCount === 'chapter2' && modals.literatureReviewType ? 'Step 3 of 3: Word Count' : undefined} />}
+      {modals.showWordCountModal && <WordCountModal chapter={chapters.find(c => c.id === modals.pendingChapterAfterWordCount)} level={project?.level} currentWordCount={chapterWordCounts[modals.pendingChapterAfterWordCount]} onSubmit={wrappedHandleWordCountSubmit} onClose={() => { modals.setShowWordCountModal(false); modals.setPendingChapterAfterWordCount(null); setIsEditingWordCount(null); }} stepIndicator={modals.pendingChapterAfterWordCount === 'chapter2' && modals.literatureReviewType ? 'Step 3 of 3: Word Count' : undefined} isEditing={!!isEditingWordCount} />}
       {modals.showLiteratureTypeModal && <LiteratureReviewTypeModal topic={project?.title} field={project?.field} project={project} onSubmit={handleLiteratureTypeSubmit} onClose={() => { modals.setShowLiteratureTypeModal(false); modals.setPendingChapterForStructure(null); }} />}
 
       <ChapterStructureModal

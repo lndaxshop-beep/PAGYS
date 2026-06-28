@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 
-const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, stepIndicator }) => {
+const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, stepIndicator, isEditing }) => {
   const { colors, isDarkMode } = useTheme();
   const [useCustom, setUseCustom] = useState(false);
   const [customMin, setCustomMin] = useState(currentWordCount?.min || '');
@@ -143,7 +143,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
           </div>
           <div>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '4px' }}>
-              Word Count for {chapter ? getChapterDisplayTitle(chapter) : ''}
+              {isEditing ? 'Edit Word Count for ' : 'Word Count for '}{chapter ? getChapterDisplayTitle(chapter) : ''}
             </h2>
             <p style={{ color: colors.textSecondary, fontSize: '14px' }}>
               {level?.charAt(0).toUpperCase() + level?.slice(1)} Level Thesis
@@ -390,7 +390,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
               e.target.style.transform = 'translateY(0)';
             }}
           >
-            Continue
+            {isEditing ? 'Save Changes & Regenerate' : 'Continue'}
           </button>
           <button
             onClick={onClose}
@@ -416,6 +416,21 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
             Cancel
           </button>
         </div>
+
+        {isEditing && (
+          <p style={{
+            textAlign: 'center',
+            marginTop: '12px',
+            fontSize: '12px',
+            color: '#f59e0b',
+            backgroundColor: isDarkMode ? '#2d2d2d' : '#fffbeb',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            border: `1px solid ${isDarkMode ? '#3d3d3d' : '#fde68a'}`
+          }}>
+            ⚠️ Changing the word count will regenerate all existing content for this chapter.
+          </p>
+        )}
 
         {/* Info about word count distribution */}
         <p style={{

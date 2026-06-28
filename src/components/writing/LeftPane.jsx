@@ -18,6 +18,7 @@ const LeftPane = ({
   generatingAll, onGenerateAll,
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
   onUpdateGuidelines, isPremium,
+  onEditWordCount, regeneratingChapter,
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
@@ -156,6 +157,45 @@ const LeftPane = ({
                   {generatingSubtopics && chapter.id === activeChapter && (
                     <div style={{ textAlign: 'center', padding: '16px' }}>
                       <p style={{ color: colors.primary, fontSize: '13px' }}>Creating subtopics...</p>
+                    </div>
+                  )}
+
+                  {chapterWordCounts?.[chapter.id] && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '8px 12px', marginBottom: '8px',
+                      backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f9ff',
+                      borderRadius: '6px', border: `1px solid ${colors.border}`
+                    }}>
+                      <span style={{ fontSize: '12px', color: colors.textSecondary }}>
+                        📝 {chapterWordCounts[chapter.id].min}–{chapterWordCounts[chapter.id].max} words
+                      </span>
+                      {onEditWordCount && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onEditWordCount(chapter.id); }}
+                          disabled={regeneratingChapter === chapter.id}
+                          style={{
+                            fontSize: '11px', padding: '4px 8px',
+                            backgroundColor: 'transparent', color: colors.primary,
+                            border: `1px solid ${colors.primary}`, borderRadius: '4px',
+                            cursor: regeneratingChapter === chapter.id ? 'not-allowed' : 'pointer',
+                            opacity: regeneratingChapter === chapter.id ? 0.5 : 1
+                          }}
+                        >
+                          {regeneratingChapter === chapter.id ? '...' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {regeneratingChapter === chapter.id && (
+                    <div style={{
+                      textAlign: 'center', padding: '10px', marginBottom: '8px',
+                      color: colors.primary, fontSize: '12px',
+                      backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff',
+                      borderRadius: '6px', border: `1px solid ${colors.border}`
+                    }}>
+                      Regenerating content with new word count...
                     </div>
                   )}
 

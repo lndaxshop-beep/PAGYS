@@ -85,12 +85,12 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (error) { setGeneratingVisual(false); throw error; }
   }, [project, uploadedFindings]);
 
-  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList) => {
+  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList, force = false) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return { error: true, message: 'Chapter not found.' };
     const sub = ch.subsections.find(s => s.id === subId);
     if (!sub) return { error: true, message: 'Subsection not found.' };
-    if (sub.generated) return { skipped: true, reason: 'already generated' };
+    if (sub.generated && !force) return { skipped: true, reason: 'already generated' };
     if (sub.type === 'references') return { skipped: true, reason: 'references' };
 
     const cacheKey = `${chapterId}:${subId}:${ch.guidelines || ''}`;

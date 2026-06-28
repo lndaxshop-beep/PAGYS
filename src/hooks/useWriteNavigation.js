@@ -55,7 +55,7 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     setPendingChapterForStructure(null);
   }, [chapters, chapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings]);
 
-  const handleWordCountSubmit = useCallback((range, useCustom, pendingChapterAfterWordCount, setShowWordCountModal) => {
+  const handleWordCountSubmit = useCallback((range, useCustom, pendingChapterAfterWordCount, setShowWordCountModal, isEdit = false) => {
     setChapterWordCounts(prev => ({ ...prev, [pendingChapterAfterWordCount]: range }));
     setChapterWordCountSet(prev => ({ ...prev, [pendingChapterAfterWordCount]: true }));
     setChapters(prev => prev.map(ch => ch.id === pendingChapterAfterWordCount ? { ...ch, wordCount: range, wordCountSet: true } : ch));

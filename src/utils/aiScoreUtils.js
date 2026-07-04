@@ -11,7 +11,13 @@ export const computeAIScores = (text, sources = []) => {
   const openings = analyzeSentenceOpenings(text);
   const formality = computeFormalityIndex(text);
   const sentenceData = computeSentenceScores(text, sources);
-  const score = perplexity.score;
+  const score = Math.round(
+    perplexity.score * 0.25 +
+    burstinessScore * 0.20 +
+    stylometricScore * 0.20 +
+    formalityScore * 0.20 +
+    repetition.score * 0.15
+  );
   const formalityScore = Math.round((1 - formality.score) * 100);
   const stylometricScore = Math.round(Math.max(0, Math.min(100,
     (1 - Math.min(1, banned.length / Math.max(1, sentenceData.totalSentences || 1) * 5)) * 50 +

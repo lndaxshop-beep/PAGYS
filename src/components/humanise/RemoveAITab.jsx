@@ -108,6 +108,9 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   const [expandedChapter, setExpandedChapter] = useState(null);
   const [checkingScore, setCheckingScore] = useState({});
   const [scoreHistory, setScoreHistory] = useState({});
+  const [selectedSentence, setSelectedSentence] = useState(null);
+  const [sentenceEdits, setSentenceEdits] = useState({});
+  const [showManualEdit, setShowManualEdit] = useState(null);
 
   useEffect(() => {
     try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {}
@@ -167,17 +170,28 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
         }
         const chapterTitle = getChapterDisplayTitle(ch);
         const { humaniseContent } = await import('../../services/geminiService');
-        const { calculateBurstiness, scanBannedPhrases } = await import('../../services/gemini/antiDetection');
-        const preBurstiness = calculateBurstiness(fullContent);
-        const preBanned = scanBannedPhrases(fullContent);
-        const diagnosticReport = `## PRE-HUMANISE DIAGNOSTICS\n- Burstiness coefficient of variation: ${preBurstiness.cv.toFixed(3)}\n- Banned phrases detected: ${preBanned.length}`;
+        const { computeAIScores } = await import('../../utils/aiScoreUtils');
+        const { enrichSentencesWithSuggestions } = await import('../../services/gemini/sentenceSuggestions');
+        const preScore = computeAIScores(fullContent);
+        setScoreHistory(prev => {
+          const existing = prev[chId] || [];
+          if (existing.length === 0 && preScore) {
+            return { ...prev, [chId]: [preScore.score] };
+          }
+          return prev;
+        });
+        const preSentences = preScore?.sentences || [];
+        const preEnriched = enrichSentencesWithSuggestions(preSentences);
+        const flaggedSentences = preEnriched.filter(s => s.aiProbability > 0.5);
+        const diagnosticReport = `## PRE-HUMANISE DIAGNOSTICS\n- Burstiness CV: ${preScore?.burstiness?.cv?.toFixed(3) || 'N/A'}\n- Banned phrases: ${preScore?.banned?.count || 0}\n- Flagged sentences: ${flaggedSentences.length} of ${preSentences.length}`;
         const humanisedText = await humaniseContent(fullContent, {
           topic: projectData?.title,
           researchTopic: projectData?.topic,
           field: projectData?.field,
           chapter: chapterTitle,
           subsection: '',
-          diagnosticReport
+          diagnosticReport,
+          flaggedSentences: flaggedSentences.map(s => ({ text: s.text, flags: s.flags, suggestions: s.suggestions, aiProbability: s.aiProbability }))
         });
         if (!humanisedText || humanisedText === fullContent) {
           notify(`Chapter "${chapterTitle}" returned no changes.`, 'warning');
@@ -211,7 +225,6 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
         setResults(prev => ({ ...prev, [chId]: { done: true, iterations: currentIter } }));
         completed.push(chapterTitle);
         setRemoveAIUsed(prev => prev + 1);
-        const { computeAIScores } = await import('../../utils/aiScoreUtils');
         const { checkPlagiarism } = await import('../../utils/plagiarismChecker');
         const flatText = getChapterFlatText(chId);
         if (flatText.trim()) {
@@ -262,6 +275,58 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
       console.error('Score check failed:', e);
     }
     setCheckingScore(prev => ({ ...prev, [chId]: false }));
+  };
+
+  const handleApplySuggestion = (chId, idx, newText) => {
+    setSentenceEdits(prev => ({
+      ...prev,
+      [chId]: { ...(prev[chId] || {}), [idx]: newText }
+    }));
+    setSelectedSentence(null);
+    setShowManualEdit(null);
+    notify('Suggestion applied!', 'success');
+  };
+
+  const handleFixAll = (chId, sentenceData) => {
+    const edits = {};
+    for (const s of sentenceData) {
+      if (s.aiProbability > 0.5 && s.suggestions && s.suggestions.length > 0) {
+        edits[s.index] = s.suggestions[0];
+      }
+    }
+    const count = Object.keys(edits).length;
+    if (count === 0) { notify('No flagged sentences to fix.', 'info'); return; }
+    setSentenceEdits(prev => ({ ...prev, [chId]: { ...(prev[chId] || {}), ...edits } }));
+    setSelectedSentence(null);
+    notify(`Fixed ${count} sentence${count > 1 ? 's' : ''}! Re-check score to see improvement.`, 'success');
+  };
+
+  const handleDismissSentence = (chId, idx) => {
+    setSentenceEdits(prev => {
+      const chEdits = { ...(prev[chId] || {}) };
+      delete chEdits[idx];
+      return { ...prev, [chId]: chEdits };
+    });
+    setSelectedSentence(null);
+    setShowManualEdit(null);
+  };
+
+  const handleSaveManualEdit = (chId, idx, text) => {
+    if (!text.trim()) { notify('Cannot save empty text.', 'error'); return; }
+    setSentenceEdits(prev => ({
+      ...prev,
+      [chId]: { ...(prev[chId] || {}), [idx]: text.trim() }
+    }));
+    setShowManualEdit(null);
+    notify('Manual edit saved!', 'success');
+  };
+
+  const getEditedSentenceText = (chId, sentence, idx) => {
+    return sentenceEdits[chId]?.[idx] !== undefined ? sentenceEdits[chId][idx] : sentence.text;
+  };
+
+  const hasUnsavedEdits = (chId) => {
+    return sentenceEdits[chId] && Object.keys(sentenceEdits[chId]).length > 0;
   };
 
   const handleResetConfirm = async () => {
@@ -408,47 +473,136 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
 
                     {expandedChapter === ch.id && (
                       <div style={{ marginTop: '10px' }}>
-                        <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text }}>
-                          {sentenceData.length > 0 ? (
-                            sentenceData.map((s, i) => {
-                              const bg = s.aiProbability > 0.8 ? 'rgba(239,68,68,0.12)' : s.aiProbability > 0.5 ? 'rgba(234,179,8,0.12)' : 'transparent';
-                              const border = s.aiProbability > 0.8 ? '1px solid rgba(239,68,68,0.2)' : s.aiProbability > 0.5 ? '1px solid rgba(234,179,8,0.2)' : 'none';
-                              return (
-                                <span key={i} title={s.flags.length > 0 ? `Flags: ${s.flags.join(', ')}\nSuggestions: ${s.suggestions.join(', ')}` : 'No issues'}
-                                  style={{ backgroundColor: bg, border, borderRadius: '2px', cursor: 'pointer', padding: '1px 0' }}>
-                                  {s.text}{' '}
-                                </span>
-                              );
-                            })
-                          ) : (
-                            <>
-                              <div style={{ whiteSpace: 'pre-wrap' }}>{getChapterContent(ch.id).slice(0, 2000)}</div>
+                        {sentenceData.length > 0 ? (
+                          <>
+                            {flaggedCount > 0 && (
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '8px' }}>
+                                <button onClick={(e) => { e.stopPropagation(); handleFixAll(ch.id, sentenceData); }}
+                                  style={{ padding: '6px 16px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer' }}>
+                                  🚀 Fix All ({flaggedCount} flagged)
+                                </button>
+                              </div>
+                            )}
+                            <div style={{ padding: '8px 12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '400px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text }}>
+                              {sentenceData.map((s, i) => {
+                                const editedText = getEditedSentenceText(ch.id, s, i);
+                                const isEdited = sentenceEdits[ch.id]?.[i] !== undefined;
+                                const isSelected = selectedSentence?.chId === ch.id && selectedSentence?.idx === i;
+                                const isManual = showManualEdit?.chId === ch.id && showManualEdit?.idx === i;
+                                const hasSuggestions = s.suggestions && s.suggestions.length > 0;
+                                const isFlagged = s.aiProbability > 0.5;
+                                const leftColor = isEdited ? '#059669' : isFlagged ? (s.aiProbability > 0.8 ? '#dc2626' : '#f59e0b') : 'transparent';
+                                return (
+                                  <div key={i} style={{ marginBottom: '6px' }}>
+                                    <div onClick={() => isFlagged && setSelectedSentence(isSelected ? null : { chId: ch.id, idx: i })}
+                                      style={{
+                                        display: 'flex', gap: '8px', cursor: isFlagged ? 'pointer' : 'default',
+                                        padding: '4px 6px', borderRadius: '4px',
+                                        backgroundColor: isSelected ? (isDarkMode ? '#374151' : '#f3f4f6') : 'transparent',
+                                        borderLeft: `3px solid ${leftColor}`,
+                                        transition: 'background-color 0.15s',
+                                      }}>
+                                      <span style={{ flex: 1 }}>
+                                        {isEdited ? <span style={{ color: '#059669' }}>{editedText}</span> : s.text}{' '}
+                                      </span>
+                                      {isFlagged && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0, marginTop: '2px' }}>
+                                        {Math.round(s.aiProbability * 100)}%
+                                      </span>}
+                                      {isEdited && <span style={{ fontSize: '10px', color: '#059669', flexShrink: 0, marginTop: '2px' }}>✓</span>}
+                                    </div>
+                                    {isSelected && (
+                                      <div style={{ marginTop: '4px', marginLeft: '12px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#fefce8', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                                        <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '6px' }}>
+                                          💡 Flags: {s.flags.join(', ') || 'none'}
+                                        </div>
+                                        {isManual ? (
+                                          <div>
+                                            <textarea value={sentenceEdits[ch.id]?.[i] || s.text}
+                                              onChange={(e) => setSentenceEdits(prev => ({ ...prev, [ch.id]: { ...(prev[ch.id] || {}), [i]: e.target.value } }))}
+                                              style={{ width: '100%', minHeight: '60px', padding: '6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical', backgroundColor: isDarkMode ? '#1f2937' : 'white', color: colors.text }}
+                                            />
+                                            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                                              <button onClick={() => handleSaveManualEdit(ch.id, i, sentenceEdits[ch.id]?.[i] || s.text)}
+                                                style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Save</button>
+                                              <button onClick={() => setShowManualEdit(null)}
+                                                style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {hasSuggestions ? (
+                                              <div>
+                                                <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '4px' }}>📝 Suggested fixes:</div>
+                                                {s.suggestions.map((sug, si) => {
+                                                  const alreadyApplied = sentenceEdits[ch.id]?.[i] === sug;
+                                                  return (
+                                                    <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', padding: '4px 6px', backgroundColor: alreadyApplied ? '#d1fae5' : (isDarkMode ? '#374151' : 'white'), borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                                                      <span style={{ flex: 1, fontSize: '12px', color: colors.text }}>{sug}</span>
+                                                      {alreadyApplied ? (
+                                                        <span style={{ fontSize: '11px', color: '#059669', fontWeight: '500' }}>Applied ✓</span>
+                                                      ) : (
+                                                        <button onClick={() => handleApplySuggestion(ch.id, i, sug)}
+                                                          style={{ padding: '2px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500', flexShrink: 0 }}>Apply</button>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : (
+                                              <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '6px' }}>No automatic suggestions available for this combination of flags.</div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: '6px', marginTop: '6px', borderTop: '1px solid #e5e7eb', paddingTop: '6px' }}>
+                                              <button onClick={() => setShowManualEdit({ chId: ch.id, idx: i })}
+                                                style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>✏️ Edit manually</button>
+                                              <button onClick={() => handleDismissSentence(ch.id, i)}
+                                                style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#9ca3af', border: '1px solid #d1d5db', cursor: 'pointer' }}>Dismiss</button>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {hasUnsavedEdits(ch.id) && (
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
+                                <button onClick={() => { setSentenceEdits(prev => { const n = { ...prev }; delete n[ch.id]; return n; }); notify('Edits reverted.', 'info'); }}
+                                  style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: 'transparent', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer', fontWeight: '500' }}>Revert All</button>
+                              </div>
+                            )}
+                            <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '500' }}>Sentence Density Map</span>
+                                <span style={{ fontSize: '10px', color: '#9ca3af' }}>{flaggedCount} flagged of {totalSentences}</span>
+                                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '10px' }}>
+                                  <span style={{ color: '#dc2626' }}>■ High AI</span>
+                                  <span style={{ color: '#f59e0b' }}>■ Medium</span>
+                                  <span style={{ color: '#059669' }}>■ Low</span>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '1px', height: '14px', alignItems: 'flex-end' }}>
+                                {sentenceData.map((s, i) => {
+                                  const isFixed = sentenceEdits[ch.id]?.[i] !== undefined;
+                                  const origProb = s.aiProbability;
+                                  const effectiveProb = isFixed ? 0 : origProb;
+                                  const h = Math.max(4, Math.round(effectiveProb * 14));
+                                  const color = isFixed ? '#059669' : (origProb > 0.8 ? '#dc2626' : origProb > 0.5 ? '#f59e0b' : '#059669');
+                                  return <div key={i} title={`${isFixed ? '[FIXED] ' : ''}"${s.text.slice(0, 60)}..."\nAI: ${Math.round(origProb * 100)}%`}
+                                    style={{ flex: 1, height: `${h}px`, backgroundColor: color, borderRadius: '1px', minWidth: '2px', cursor: 'pointer', transition: 'height 0.2s' }} />;
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text, whiteSpace: 'pre-wrap' }}>
+                              {getChapterContent(ch.id).slice(0, 2000)}
                               {getChapterContent(ch.id).length > 2000 && (
                                 <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
                               )}
-                            </>
-                          )}
-                        </div>
-                        {sentenceData.length > 0 && (
-                          <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '500' }}>Sentence Density Map</span>
-                              <span style={{ fontSize: '10px', color: '#9ca3af' }}>{flaggedCount} flagged of {totalSentences}</span>
-                              <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '10px' }}>
-                                <span style={{ color: '#dc2626' }}>■ High AI</span>
-                                <span style={{ color: '#f59e0b' }}>■ Medium</span>
-                                <span style={{ color: '#059669' }}>■ Low</span>
-                              </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '1px', height: '14px', alignItems: 'flex-end' }}>
-                              {sentenceData.map((s, i) => {
-                                const h = Math.max(4, Math.round(s.aiProbability * 14));
-                                const color = s.aiProbability > 0.8 ? '#dc2626' : s.aiProbability > 0.5 ? '#f59e0b' : '#059669';
-                                return <div key={i} title={`"${s.text.slice(0, 80)}..."\nAI: ${Math.round(s.aiProbability * 100)}%\nFlags: ${s.flags.join(', ') || 'none'}`}
-                                  style={{ flex: 1, height: `${h}px`, backgroundColor: color, borderRadius: '1px', minWidth: '2px', cursor: 'pointer', transition: 'height 0.2s' }} />;
-                              })}
-                            </div>
-                          </div>
+                          </>
                         )}
                       </div>
                     )}

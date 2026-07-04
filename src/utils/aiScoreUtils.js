@@ -11,6 +11,12 @@ export const computeAIScores = (text, sources = []) => {
   const openings = analyzeSentenceOpenings(text);
   const formality = computeFormalityIndex(text);
   const sentenceData = computeSentenceScores(text, sources);
+  const formalityScore = Math.round((1 - formality.score) * 100);
+  const stylometricScore = Math.round(Math.max(0, Math.min(100,
+    (1 - Math.min(1, banned.length / Math.max(1, sentenceData.totalSentences || 1) * 5)) * 50 +
+    (1 - Math.min(1, transitions.frequency / 10)) * 50
+  )));
+  const burstinessScore = Math.round(Math.min(100, Math.max(0, (burstiness.cv / 1.0) * 100)));
   const score = Math.round(
     perplexity.score * 0.25 +
     burstinessScore * 0.20 +
@@ -18,12 +24,6 @@ export const computeAIScores = (text, sources = []) => {
     formalityScore * 0.20 +
     repetition.score * 0.15
   );
-  const formalityScore = Math.round((1 - formality.score) * 100);
-  const stylometricScore = Math.round(Math.max(0, Math.min(100,
-    (1 - Math.min(1, banned.length / Math.max(1, sentenceData.totalSentences || 1) * 5)) * 50 +
-    (1 - Math.min(1, transitions.frequency / 10)) * 50
-  )));
-  const burstinessScore = Math.round(Math.min(100, Math.max(0, (burstiness.cv / 1.0) * 100)));
   return {
     score,
     burstiness: { cv: burstiness.cv, mean: burstiness.mean, stdDev: burstiness.stdDev, sentenceLengths: burstiness.sentenceLengths },

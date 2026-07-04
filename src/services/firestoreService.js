@@ -163,6 +163,22 @@ export const getSources = async (projectId) => {
   } catch (e) { logError('getSources', e); throw e; }
 };
 
+export const saveRemoveAIData = async (projectId, data) => {
+  try {
+    await setDoc(doc(db, 'removeAIData', projectId.toString()), {
+      ...data, updatedAt: new Date().toISOString(),
+    });
+  } catch (e) { logError('saveRemoveAIData', e); }
+};
+
+export const getRemoveAIData = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'removeAIData', projectId.toString()));
+    if (snap.exists()) return snap.data();
+    return null;
+  } catch (e) { logError('getRemoveAIData', e); return null; }
+};
+
 export const saveVisualData = async (projectId, type, data) => {
   try {
     await setDoc(doc(db, 'visuals', projectId.toString()), {

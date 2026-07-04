@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getChapterDisplayTitle } from '../../utils/writeHelpers.jsx';
 import { PRICES_GHS } from '../../constants/pricing';
+import { saveRemoveAIData, getRemoveAIData, saveGeneratedContent } from '../../services/firestoreService';
 
 const AIGauge = ({ score, confidence, size = 160 }) => {
   const radius = (size - 20) / 2;
@@ -117,10 +118,44 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   const [selectedSentence, setSelectedSentence] = useState(null);
   const [sentenceEdits, setSentenceEdits] = useState({});
   const [showManualEdit, setShowManualEdit] = useState(null);
+  const [manualEditDraft, setManualEditDraft] = useState('');
+  const initialLoad = useRef(true);
+  const saveTimer = useRef(null);
+
+  useEffect(() => { try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {} }, [removeAIUsed, projectId]);
+  useEffect(() => { try { localStorage.setItem(`removeAIResets_${projectId}`, JSON.stringify(removeAIResets)); } catch {} }, [removeAIResets, projectId]);
 
   useEffect(() => {
-    try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {}
-  }, [removeAIUsed, projectId]);
+    (async () => {
+      try {
+        const saved = await getRemoveAIData(projectId);
+        if (saved) {
+          if (saved.sentenceEdits) setSentenceEdits(saved.sentenceEdits);
+          if (saved.scores) setScores(saved.scores);
+          if (saved.scoreHistory) setScoreHistory(saved.scoreHistory);
+        }
+      } catch (e) { console.error('Failed to load Remove AI data:', e); }
+      initialLoad.current = false;
+    })();
+  }, [projectId]);
+
+  const persistData = useCallback((edits, scrs, hist) => {
+    if (initialLoad.current) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveRemoveAIData(projectId, {
+        sentenceEdits: edits !== undefined ? edits : sentenceEdits,
+        scores: scrs !== undefined ? scrs : scores,
+        scoreHistory: hist !== undefined ? hist : scoreHistory,
+      });
+    }, 1500);
+  }, [projectId, sentenceEdits, scores, scoreHistory]);
+
+  useEffect(() => {
+    if (initialLoad.current) return;
+    persistData();
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [sentenceEdits, scores, scoreHistory]);
 
   useEffect(() => {
     try { localStorage.setItem(`removeAIResets_${projectId}`, JSON.stringify(removeAIResets)); } catch {}
@@ -295,6 +330,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     }));
     setSelectedSentence(null);
     setShowManualEdit(null);
+    setManualEditDraft('');
     notify('Suggestion applied!', 'success');
   };
 
@@ -309,6 +345,8 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     if (count === 0) { notify('No flagged sentences to fix.', 'info'); return; }
     setSentenceEdits(prev => ({ ...prev, [chId]: { ...(prev[chId] || {}), ...edits } }));
     setSelectedSentence(null);
+    setShowManualEdit(null);
+    setManualEditDraft('');
     notify(`Fixed ${count} sentence${count > 1 ? 's' : ''}! Re-check score to see improvement.`, 'success');
   };
 
@@ -320,6 +358,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     });
     setSelectedSentence(null);
     setShowManualEdit(null);
+    setManualEditDraft('');
   };
 
   const handleSaveManualEdit = (chId, idx, text) => {
@@ -329,6 +368,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
       [chId]: { ...(prev[chId] || {}), [idx]: text.trim() }
     }));
     setShowManualEdit(null);
+    setManualEditDraft('');
     notify('Manual edit saved!', 'success');
   };
 
@@ -349,6 +389,58 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
       notify('Remove AI refilled with 3 more uses!', 'success');
     });
     setProcessingReset(false);
+  };
+
+  const handleApplyChanges = async (chId) => {
+    const ch = chapters.find(c => c.id === chId);
+    if (!ch) return;
+    const edits = sentenceEdits[chId];
+    if (!edits || Object.keys(edits).length === 0) { notify('No pending edits for this chapter.', 'info'); return; }
+    setProcessing(true);
+    setProcessingChapter(chId);
+    try {
+      const { splitSentences } = await import('../../services/gemini/antiDetection');
+      const fullText = getChapterFlatText(chId);
+      if (!fullText.trim()) { notify('Chapter has no content.', 'warning'); setProcessing(false); setProcessingChapter(null); return; }
+      const origSentences = splitSentences(fullText);
+      if (origSentences.length === 0) { notify('Could not parse chapter sentences.', 'error'); setProcessing(false); setProcessingChapter(null); return; }
+      const mergedSentences = origSentences.map((s, i) => (edits[i] !== undefined ? edits[i] : s));
+      const mergedText = mergedSentences.join(' ');
+      const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
+      let remainingText = mergedText;
+      let updatedContent = { ...(rawContent[chId] || {}) };
+      for (let j = 0; j < subs.length; j++) {
+        const sub = subs[j];
+        const header = sub.title;
+        const headerIdx = remainingText.indexOf(header);
+        if (headerIdx < 0) continue;
+        const nextSub = j < subs.length - 1 ? subs[j + 1] : null;
+        const nextHeader = nextSub ? nextSub.title : null;
+        let subContent;
+        if (nextHeader) {
+          const nextIdx = remainingText.indexOf(nextHeader, headerIdx + header.length);
+          subContent = nextIdx >= 0 ? remainingText.slice(headerIdx, nextIdx).trim() : remainingText.slice(headerIdx).trim();
+        } else {
+          subContent = remainingText.slice(headerIdx).trim();
+        }
+        const contentStart = subContent.indexOf('\n');
+        updatedContent[sub.id] = contentStart >= 0 ? subContent.slice(contentStart).trim() : '';
+      }
+      const merged = { ...rawContent, [chId]: updatedContent };
+      await saveGeneratedContent(projectId, merged);
+      if (onContentUpdated) onContentUpdated(chId, updatedContent);
+      setSentenceEdits(prev => {
+        const n = { ...prev };
+        delete n[chId];
+        return n;
+      });
+      notify('✅ Sentence edits applied and saved to project!', 'success');
+    } catch (e) {
+      console.error('Apply changes failed:', e);
+      notify('Failed to apply changes. Try again.', 'error');
+    }
+    setProcessingChapter(null);
+    setProcessing(false);
   };
 
   const generatedChapters = chapters.filter(ch => {
@@ -530,14 +622,14 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                                         </div>
                                         {isManual ? (
                                           <div>
-                                            <textarea value={sentenceEdits[ch.id]?.[i] || s.text}
-                                              onChange={(e) => setSentenceEdits(prev => ({ ...prev, [ch.id]: { ...(prev[ch.id] || {}), [i]: e.target.value } }))}
+                                            <textarea value={manualEditDraft}
+                                              onChange={(e) => setManualEditDraft(e.target.value)}
                                               style={{ width: '100%', minHeight: '60px', padding: '6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical', backgroundColor: isDarkMode ? '#1f2937' : 'white', color: colors.text }}
                                             />
                                             <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                                              <button onClick={() => handleSaveManualEdit(ch.id, i, sentenceEdits[ch.id]?.[i] || s.text)}
+                                              <button onClick={() => handleSaveManualEdit(ch.id, i, manualEditDraft)}
                                                 style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Save</button>
-                                              <button onClick={() => setShowManualEdit(null)}
+                                              <button onClick={() => { setShowManualEdit(null); setManualEditDraft(''); }}
                                                 style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>Cancel</button>
                                             </div>
                                           </div>
@@ -565,7 +657,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                                               <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '6px' }}>No automatic suggestions available for this combination of flags.</div>
                                             )}
                                             <div style={{ display: 'flex', gap: '6px', marginTop: '6px', borderTop: '1px solid #e5e7eb', paddingTop: '6px' }}>
-                                              <button onClick={() => setShowManualEdit({ chId: ch.id, idx: i })}
+                                              <button onClick={() => { setShowManualEdit({ chId: ch.id, idx: i }); setManualEditDraft(sentenceEdits[ch.id]?.[i] || s.text); }}
                                                 style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>✏️ Edit manually</button>
                                               <button onClick={() => handleDismissSentence(ch.id, i)}
                                                 style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#9ca3af', border: '1px solid #d1d5db', cursor: 'pointer' }}>Dismiss</button>
@@ -580,6 +672,10 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                             </div>
                             {hasUnsavedEdits(ch.id) && (
                               <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
+                                <button onClick={() => handleApplyChanges(ch.id)}
+                                  style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: processingChapter === ch.id ? 'not-allowed' : 'pointer', fontWeight: '600', opacity: processingChapter === ch.id ? 0.7 : 1 }}>
+                                  {processingChapter === ch.id ? '⏳ Applying...' : '✅ Apply Changes'}
+                                </button>
                                 <button onClick={() => { setSentenceEdits(prev => { const n = { ...prev }; delete n[ch.id]; return n; }); notify('Edits reverted.', 'info'); }}
                                   style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: 'transparent', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer', fontWeight: '500' }}>Revert All</button>
                               </div>

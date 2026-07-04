@@ -5,11 +5,11 @@ import { PRICES_GHS } from '../../constants/pricing';
 
 const ContentButtons = ({
   isViewingReferences, currentSubsection, currentSubsectionIndex, activeSubsections,
-  generating, humanising, chapterComplete, overallProgress, generatedActive, totalActive,
+  generating, chapterComplete, overallProgress, generatedActive, totalActive,
   referencesSub, referencesGenerated,
-  onGenerate, onHumanise, onFeedback, onPrev, onNext, onComplete, getButtonText,
-  humaniseAvailable, feedbackAvailable, humaniseLeft, feedbackLeft,
-  onResetHumanise, onResetFeedback, onOpenVersions,
+  onGenerate, onFeedback, onPrev, onNext, onComplete, getButtonText,
+  feedbackAvailable, feedbackLeft,
+  onResetFeedback, onOpenVersions,
   generatingAll,
 }) => {
   const { colors } = useTheme();
@@ -17,7 +17,6 @@ const ContentButtons = ({
   const sub = activeSubsections[currentSubsectionIndex];
   const subId = sub?.id || '';
   const canGenerate = !generating && !generatingAll && currentSubsection && !currentSubsection?.generated;
-  const canHumanise = !humanising && currentSubsection?.generated && humaniseAvailable;
   const canFeedback = currentSubsection?.generated && feedbackAvailable;
 
   const btnStyle = (disabled) => ({
@@ -40,22 +39,6 @@ const ContentButtons = ({
               </button>
               {currentSubsection?.generated && (
                 <>
-                  {humaniseLeft > 0 ? (
-                    <button data-tour="humanise-btn" onClick={onHumanise} disabled={humanising} style={{
-                      ...btnStyle(false),
-                      backgroundColor: '#d97706'
-                    }}>
-                      {humanising ? 'Humanising...' : `✨ Humanise (${humaniseLeft} left)`}
-                    </button>
-                  ) : (
-                    <button onClick={() => onResetHumanise?.()} style={{
-                      backgroundColor: '#2563eb',
-                      color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px',
-                      fontWeight: '600', fontSize: '13px', cursor: 'pointer'
-                    }}>
-                      🔄 Reset Humanise ({fmt(PRICES_GHS.humaniseReset)})
-                    </button>
-                  )}
                   {feedbackLeft > 0 ? (
                     <button data-tour="feedback-btn" onClick={() => onFeedback(currentSubsection)} title="Apply supervisor feedback" style={{
                       ...btnStyle(false),

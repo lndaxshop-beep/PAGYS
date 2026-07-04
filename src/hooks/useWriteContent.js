@@ -25,10 +25,9 @@ const buildThesisContext = (currentChapterId, chapters, generatedSubsections) =>
   return context.previousChapters.length > 0 ? context : null;
 };
 
-const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', humaniseLimit = 10, feedbackLimit = 6) => {
+const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', feedbackLimit = 6) => {
   const [generating, setGenerating] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
-  const [humanising, setHumanising] = useState(false);
   const [applyingSubFeedback, setApplyingSubFeedback] = useState(false);
 
   const contentCache = useRef(new Map());
@@ -273,41 +272,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     return null;
   }, [chapters, generatedSubsections, handleGenerateReferences]);
 
-  const handleHumanise = useCallback(async (content) => {
-    if (!content) return { error: true, message: 'No content to humanise.' };
-    const humaniseKey = activeChapter;
-    if ((humaniseUsed[humaniseKey] || 0) >= humaniseLimit) return { error: true, message: `Humanise limit reached (${humaniseLimit}/${humaniseLimit}) for this chapter.` };
-    setHumanising(true);
-    try {
-      const { calculateBurstiness, scanBannedPhrases, calculatePerplexityEstimate } = await import('../services/gemini/antiDetection');
-      const preBurstiness = calculateBurstiness(content);
-      const preBanned = scanBannedPhrases(content);
-      const prePerplexity = calculatePerplexityEstimate(content);
-      const diagnosticReport = `## PRE-HUMANISE DIAGNOSTICS
-- Burstiness coefficient of variation: ${preBurstiness.cv.toFixed(3)} (target: >0.40 for natural human writing)
-- Banned phrases detected: ${preBanned.length} (target: 0)
-- Estimated perplexity score: ${prePerplexity.score}/100 (target: >60)
-- Mean sentence length: ${preBurstiness.mean.toFixed(1)} words
-- Sentence length std dev: ${preBurstiness.stdDev.toFixed(1)}`;
-
-      const currentCh = chapters.find(c => c.id === activeChapter);
-      const chapterTitle = currentCh ? getChapterDisplayTitle(currentCh) : activeChapter;
-
-      const { humaniseContent } = await import('../services/geminiService');
-      const humanisedText = await humaniseContent(content, {
-        topic: project?.title,
-        researchTopic: project?.topic,
-        field: project?.field,
-        chapter: chapterTitle,
-        subsection: currentSubsection?.title,
-        diagnosticReport
-      });
-
-      return { humanisedText, humaniseKey };
-    } catch (error) { throw error; }
-    finally { setHumanising(false); }
-  }, [project, activeChapter, currentSubsection, humaniseUsed, humaniseLimit]);
-
   const handleApplyFeedback = useCallback(async (currentContentText, feedbackText, feedbackFiles, currentFeedbackSubsection) => {
     if (!feedbackText && feedbackFiles.length === 0) return { error: true, message: 'Please enter feedback or upload files' };
     const wc = feedbackText.trim() ? feedbackText.trim().split(/\s+/).length : 0;
@@ -357,7 +321,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   }, [activeChapter]);
 
   return {
-    generating, generatingVisual, humanising, applyingSubFeedback,
+    generating, generatingVisual, applyingSubFeedback,
     handleGenerateConceptualFramework,
     handleGenerateTheoreticalFramework,
     handleGenerateResearchDesign,
@@ -367,7 +331,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     generateSubsectionContent,
     handleGenerateReferences,
     autoGenerateReferences,
-    handleHumanise,
     handleApplyFeedback,
     preRenderDiagrams
   };

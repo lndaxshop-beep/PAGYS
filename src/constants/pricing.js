@@ -33,6 +33,7 @@ export const PRICES_GHS = {
   abstractRegen: 2,
   matrixRegen: 2,
   humaniseReset: 2,
+  removeAIReset: 2,
   feedbackReset: 2,
   defenceRegen: 2,
   wordCountEdit: 5,

@@ -16,6 +16,7 @@ import { useCurrency } from '../hooks/useCurrency';
 import { PRICES_GHS } from '../constants/pricing';
 import usePayment from '../hooks/usePayment';
 import MockPaymentModal from '../components/MockPaymentModal';
+import RemoveAITab from '../components/humanise/RemoveAITab';
 
 const MyFiles = () => {
   const { isMobile } = useResponsive();
@@ -42,6 +43,7 @@ const MyFiles = () => {
   const [showRegenResetModal, setShowRegenResetModal] = useState(false);
   const [processingRegenReset, setProcessingRegenReset] = useState(false);
   const [rawContent, setRawContent] = useState({});
+  const [rawChapters, setRawChapters] = useState([]);
   const sourceLibrary = useSourceLibrary(selectedProject, user?.uid);
 
   const isPremium = projectData?.tier === 'premium' || projectData?.isPremium;
@@ -99,6 +101,7 @@ const MyFiles = () => {
         completed: ch.completed || false
       });
       setChapters(savedChapters.map(mkChapter));
+      setRawChapters(savedChapters);
     } catch (e) { console.error('Error loading chapters for project:', e); }
   };
 
@@ -176,6 +179,10 @@ const MyFiles = () => {
   };
 
   const handleProjectChange = (pid) => { const p = projects.find(pr => pr.id === pid); setSelectedProject(pid); setProjectData(p); loadChaptersForProject(pid); setActiveTab('chapters'); setAbbreviations([]); setDefenceQuestions(null); setGeneratedInstruments([]); };
+  const handleContentUpdated = (chapterId, updatedContent) => {
+    setRawContent(prev => ({ ...prev, [chapterId]: updatedContent }));
+    loadChaptersForProject(selectedProject);
+  };
   const downloadAbbreviations = () => saveAs(new Blob([generateAbbreviationsDocument()], { type: 'application/msword' }), `abbreviations-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`);
   const downloadDefence = () => { if (!defenceQuestions) return; saveAs(new Blob([generateDefenceDocument()], { type: 'application/msword' }), `defence-${(projectData?.title || 'thesis').replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.doc`); };
   const handleDefenceRegen = async () => {
@@ -316,9 +323,9 @@ const MyFiles = () => {
         </div>
         <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
-            {['chapters','lists','defence','instruments','sources'].map(tab => (
+            {['chapters','lists','defence','instruments','sources','removeai'].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: isMobile ? '8px 12px' : '12px 24px', backgroundColor: activeTab === tab ? colors.primary : 'transparent', color: activeTab === tab ? 'white' : colors.text, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap' }}>
-                {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : tab === 'sources' ? '📚 Sources' : ''}
+                {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : tab === 'sources' ? '📚 Sources' : tab === 'removeai' ? '🚀 Remove AI' : ''}
               </button>
             ))}
           </div>
@@ -485,6 +492,19 @@ const MyFiles = () => {
               <p style={{ color: colors.textSecondary, textAlign: 'center', padding: '24px' }}>No instruments generated yet. Complete Chapter 3 to generate data collection instruments.</p>
             )}
           </div>
+        )}
+        {activeTab === 'removeai' && selectedProject && (
+          <RemoveAITab
+            projectId={selectedProject}
+            chapters={rawChapters}
+            rawContent={rawContent}
+            projectData={projectData}
+            colors={colors}
+            isDarkMode={isDarkMode}
+            notify={notify}
+            fmt={fmt}
+            onContentUpdated={handleContentUpdated}
+          />
         )}
       </div>
       <style>{`@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}`}</style>

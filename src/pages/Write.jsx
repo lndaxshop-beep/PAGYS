@@ -47,9 +47,6 @@ const Write = () => {
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(null);
   const [generatingReferences, setGeneratingReferences] = useState(false);
-  const [humaniseUsed, setHumaniseUsed] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`humaniseUsed_${projectId}`) || '{}'); } catch { return {}; }
-  });
   const [feedbackUsed, setFeedbackUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
   });
@@ -117,10 +114,9 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
   const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
 
-  const humaniseBase = project?.tier === 'premium' ? 15 : 10;
   const feedbackBase = project?.tier === 'premium' ? 12 : 6;
 
-  const { generating, generatingVisual, humanising, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleHumanise, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, humaniseUsed, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, humaniseBase, feedbackBase);
+  const { generating, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
 
@@ -212,7 +208,6 @@ const Write = () => {
   useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData).catch(e => console.error('Auto-save charts failed:', e)); }, [chartData, projectId]);
   useEffect(() => { if (projectId && Object.keys(tableData).length) saveVisualData(projectId, 'tables', tableData).catch(e => console.error('Auto-save tables failed:', e)); }, [tableData, projectId]);
 
-  useEffect(() => { try { localStorage.setItem(`humaniseUsed_${projectId}`, JSON.stringify(humaniseUsed)); } catch {} }, [humaniseUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`subsectionVersions_${projectId}`, JSON.stringify(subsectionVersions)); } catch {} }, [subsectionVersions, projectId]);
 
@@ -487,31 +482,6 @@ const Write = () => {
     }
   };
 
-  const wrappedHumanise = async () => {
-    try {
-      if (!currentContent) { toastError('No content to humanise.'); return; }
-      const result = await handleHumanise(currentContent);
-      if (!result || result.error) { toastError(result?.message || 'Humanise failed.'); return; }
-      const { humanisedText, humaniseKey } = result;
-      setDiffModal({
-        show: true,
-        oldText: currentContent,
-        newText: humanisedText,
-        title: 'Humanise Changes',
-        onAccept: () => {
-          captureVersion(activeChapter, currentSubsection?.id, currentContent, 'Humanised');
-          setCurrentContent(humanisedText);
-          if (currentSubsection) setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: humanisedText } }));
-          setHumaniseUsed(prev => ({ ...prev, [humaniseKey]: (prev[humaniseKey] || 0) + 1 }));
-          setDiffModal(prev => ({ ...prev, show: false, onAccept: null }));
-        },
-      });
-    } catch (error) {
-      console.error('Humanise failed:', error);
-      toastError('Humanise failed: ' + error.message);
-    }
-  };
-
   const wrappedApplyFeedback = async (skipDiff) => {
     try {
       if (!modals.feedbackText && modals.feedbackFiles.length === 0) { toastError('Please enter feedback or upload files'); return; }
@@ -663,15 +633,11 @@ const Write = () => {
 
   const handleResetConfirm = async () => {
     if (processingReset) return;
-    const resetPrice = resetModalType === 'humanise' ? PRICES_GHS.humaniseReset : PRICES_GHS.feedbackReset;
+    const resetPrice = PRICES_GHS.feedbackReset;
     setProcessingReset(true);
-    const success = await processSmallPayment(projectId, resetPrice, { type: `${resetModalType}_reset` }, () => {
-      if (resetModalType === 'humanise') {
-        setHumaniseUsed(prev => ({ ...prev, [activeChapter]: 0 }));
-      } else if (resetModalType === 'feedback') {
-        setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
-      }
-      toastSuccess(`${resetModalType === 'humanise' ? 'Humanise' : 'Feedback'} pool reset for this chapter!`, 'success');
+    const success = await processSmallPayment(projectId, resetPrice, { type: 'feedback_reset' }, () => {
+      setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
+      toastSuccess('Feedback pool reset for this chapter!', 'success');
     });
     if (success) {
       setResetModalType(null);
@@ -683,14 +649,10 @@ const Write = () => {
     if (processingReset) return;
     setProcessingReset(true);
     await new Promise(resolve => setTimeout(resolve, 500));
-    if (resetModalType === 'humanise') {
-      setHumaniseUsed(prev => ({ ...prev, [activeChapter]: 0 }));
-    } else if (resetModalType === 'feedback') {
-      setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
-    }
+    setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
     setProcessingReset(false);
     setResetModalType(null);
-    toastSuccess(`${resetModalType === 'humanise' ? 'Humanise' : 'Feedback'} pool reset (dev mode)!`, 'success');
+    toastSuccess('Feedback pool reset (dev mode)!', 'success');
   };
 
 
@@ -730,7 +692,6 @@ const Write = () => {
     return curIdx === lastIdx ? 'Complete & View Files' : 'Complete & Continue';
   };
 
-  const humaniseLeft = humaniseBase - (humaniseUsed[activeChapter] || 0);
   const feedbackLeft = feedbackBase - (feedbackUsed[activeChapter] || 0);
 
   const handleSaveEdit = () => {
@@ -743,7 +704,7 @@ const Write = () => {
   };
 
   const currentWordCount = currentContent ? currentContent.split(/\s+/).filter(Boolean).length : 0;
-  const resetPrice = resetModalType === 'humanise' ? PRICES_GHS.humaniseReset : PRICES_GHS.feedbackReset;
+  const resetPrice = PRICES_GHS.feedbackReset;
 
   if (loading) return <PageSkeleton />;
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;
@@ -788,7 +749,6 @@ const Write = () => {
           {project?.tier === 'premium' && (
             <div style={{ fontSize: '12px', color: '#f59e0b', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
               <span>💎 Premium</span>
-              <span>Humanise: {humaniseUsed[activeChapter] || 0}/{humaniseBase} used</span>
               <span>Feedback: {feedbackUsed[activeChapter] || 0}/{feedbackBase} used</span>
             </div>
           )}
@@ -864,7 +824,6 @@ const Write = () => {
                 currentSubsectionIndex={currentSubsectionIndex}
                 activeSubsections={activeSubsections}
                 generating={generating}
-                humanising={humanising}
                 generatingAll={generatingAll}
                 chapterComplete={chapterComplete}
                 overallProgress={overallProgress}
@@ -873,17 +832,13 @@ const Write = () => {
                 referencesSub={referencesSub}
                 referencesGenerated={referencesGenerated}
                 onGenerate={wrappedGenerateCurrent}
-                onHumanise={wrappedHumanise}
                 onFeedback={modals.openFeedbackModal}
                 onPrev={wrappedHandlePrevSubsection}
                 onNext={wrappedHandleNextSubsection}
                 onComplete={wrappedHandleCompleteChapter}
                 getButtonText={getButtonText}
-                humaniseAvailable={humaniseLeft > 0}
                 feedbackAvailable={feedbackLeft > 0}
-                humaniseLeft={humaniseLeft}
                 feedbackLeft={feedbackLeft}
-                onResetHumanise={() => setResetModalType('humanise')}
                 onResetFeedback={() => setResetModalType('feedback')}
                 onOpenVersions={() => setVersionBrowserSubsection(currentSubsection)}
                />
@@ -947,19 +902,17 @@ const Write = () => {
       {resetModalType && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000 }}>
           <div style={{ backgroundColor: colors.surface, borderRadius: '16px', maxWidth: '400px', width: '90%', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-            <div style={{ fontSize: '40px', textAlign: 'center', marginBottom: '16px' }}>
-              {resetModalType === 'humanise' ? '✨' : '✏️'}
-            </div>
+            <div style={{ fontSize: '40px', textAlign: 'center', marginBottom: '16px' }}>✏️</div>
             <h2 style={{ textAlign: 'center', fontSize: '22px', fontWeight: '700', color: colors.text, margin: '0 0 8px' }}>
-              Reset {resetModalType === 'humanise' ? 'Humanise' : 'Feedback'}
+              Reset Feedback
             </h2>
             <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>
-              Restore full {resetModalType} pool for this chapter.
+              Restore full feedback pool for this chapter.
             </p>
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Feature</span>
-                <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px', textTransform: 'capitalize' }}>{resetModalType}</span>
+                <span style={{ color: colors.text, fontWeight: '600', fontSize: '14px' }}>Feedback</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Pool reset</span>
@@ -972,7 +925,7 @@ const Write = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button onClick={handleResetConfirm} disabled={processingReset} style={{
-                backgroundColor: processingReset ? colors.border : (resetModalType === 'humanise' ? '#2563eb' : '#059669'),
+                backgroundColor: processingReset ? colors.border : '#059669',
                 color: 'white', padding: '14px', border: 'none', borderRadius: '8px',
                 fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingReset ? 0.7 : 1

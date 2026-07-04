@@ -188,6 +188,9 @@ const Write = () => {
         if (vd.charts) setChartData(vd.charts);
         if (vd.tables) setTableData(vd.tables);
 
+        const savedVersions = await getSubsectionVersions(projectId);
+        if (savedVersions && Object.keys(savedVersions).length) setSubsectionVersions(savedVersions);
+
         projectCache.current[projectId] = {
           timestamp: Date.now(),
           data: { project: currentProject, chapters: savedChapters || [], content: savedContent, citations: savedCitations, visuals: vd, wordCounts: wc || {}, wordCountSet: wcs || {} },

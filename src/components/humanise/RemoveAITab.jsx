@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getChapterDisplayTitle } from '../../utils/writeHelpers.jsx';
 import { PRICES_GHS } from '../../constants/pricing';
-import { saveRemoveAIData, getRemoveAIData, saveGeneratedContent } from '../../services/firestoreService';
+import { saveRemoveAIData, getRemoveAIData, saveGeneratedContent, saveSubsectionVersions, getSubsectionVersions } from '../../services/firestoreService';
 
 const AIGauge = ({ score, confidence, size = 160 }) => {
   const radius = (size - 20) / 2;
@@ -263,7 +263,19 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
           const contentStart = subContent.indexOf('\n');
           updatedContent[sub.id] = contentStart >= 0 ? subContent.slice(contentStart).trim() : '';
         }
-        const { saveGeneratedContent } = await import('../../services/firestoreService');
+        const existingVersions = await getSubsectionVersions(projectId) || {};
+        const newVersions = { ...existingVersions };
+        for (const sub of subs) {
+          const key = `${chId}_${sub.id}`;
+          const oldContent = rawContent[chId]?.[sub.id];
+          if (oldContent) {
+            const list = existingVersions[key] || [];
+            if (list.length === 0 || list[list.length - 1].content !== oldContent) {
+              newVersions[key] = [...list, { content: oldContent, label: 'Remove AI', timestamp: Date.now() }];
+            }
+          }
+        }
+        await saveSubsectionVersions(projectId, newVersions);
         const merged = { ...rawContent, [chId]: updatedContent };
         await saveGeneratedContent(projectId, merged);
         if (onContentUpdated) onContentUpdated(chId, updatedContent);
@@ -426,6 +438,19 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
         const contentStart = subContent.indexOf('\n');
         updatedContent[sub.id] = contentStart >= 0 ? subContent.slice(contentStart).trim() : '';
       }
+      const existingVersions = await getSubsectionVersions(projectId) || {};
+      const newVersions = { ...existingVersions };
+      for (const sub of subs) {
+        const key = `${chId}_${sub.id}`;
+        const oldContent = rawContent[chId]?.[sub.id];
+        if (oldContent) {
+          const list = existingVersions[key] || [];
+          if (list.length === 0 || list[list.length - 1].content !== oldContent) {
+            newVersions[key] = [...list, { content: oldContent, label: 'Sentence Edits Applied', timestamp: Date.now() }];
+          }
+        }
+      }
+      await saveSubsectionVersions(projectId, newVersions);
       const merged = { ...rawContent, [chId]: updatedContent };
       await saveGeneratedContent(projectId, merged);
       if (onContentUpdated) onContentUpdated(chId, updatedContent);

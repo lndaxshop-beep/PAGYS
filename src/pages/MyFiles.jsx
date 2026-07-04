@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,7 +12,6 @@ import useSourceLibrary from '../hooks/useSourceLibrary';
 import { getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 import { escapeHtml } from '../utils/htmlEscape';
 import { generateChapterDocument } from '../utils/merge/chapterDownloadEngine.js';
-import { computeThesisScores } from '../utils/aiScoreUtils.js';
 import { useCurrency } from '../hooks/useCurrency';
 import { PRICES_GHS } from '../constants/pricing';
 import usePayment from '../hooks/usePayment';
@@ -202,8 +201,6 @@ const MyFiles = () => {
   };
   const getGeneratedChaptersCount = () => chapters.filter(ch => ch.generated).length;
 
-  const thesisScores = useMemo(() => computeThesisScores(rawContent), [rawContent]);
-
   const loadGeneratedInstruments = (pid) => {
     const stored = localStorage.getItem(`instruments_${pid}`);
     if (stored) {
@@ -319,9 +316,9 @@ const MyFiles = () => {
         </div>
         <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch', marginBottom: '24px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '4px' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
-            {['chapters','lists','defence','instruments','sources','aiscore'].map(tab => (
+            {['chapters','lists','defence','instruments','sources'].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: isMobile ? '8px 12px' : '12px 24px', backgroundColor: activeTab === tab ? colors.primary : 'transparent', color: activeTab === tab ? 'white' : colors.text, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap' }}>
-                {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : tab === 'sources' ? '📚 Sources' : '🤖 AI Score'}
+                {tab === 'chapters' ? `📄 Chapters (${getGeneratedChaptersCount()})` : tab === 'lists' ? `📋 Lists (${abbreviations.length})` : tab === 'defence' ? '🎯 Defence' : tab === 'instruments' ? `📦 Instruments (${generatedInstruments.length})` : tab === 'sources' ? '📚 Sources' : ''}
               </button>
             ))}
           </div>
@@ -418,77 +415,6 @@ const MyFiles = () => {
                 </div>
               </div>
             ) : <p style={{ color: colors.textSecondary }}>Complete thesis chapters to generate defence preparation questions.</p>}
-          </div>
-        )}
-        {activeTab === 'aiscore' && (
-          <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>🤖 Thesis AI Score</h2>
-            {!thesisScores ? (
-              <p style={{ color: colors.textSecondary, textAlign: 'center', padding: '40px' }}>No content generated yet. Write your thesis chapters first.</p>
-            ) : (
-              <div>
-                <div style={{ textAlign: 'center', padding: '32px', marginBottom: '24px', backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
-                  <div style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '8px' }}>Overall Thesis Score</div>
-                  <div style={{ fontSize: '56px', fontWeight: '800', color: thesisScores.overall.verdict === 'pass' ? '#059669' : thesisScores.overall.verdict === 'borderline' ? '#f59e0b' : '#dc2626' }}>
-                    {thesisScores.overall.score}/100
-                  </div>
-                  <div style={{ fontSize: '15px', color: thesisScores.overall.verdict === 'pass' ? '#059669' : thesisScores.overall.verdict === 'borderline' ? '#f59e0b' : '#dc2626', marginTop: '8px', fontWeight: '500' }}>
-                    {thesisScores.overall.verdictLabel}
-                  </div>
-                  <div style={{ fontSize: '13px', color: colors.textSecondary, marginTop: '8px' }}>
-                    {thesisScores.totalWords.toLocaleString()} words across {Object.keys(thesisScores.chapters).length} chapters
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-                    <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>Burstiness (sentence variety)</span>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: thesisScores.overall.burstiness.cv >= 0.4 ? '#059669' : '#f59e0b' }}>{(thesisScores.overall.burstiness.cv * 100).toFixed(0)}%</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-                    <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>Banned phrases detected</span>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: thesisScores.overall.banned.count > 0 ? '#dc2626' : '#059669' }}>{thesisScores.overall.banned.count}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-                    <span style={{ color: colors.text, fontWeight: '500', fontSize: '14px' }}>Transition word frequency</span>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: thesisScores.overall.transitions.frequency <= 1.5 ? '#059669' : '#f59e0b' }}>{thesisScores.overall.transitions.frequency.toFixed(1)}/sentence</span>
-                  </div>
-                </div>
-                {Object.keys(thesisScores.chapters).length > 1 && (
-                  <div style={{ marginTop: '24px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: colors.text, marginBottom: '12px' }}>Score by Chapter</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {Object.entries(thesisScores.chapters).map(([chId, data]) => {
-                        const ch = chapters.find(c => c.id === chId);
-                        const displayTitle = ch ? getChapterDisplayTitle(ch) : chId;
-                        const sc = data.scores;
-                        return (
-                          <div key={chId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: '600', color: colors.text, fontSize: '14px', marginBottom: '4px' }}>{displayTitle}</div>
-                              <div style={{ fontSize: '12px', color: colors.textSecondary }}>{data.wordCount.toLocaleString()} words</div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontWeight: '700', fontSize: '20px', color: sc.verdict === 'pass' ? '#059669' : sc.verdict === 'borderline' ? '#f59e0b' : '#dc2626' }}>{sc.score}</div>
-                              <div style={{ fontSize: '11px', color: colors.textSecondary }}>/100</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {thesisScores.overall.banned.count > 0 && (
-                  <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#dc2626', marginBottom: '8px' }}>⚠️ Banned Phrases Found in Thesis</div>
-                    {thesisScores.overall.banned.items.map((b, i) => (
-                      <div key={i} style={{ fontSize: '12px', color: '#991b1b', padding: '4px 0', borderBottom: i < thesisScores.overall.banned.items.length - 1 ? '1px solid #fecaca' : 'none' }}>
-                        "{b.phrase}" — <span style={{ fontStyle: 'italic' }}>...{b.line.length > 100 ? b.line.slice(0, 100) + '...' : b.line}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
         {activeTab === 'sources' && selectedProject && (

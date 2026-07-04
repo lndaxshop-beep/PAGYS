@@ -34,7 +34,7 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
     try {
       const to = FEEDBACK_CATEGORY_EMAILS[category] || FEEDBACK_CATEGORY_EMAILS['Other'];
       const userName = user?.fullName || user?.username || user?.email?.split('@')[0] || 'Anonymous';
-      const subject = `[PAGYS Feedback] ${category}`;
+      const subject = `[PAGYSS Feedback] ${category}`;
       const text = `Category: ${category}\nFrom: ${userName} (${email})\nPage: ${window.location.pathname}\n\n${message.trim()}`;
       const html = `
         <h3>${category}</h3>
@@ -79,7 +79,7 @@ const AppFeedbackModal = ({ isOpen, onClose }) => {
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>🙏</div>
             <h3 style={{ color: colors.text, fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Thank You!</h3>
-            <p style={{ color: colors.textSecondary, fontSize: '14px' }}>Your feedback helps us improve PAGYS.</p>
+            <p style={{ color: colors.textSecondary, fontSize: '14px' }}>Your feedback helps us improve PAGYSS.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>

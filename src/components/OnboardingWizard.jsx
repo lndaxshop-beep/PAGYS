@@ -3,16 +3,16 @@ import { useTheme } from '../contexts/ThemeContext';
 
 const STEPS = [
   {
-    title: 'Welcome to PAGYS',
+    title: 'Welcome to PAGYSS',
     subtitle: 'Your Personal Academic Writing Assistant',
-    content: 'PAGYS helps you write your thesis from start to finish. Write academic content chapter by chapter, verify citations, manage references, and export your completed document in multiple formats.',
+    content: 'PAGYSS helps you write your thesis from start to finish. Write academic content chapter by chapter, verify citations, manage references, and export your completed document in multiple formats.',
     icon: '🎓',
     action: null,
   },
   {
     title: 'Create Your First Project',
     subtitle: 'Start with a clear research direction',
-    content: 'Click "New Project" to begin. Enter your thesis title, academic level, field of study, and research methodology. PAGYS creates a structured outline with all chapters and subsections tailored to your topic.',
+    content: 'Click "New Project" to begin. Enter your thesis title, academic level, field of study, and research methodology. PAGYSS creates a structured outline with all chapters and subsections tailored to your topic.',
     icon: '📂',
     action: null,
   },

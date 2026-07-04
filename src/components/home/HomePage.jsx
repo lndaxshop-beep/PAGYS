@@ -38,17 +38,17 @@ const HomePage = () => {
   ];
 
   const testimonials = [
-    { name: 'Anthony Mensah', role: 'PhD Graduate, KNUST', content: 'PAGYS took my thesis from scattered notes to a defendable draft in two weeks. The chapter structure alone saved me a full semester of work.' },
+    { name: 'Anthony Mensah', role: 'PhD Graduate, KNUST', content: 'PAGYSS took my thesis from scattered notes to a defendable draft in two weeks. The chapter structure alone saved me a full semester of work.' },
     { name: 'Daniel Kekeli Glover', role: 'MPhil Student, University of Ghana', content: 'I was stuck on my literature review for months. I finished Chapter 2 in one weekend. The citation system is a lifesaver.' },
-    { name: 'Mary Osowochi', role: 'MSc Graduate, University of Lagos', content: 'My supervisor kept rejecting my drafts until I used PAGYS. The academic quality finally got me a green light on my first full submission.' },
+    { name: 'Mary Osowochi', role: 'MSc Graduate, University of Lagos', content: 'My supervisor kept rejecting my drafts until I used PAGYSS. The academic quality finally got me a green light on my first full submission.' },
     { name: 'Patricia Amankwah', role: 'PhD Candidate, UPSA', content: 'Balancing full-time work with a thesis was impossible until I found this. The guided writing kept me on track and I submitted on time.' },
     { name: 'Michael Ofori-Atta', role: "Master's Graduate, University of Ibadan", content: 'Writing the methodology chapter was a nightmare. This tool generated a solid quantitative framework that needed only minor tweaks.' },
     { name: 'Sarah Aboagye', role: 'Final Year, Pentecost University', content: 'The text refinement feature is pure gold. It turned my rough drafts into something that actually reads like a proper academic paper.' },
-    { name: 'Emmanuel Asare', role: 'PhD Researcher, Obafemi Awolowo University', content: 'I uploaded my messy chapter outline and PAGYS turned it into a properly structured thesis with correct headings and logical flow. Incredible.' },
+    { name: 'Emmanuel Asare', role: 'PhD Researcher, Obafemi Awolowo University', content: 'I uploaded my messy chapter outline and PAGYSS turned it into a properly structured thesis with correct headings and logical flow. Incredible.' },
     { name: 'Elizabeth Nartey', role: 'MPhil Student, University of Cape Coast', content: 'The citation verification caught errors I would have missed. My bibliography was acceptance-ready in minutes.' },
     { name: 'Joseph Adjei', role: "Master's Graduate, Covenant University", content: 'Exporting to PDF with all figures, tables, and references intact was seamless. My panel was impressed by the formatting.' },
     { name: 'Grace Lartey', role: 'PhD Candidate, University of Ghana', content: 'From introduction to conclusion, I wrote each chapter with confidence. Graduated with distinction. Worth every pesewa.' },
-    { name: 'Francis Nkrumah', role: 'Lecturer, Ahmadu Bello University', content: 'I recommend PAGYS to all my final-year students. It teaches proper thesis structure while dramatically accelerating the writing process.' },
+    { name: 'Francis Nkrumah', role: 'Lecturer, Ahmadu Bello University', content: 'I recommend PAGYSS to all my final-year students. It teaches proper thesis structure while dramatically accelerating the writing process.' },
     { name: 'Linda Mensah-Bonsu', role: 'MPhil Graduate, KNUST', content: 'Three months of writer\'s block vanished after I started. The step-by-step approach kept me writing every single day until completion.' },
   ];
 
@@ -84,7 +84,7 @@ const HomePage = () => {
             <span key={isDarkMode ? 'dark' : 'light'} style={{ background: `linear-gradient(135deg, ${colors.primary}, #9583b988)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>Like A Pro</span>
           </h1>
           <p style={{ fontSize: isMobile ? '16px' : '18px', color: colors.textSecondary, maxWidth: '700px', margin: '0 auto 32px', lineHeight: '1.6' }}>
-            From your research topic to a complete, submission-ready thesis — PAGYS walks you through every step. Structured outlines, verified academic references, professional tables and charts, and one-click document assembly. Everything you need, nothing you don't.
+            From your research topic to a complete, submission-ready thesis — PAGYSS walks you through every step. Structured outlines, verified academic references, professional tables and charts, and one-click document assembly. Everything you need, nothing you don't.
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={handleGetStarted} style={{ ...heroButtonStyle, fontSize: isMobile ? '16px' : '18px', padding: isMobile ? '14px 24px' : '16px 32px' }}
@@ -142,7 +142,7 @@ const HomePage = () => {
       <div style={{ padding: isMobile ? '48px 16px' : '80px 20px', flex: 1 }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', backgroundColor: colors.surface, padding: isMobile ? '40px 24px' : '60px 40px', borderRadius: isMobile ? '16px' : '24px', border: `1px solid ${colors.border}`, boxShadow: isDarkMode ? '0 20px 40px rgba(0,0,0,0.4)' : '0 20px 40px rgba(0,0,0,0.1)' }}>
           <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: 'bold', color: colors.text, marginBottom: '16px' }}>Ready to Start Your Thesis?</h2>
-          <p style={{ fontSize: isMobile ? '16px' : '18px', color: colors.textSecondary, marginBottom: '32px', maxWidth: '500px', margin: '0 auto 32px' }}>Join thousands of students who have already aced their thesis with PAGYS</p>
+          <p style={{ fontSize: isMobile ? '16px' : '18px', color: colors.textSecondary, marginBottom: '32px', maxWidth: '500px', margin: '0 auto 32px' }}>Join thousands of students who have already aced their thesis with PAGYSS</p>
           <button onClick={handleGetStarted} style={heroButtonStyle}
             onMouseEnter={(e) => { e.target.style.backgroundColor = colors.primaryDark; e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = `0 12px 24px ${colors.primary}60`; }}
             onMouseLeave={(e) => { e.target.style.backgroundColor = colors.primary; e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = `0 8px 16px ${colors.primary}40`; }}>

@@ -81,7 +81,7 @@ const Header = () => {
         }}>
           <img
             src={logo}
-            alt="PAGYS"
+            alt="PAGYSS"
             style={{
               height: isMobile ? '60px' : '72px',
               width: 'auto',
@@ -200,7 +200,7 @@ const Header = () => {
               padding: '16px 20px',
               borderBottom: `1px solid ${colors.border}`,
             }}>
-              <span style={{ fontSize: '20px', fontWeight: 'bold', color: colors.primary }}>PAGYS</span>
+              <span style={{ fontSize: '20px', fontWeight: 'bold', color: colors.primary }}>PAGYSS</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close menu"

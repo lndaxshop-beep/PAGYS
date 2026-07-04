@@ -23,7 +23,7 @@ const PrivacyPolicy = () => {
           <p style={{ color: colors.textSecondary, marginBottom: '32px' }}>Last updated: January 2026</p>
 
           <p style={{ color: colors.text, lineHeight: '1.8', marginBottom: '24px' }}>
-            A&P Firms ("we," "our," or "us") operates the PAGYS platform. We are committed to protecting your privacy and handling your data transparently. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our thesis generation service.
+            A&P Firms ("we," "our," or "us") operates the PAGYSS platform. We are committed to protecting your privacy and handling your data transparently. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our thesis generation service.
           </p>
 
           <Section title="1. Information We Collect" colors={colors}>
@@ -50,7 +50,7 @@ const PrivacyPolicy = () => {
           </Section>
 
           <Section title="3. AI Data Processing" colors={colors}>
-            <p style={{ marginBottom: '16px' }}>PAGYS uses Google Gemini AI to generate academic content. When you use our service:</p>
+            <p style={{ marginBottom: '16px' }}>PAGYSS uses Google Gemini AI to generate academic content. When you use our service:</p>
             <ListItem>Your prompts, topics, and research questions are transmitted to AI providers solely for content generation</ListItem>
             <ListItem>We do NOT use your thesis content to train AI models</ListItem>
             <ListItem>Generated content is stored securely and associated only with your account</ListItem>
@@ -89,7 +89,7 @@ const PrivacyPolicy = () => {
             <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
               <p><strong>Email:</strong> {SUPPORT_EMAIL}</p>
               <p><strong>Business:</strong> A&P Firms</p>
-              <p><strong>Platform:</strong> PAGYS</p>
+              <p><strong>Platform:</strong> PAGYSS</p>
               <p><strong>Operating in:</strong> Ghana</p>
             </div>
           </Section>

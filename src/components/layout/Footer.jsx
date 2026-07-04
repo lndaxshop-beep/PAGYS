@@ -26,7 +26,7 @@ const Footer = () => {
         textAlign: isMobile ? 'center' : 'left',
       }}>
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? '4px' : '12px' }}>
-          <span style={{ fontSize: '20px', fontWeight: 'bold', color: colors.primary }}>PAGYS</span>
+          <span style={{ fontSize: '20px', fontWeight: 'bold', color: colors.primary }}>PAGYSS</span>
           <span style={{ color: colors.textSecondary, fontSize: isMobile ? '12px' : '14px' }}>© {currentYear} A&P Firms. All rights reserved.</span>
         </div>
         <div style={{ display: 'flex', gap: isMobile ? '16px' : '32px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -31,10 +31,10 @@ const RefundPolicy = () => {
 
           <Section title="No Refunds" colors={colors}>
             <p style={{ lineHeight: '1.8', marginBottom: '16px' }}>
-              A&P Firms operates PAGYS with a strict <strong>no-refund policy</strong>. All purchases, including regular project access (₵30) and premium upgrades, are final and non-refundable.
+              A&P Firms operates PAGYSS with a strict <strong>no-refund policy</strong>. All purchases, including regular project access (₵30) and premium upgrades, are final and non-refundable.
             </p>
             <p style={{ lineHeight: '1.8' }}>
-              By making a payment on PAGYS, you acknowledge and agree that you will not receive a refund under any circumstances.
+              By making a payment on PAGYSS, you acknowledge and agree that you will not receive a refund under any circumstances.
             </p>
           </Section>
 
@@ -48,7 +48,7 @@ const RefundPolicy = () => {
 
           <Section title="Technical Issues" colors={colors}>
             <p style={{ lineHeight: '1.8' }}>
-              If you experience technical issues that prevent you from using PAGYS, please report them immediately to <strong>{SUPPORT_EMAIL}</strong>. We will investigate and resolve issues promptly. While we do not offer refunds, we are committed to ensuring you receive the service you paid for.
+              If you experience technical issues that prevent you from using PAGYSS, please report them immediately to <strong>{SUPPORT_EMAIL}</strong>. We will investigate and resolve issues promptly. While we do not offer refunds, we are committed to ensuring you receive the service you paid for.
             </p>
           </Section>
 

@@ -72,7 +72,7 @@ const FEATURES = [
   {
     icon: '💎',
     title: 'Premium Features',
-    description: 'Upgrade to unlock Write All Remaining, Search Literature, Custom Guidelines, and larger per-chapter pools for Humanise and Feedback.',
+    description: 'Upgrade to unlock Write All Remaining, Search Literature, Custom Guidelines, and larger per-chapter pools for Remove AI and Feedback.',
     premium: true,
   },
 ];

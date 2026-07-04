@@ -5,7 +5,7 @@ const SplashScreen = ({ show }) => {
   const [mounted, setMounted] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [typedText, setTypedText] = useState('');
-  const fullText = 'Pagys, freedom writing...';
+  const fullText = 'Pagyss, freedom writing...';
   const timerRef = useRef(null);
 
   useEffect(() => {

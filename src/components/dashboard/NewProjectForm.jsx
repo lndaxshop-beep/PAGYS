@@ -110,11 +110,11 @@ const NewProjectForm = ({
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(PRICES_GHS.regular)}</div>
                 <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
-                  <li>Humanise (10 uses per chapter)</li>
+                  <li>Remove AI (5 free uses per project)</li>
                   <li>Feedback (6 uses per chapter)</li>
                   <li>Full thesis generation</li>
                   <li>Professional tables & charts</li>
-                  <li>DOCX / PDF / LaTeX export</li>
+                  <li>DOCX / PDF / Markdown / LaTeX export</li>
                 </ul>
               </div>
               <div
@@ -133,7 +133,7 @@ const NewProjectForm = ({
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(PRICES_GHS.premium)}</div>
                 <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
-                  <li>Humanise (15 uses per chapter)</li>
+                  <li>Remove AI (10 free uses per project)</li>
                   <li>Feedback (12 uses per chapter)</li>
                   <li>Write All Remaining at once</li>
                   <li>Search Literature & Add Sources</li>

@@ -503,6 +503,7 @@ const MyFiles = () => {
             isDarkMode={isDarkMode}
             notify={notify}
             fmt={fmt}
+            sources={sourceLibrary.sources}
             onContentUpdated={handleContentUpdated}
           />
         )}

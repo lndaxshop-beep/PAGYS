@@ -3,7 +3,7 @@ import { getChapterDisplayTitle } from '../../utils/writeHelpers.jsx';
 
 const REMOVE_AI_LIMIT = 6;
 
-const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isDarkMode, notify, fmt, onContentUpdated }) => {
+const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isDarkMode, notify, fmt, onContentUpdated, sources = [] }) => {
   const [selectedChapters, setSelectedChapters] = useState(new Set());
   const [removeAIUsed, setRemoveAIUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`removeAIUsed_${projectId}`) || '0'); } catch { return 0; }
@@ -15,6 +15,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   const [showResetModal, setShowResetModal] = useState(false);
   const [processingReset, setProcessingReset] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState(null);
+  const [checkingScore, setCheckingScore] = useState({});
 
   useEffect(() => {
     try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {}
@@ -123,22 +124,24 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   };
 
   const handleCheckScore = async (chId) => {
+    if (checkingScore[chId]) return;
     const ch = chapters.find(c => c.id === chId);
     if (!ch) return;
-    const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-    const content = rawContent[chId] || {};
-    const fullText = subs.map(s => content[s.id] || '').filter(Boolean).join(' ');
+    setCheckingScore(prev => ({ ...prev, [chId]: true }));
     try {
+      const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
+      const content = rawContent[chId] || {};
+      const fullText = subs.map(s => content[s.id] || '').filter(Boolean).join(' ');
+      if (!fullText.trim()) { setCheckingScore(prev => ({ ...prev, [chId]: false })); return; }
       const { computeAIScores } = await import('../../utils/aiScoreUtils');
-      const result = computeAIScores(fullText);
-      setScores(prev => ({ ...prev, [chId]: result }));
+      const aiResult = computeAIScores(fullText);
+      const { checkPlagiarism } = await import('../../utils/plagiarismChecker');
+      const plagiarismResult = checkPlagiarism(fullText, sources);
+      setScores(prev => ({ ...prev, [chId]: { ai: aiResult, plagiarism: plagiarismResult } }));
     } catch (e) {
-      const { calculateBurstiness, scanBannedPhrases, scanTransitions } = await import('../../services/gemini/antiDetection');
-      const burstiness = calculateBurstiness(fullText);
-      const banned = scanBannedPhrases(fullText);
-      const transitions = scanTransitions(fullText);
-      setScores(prev => ({ ...prev, [chId]: { burstiness: burstiness.cv, banned: banned.length, transitions: transitions.frequency, overall: { score: Math.round((1 - burstiness.cv) * 50 + (banned.length > 0 ? -20 : 10)), verdict: burstiness.cv >= 0.4 ? 'pass' : 'needs work' } } }));
+      console.error('Score check failed:', e);
     }
+    setCheckingScore(prev => ({ ...prev, [chId]: false }));
   };
 
   const handleResetConfirm = async () => {
@@ -221,12 +224,10 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {isDone && (
-                          <button onClick={(e) => { e.stopPropagation(); handleCheckScore(ch.id); }}
-                            style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
-                            Check AI Score
-                          </button>
-                        )}
+                        <button onClick={(e) => { e.stopPropagation(); handleCheckScore(ch.id); }}
+                          style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: checkingScore[ch.id] ? 'not-allowed' : 'pointer', fontWeight: '500', opacity: checkingScore[ch.id] ? 0.7 : 1 }}>
+                          {checkingScore[ch.id] ? '⏳ Checking...' : hasContent ? '📊 Check Score' : ''}
+                        </button>
                         <button onClick={(e) => { e.stopPropagation(); setExpandedChapter(expandedChapter === ch.id ? null : ch.id); }}
                           style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}`, cursor: 'pointer' }}>
                           {expandedChapter === ch.id ? '▲' : '▼'} Preview
@@ -237,10 +238,22 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                     {chScore && (
                       <div style={{ marginTop: '10px', padding: '10px 12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px' }}>
-                          <span>Score: <strong style={{ color: (chScore.verdict || chScore.overall?.verdict) === 'pass' ? '#059669' : '#dc2626' }}>{chScore.score || chScore.overall?.score || 'N/A'}/100</strong></span>
-                          <span>Burstiness: <strong style={{ color: (chScore.burstiness?.cv || chScore.overall?.burstiness?.cv || 0) >= 0.4 ? '#059669' : '#f59e0b' }}>{((chScore.burstiness?.cv || chScore.overall?.burstiness?.cv || 0) * 100).toFixed(0)}%</strong></span>
-                          <span>Banned phrases: <strong style={{ color: (chScore.banned?.count || chScore.overall?.banned?.count || 0) > 0 ? '#dc2626' : '#059669' }}>{chScore.banned?.count || chScore.overall?.banned?.count || 0}</strong></span>
-                          <span>Transitions: <strong>{((chScore.transitions?.frequency || chScore.overall?.transitions?.frequency || 0)).toFixed(1)}/sentence</strong></span>
+                          {chScore.ai ? (
+                            <>
+                              <span>AI Score: <strong style={{ color: chScore.ai.verdict === 'pass' ? '#059669' : chScore.ai.verdict === 'borderline' ? '#f59e0b' : '#dc2626' }}>{chScore.ai.score}/100 ({chScore.ai.verdictLabel})</strong></span>
+                              <span>Burstiness: <strong style={{ color: (chScore.ai.burstiness?.cv || 0) >= 0.4 ? '#059669' : '#f59e0b' }}>{((chScore.ai.burstiness?.cv || 0) * 100).toFixed(0)}%</strong></span>
+                              <span>Banned: <strong style={{ color: (chScore.ai.banned?.count || 0) > 0 ? '#dc2626' : '#059669' }}>{chScore.ai.banned?.count || 0}</strong></span>
+                              <span>Transitions: <strong>{(chScore.ai.transitions?.frequency || 0).toFixed(1)}/sentence</strong></span>
+                            </>
+                          ) : (
+                            <>
+                              <span>AI Score: <strong style={{ color: (chScore.verdict || chScore.overall?.verdict) === 'pass' ? '#059669' : '#dc2626' }}>{chScore.score || chScore.overall?.score || 'N/A'}/100</strong></span>
+                              <span>Burstiness: <strong style={{ color: (chScore.burstiness?.cv || chScore.overall?.burstiness?.cv || 0) >= 0.4 ? '#059669' : '#f59e0b' }}>{((chScore.burstiness?.cv || chScore.overall?.burstiness?.cv || 0) * 100).toFixed(0)}%</strong></span>
+                              <span>Banned: <strong style={{ color: (chScore.banned || chScore.overall?.banned?.count || 0) > 0 ? '#dc2626' : '#059669' }}>{chScore.banned || chScore.overall?.banned?.count || 0}</strong></span>
+                              <span>Transitions: <strong>{(chScore.transitions?.frequency || chScore.overall?.transitions?.frequency || 0).toFixed(1)}/sentence</strong></span>
+                            </>
+                          )}
+                          <span style={{ borderLeft: `1px solid ${colors.border}`, paddingLeft: '12px' }}>Plagiarism: <strong style={{ color: (chScore.plagiarism?.score || 0) >= 30 ? '#dc2626' : (chScore.plagiarism?.score || 0) >= 15 ? '#f59e0b' : '#059669' }}>{chScore.plagiarism?.score || 0}%</strong> ({chScore.plagiarism?.matches?.length || 0} flagged)</span>
                         </div>
                       </div>
                     )}

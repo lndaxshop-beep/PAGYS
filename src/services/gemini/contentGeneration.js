@@ -85,9 +85,6 @@ export const generateAcademicContent = async (promptData) => {
       tools: [{ googleSearch: {} }],
       generationConfig: { temperature: 0.4, topP: 0.85 }
     });
-    const wordRange = promptData.wordCount || { min: 500, max: 1000 };
-    const targetWords = Math.floor((wordRange.min + wordRange.max) / 2);
-
     const structureInstruction = 'Start directly with the subsection heading.';
 
     let sourceModeInstruction = '';
@@ -143,7 +140,6 @@ ${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` 
 FIELD: ${promptData.field || 'Not specified'}
 CHAPTER: ${promptData.chapter}
 SUBSECTION: ${promptData.subsection}
-TARGET WORD COUNT: ${targetWords} words (range: ${wordRange.min}–${wordRange.max})
 METHODOLOGY: ${promptData.methodology || 'mixed methods'} — all content MUST align with this methodology
 ${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
@@ -304,7 +300,7 @@ Why this is bad: generic opener, stacked transitions, no specific claim, no cita
 "Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores: a finding that challenges the assumption that AI tools primarily benefit advanced learners."
 Why this is good: specific data, grounded claim, meaningful citation, original insight, varied sentence rhythm.
 
-Write the complete content now. Aim for approximately ${targetWords} words.`;
+Write the complete content now.`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
@@ -376,7 +372,6 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
 - Rewrite the ENTIRE text incorporating all fixes above.
 - Preserve ALL: tables, diagrams, [CHART:{...}] tags, data, numbers, statistics.
 - Preserve ALL subsection headings exactly as they appear.
-- DO NOT change the word count drastically (stay within 85–115% of original).
 - Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`;
 
     const result = await model.generateContent(prompt);
@@ -540,7 +535,6 @@ ${diagnosticReport}${flaggedSection}
 - Keep ALL in-text citations (Author, Year) exactly as written.
 - Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged.
 - Keep ALL subsection headings exactly as they appear.
-- Keep the total word count within 85-115% of the original.
 - No markdown headings, no HTML tags.
 
 Return ONLY the rewritten text. No explanations.`;

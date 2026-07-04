@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, distributeWordCount, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
 const buildThesisContext = (currentChapterId, chapters, generatedSubsections) => {
   const chapterOrder = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
@@ -100,8 +100,6 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     const ordinal = getChapterOrdinal(ch, chapters);
     const numberWords = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN'];
     const chapterNumber = ordinal > 0 && ordinal < numberWords.length ? numberWords[ordinal] : '';
-    const totalWordCount = ch.wordCount || { min: 1000, max: 2000 };
-    const subsectionWordCount = distributeWordCount(totalWordCount.min, totalWordCount.max, activeSubsList, subTitle);
     const childrenTopics = (sub.children || []).map(c => c.title).filter(Boolean);
 
     const thesisContext = buildThesisContext(chapterId, chapters, generatedSubsections);
@@ -112,7 +110,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       topic: project.title, researchTopic: project.topic, field: project.field, level: project.level, methodology: project.methodology,
       organization: sub.customValue || project?.organizationName || null,
       hideOrganization: project?.hideOrganization || false, findings: chapterId === 'chapter4' ? uploadedFindings : null,
-      wordCount: subsectionWordCount, literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
+      literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
       userSources, sourceMode,
       guidelines: ch.guidelines || '',
       childrenTopics,

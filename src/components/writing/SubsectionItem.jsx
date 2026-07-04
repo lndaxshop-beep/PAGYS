@@ -27,7 +27,6 @@ const SubsectionItem = ({
   isClickable,
   isDragged,
   isDragOver,
-  wordCount,
   outline,
   onDragStart,
   onDragOver,
@@ -158,11 +157,6 @@ const SubsectionItem = ({
           {subsection.generated && (
             <div style={{ fontSize: '10px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span>✓ Generated</span>
-            </div>
-          )}
-          {wordCount && !subsection.generated && (
-            <div style={{ fontSize: '10px', color: colors.textSecondary, marginTop: '2px' }}>
-              {wordCount.min}–{wordCount.max} words
             </div>
           )}
           {outline && outline.length > 0 && (

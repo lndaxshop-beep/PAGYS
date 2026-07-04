@@ -83,6 +83,8 @@ const SplashScreen = ({ show }) => {
           <div style={{
             position: 'absolute',
             bottom: '18%',
+            left: 0,
+            right: 0,
             height: '24px',
             display: 'flex',
             alignItems: 'center',
@@ -91,10 +93,11 @@ const SplashScreen = ({ show }) => {
           }}>
             <span style={{
               fontFamily: "'Playfair Display', 'Georgia', serif",
-              fontSize: '17px',
+              fontSize: 'clamp(12px, 3.7vw, 17px)',
               color: '#444',
               fontStyle: 'italic',
               fontWeight: 500,
+              whiteSpace: 'nowrap',
             }}>
               {typedText}
             </span>

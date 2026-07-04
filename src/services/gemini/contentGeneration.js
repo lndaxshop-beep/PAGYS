@@ -510,19 +510,19 @@ ${diagnosticReport}${flaggedSection}
 - Use short punchy statements: "This matters. Here's why."
 - Then immediately follow with a longer, flowing sentence.
 
-### 2. TONE — SOUND LIKE A PERSON, NOT A PROFESSOR
-- Write like a smart student explaining something, not a textbook.
-- USE contractions: don't, won't, isn't, it's, they're, there's, hasn't, wasn't.
-- Mix confident statements ("The data clearly show...") with thoughtful uncertainty ("This might suggest...", "It's possible that...").
+### 2. TONE — NATURAL ACADEMIC STYLE
+- Write like a smart graduate student writing a thesis — clear and natural, not stiff or robotic.
+- NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
+- Mix confident statements ("The data clearly show...") with thoughtful hedging ("This may suggest...", "It is possible that...").
 - Simple vocabulary is GOOD. Avoid jargon and fancy words.
 - Never say "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion".
 
-### 3. CONVERSATIONAL ACADEMIC STYLE
-- Start sentences with variety: "So...", "But...", "What's interesting is...", "Looking at...", "The thing about..."
-- Use "I" or "we" occasionally: "I found that...", "We can see..."
-- Add natural fillers: "actually", "basically", "importantly", "interestingly", "honestly"
-- Vary confidence: some claims sound certain, others sound like speculation.
-- Long sentences should feel like someone thinking out loud, not formulaic.
+### 3. VARIED ACADEMIC STYLE
+- Start sentences with variety: "Notably...", "Critically...", "An important finding is...", "Turning to...", "What is particularly striking is..."
+- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
+- Use natural academic phrasing: "importantly", "notably", "interestingly", "critically", "in practice"
+- Vary confidence: some claims sound certain, others hedge ("this may suggest", "it appears that").
+- Long sentences should feel thoughtful and purposeful, not formulaic.
 
 ### 4. WHAT TO AVOID AT ALL COSTS
 - NO transitions (furthermore, moreover, additionally, consequently, thus, hence)

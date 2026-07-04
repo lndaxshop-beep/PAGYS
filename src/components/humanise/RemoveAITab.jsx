@@ -3,35 +3,6 @@ import { getChapterDisplayTitle } from '../../utils/writeHelpers.jsx';
 import { PRICES_GHS } from '../../constants/pricing';
 import { saveRemoveAIData, getRemoveAIData, saveGeneratedContent, saveSubsectionVersions, getSubsectionVersions } from '../../services/firestoreService';
 
-const AIGauge = ({ score, confidence, size = 160 }) => {
-  const radius = (size - 20) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const [animatedScore, setAnimatedScore] = useState(0);
-  const r = useRef(null);
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimatedScore(score), 100);
-    return () => clearTimeout(timer);
-  }, [score]);
-  const offset = circumference - (animatedScore / 100) * circumference;
-  const color = score >= 60 ? '#059669' : score >= 40 ? '#f59e0b' : '#dc2626';
-  const label = score >= 60 ? 'Likely Human' : score >= 40 ? 'Needs Work' : 'Likely AI';
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e5e7eb" strokeWidth="12" />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth="12"
-          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 1s ease-in-out' }} />
-      </svg>
-      <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: '28px', fontWeight: '700', color }}>{Math.round(animatedScore)}<span style={{ fontSize: '14px', fontWeight: '400' }}>/100</span></span>
-        <span style={{ fontSize: '11px', fontWeight: '500', color: colors?.textSecondary || '#6b7280', marginTop: '2px' }}>{label}</span>
-        {confidence > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{confidence}% confidence</span>}
-      </div>
-    </div>
-  );
-};
-
 const BreakdownBar = ({ label, value, color, invertColor = false }) => {
   const effectiveColor = value >= 60 ? '#059669' : value >= 40 ? '#f59e0b' : '#dc2626';
   const barColor = invertColor ? (value <= 40 ? '#059669' : value <= 60 ? '#f59e0b' : '#dc2626') : effectiveColor;
@@ -43,53 +14,6 @@ const BreakdownBar = ({ label, value, color, invertColor = false }) => {
         <div style={{ width: `${displayValue}%`, height: '100%', backgroundColor: barColor, borderRadius: '4px', transition: 'width 0.8s ease-in-out' }} />
       </div>
       <span style={{ width: '30px', fontSize: '11px', fontWeight: '600', color: barColor, textAlign: 'right' }}>{displayValue}%</span>
-    </div>
-  );
-};
-
-const ScoreChart = ({ history, colors }) => {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    if (!canvasRef.current || !history || history.length < 2) return;
-    const ctx = canvasRef.current.getContext('2d');
-    const w = canvasRef.current.width;
-    const h = canvasRef.current.height;
-    const pad = { top: 4, bottom: 12, left: 4, right: 4 };
-    ctx.clearRect(0, 0, w, h);
-    const max = Math.max(...history, 100);
-    const min = Math.min(...history, 0);
-    const range = max - min || 1;
-    const xStep = (w - pad.left - pad.right) / (history.length - 1);
-    const points = history.map((v, i) => ({
-      x: pad.left + i * xStep,
-      y: pad.top + (h - pad.top - pad.bottom) * (1 - (v - min) / range)
-    }));
-    ctx.beginPath();
-    ctx.strokeStyle = '#7c3aed';
-    ctx.lineWidth = 2;
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      const cpX = (points[i - 1].x + points[i].x) / 2;
-      ctx.bezierCurveTo(cpX, points[i - 1].y, cpX, points[i].y, points[i].x, points[i].y);
-    }
-    ctx.stroke();
-    ctx.fillStyle = '#7c3aed';
-    points.forEach((p, i) => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, i === points.length - 1 ? 3 : 2, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '8px sans-serif';
-    history.forEach((v, i) => {
-      ctx.fillText(v, points[i].x - 4, h - 1);
-    });
-  }, [history]);
-  if (!history || history.length < 2) return null;
-  return (
-    <div style={{ marginTop: '8px' }}>
-      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Score History</div>
-      <canvas ref={canvasRef} width={160} height={50} style={{ width: '100%', height: '50px', backgroundColor: '#f9fafb', borderRadius: '4px' }} />
     </div>
   );
 };
@@ -108,13 +32,12 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   });
   const [processing, setProcessing] = useState(false);
   const [processingChapter, setProcessingChapter] = useState(null);
-  const [results, setResults] = useState({});
-  const [scores, setScores] = useState({});
+  const [chapterVersions, setChapterVersions] = useState({});
+  const [selectedVersionIdx, setSelectedVersionIdx] = useState({});
   const [showResetModal, setShowResetModal] = useState(false);
   const [processingReset, setProcessingReset] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState(null);
   const [checkingScore, setCheckingScore] = useState({});
-  const [scoreHistory, setScoreHistory] = useState({});
   const [selectedSentence, setSelectedSentence] = useState(null);
   const [sentenceEdits, setSentenceEdits] = useState({});
   const [showManualEdit, setShowManualEdit] = useState(null);
@@ -131,31 +54,29 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
         const saved = await getRemoveAIData(projectId);
         if (saved) {
           if (saved.sentenceEdits) setSentenceEdits(saved.sentenceEdits);
-          if (saved.scores) setScores(saved.scores);
-          if (saved.scoreHistory) setScoreHistory(saved.scoreHistory);
+          if (saved.chapterVersions) setChapterVersions(saved.chapterVersions);
         }
       } catch (e) { console.error('Failed to load Remove AI data:', e); }
       initialLoad.current = false;
     })();
   }, [projectId]);
 
-  const persistData = useCallback((edits, scrs, hist) => {
+  const persistData = useCallback((edits, versions) => {
     if (initialLoad.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveRemoveAIData(projectId, {
         sentenceEdits: edits !== undefined ? edits : sentenceEdits,
-        scores: scrs !== undefined ? scrs : scores,
-        scoreHistory: hist !== undefined ? hist : scoreHistory,
+        chapterVersions: versions !== undefined ? versions : chapterVersions,
       });
     }, 1500);
-  }, [projectId, sentenceEdits, scores, scoreHistory]);
+  }, [projectId, sentenceEdits, chapterVersions]);
 
   useEffect(() => {
     if (initialLoad.current) return;
     persistData();
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [sentenceEdits, scores, scoreHistory]);
+  }, [sentenceEdits, chapterVersions]);
 
   useEffect(() => {
     try { localStorage.setItem(`removeAIResets_${projectId}`, JSON.stringify(removeAIResets)); } catch {}
@@ -215,17 +136,11 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
           continue;
         }
         const chapterTitle = getChapterDisplayTitle(ch);
+        const level = getNextLevel(chId);
         const { humaniseContent } = await import('../../services/geminiService');
         const { computeAIScores } = await import('../../utils/aiScoreUtils');
         const { enrichSentencesWithSuggestions } = await import('../../services/gemini/sentenceSuggestions');
         const preScore = computeAIScores(fullContent);
-        setScoreHistory(prev => {
-          const existing = prev[chId] || [];
-          if (existing.length === 0 && preScore) {
-            return { ...prev, [chId]: [preScore.score] };
-          }
-          return prev;
-        });
         const preSentences = preScore?.sentences || [];
         const preEnriched = enrichSentencesWithSuggestions(preSentences);
         const flaggedSentences = preEnriched.filter(s => s.aiProbability > 0.5);
@@ -238,65 +153,40 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
           subsection: '',
           diagnosticReport,
           flaggedSentences: flaggedSentences.map(s => ({ text: s.text, flags: s.flags, suggestions: s.suggestions, aiProbability: s.aiProbability }))
-        });
+        }, level);
         if (!humanisedText || humanisedText === fullContent) {
           notify(`Chapter "${chapterTitle}" returned no changes.`, 'warning');
           continue;
         }
-        const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-        let remainingText = humanisedText;
-        let updatedContent = { ...(rawContent[chId] || {}) };
-        for (let j = 0; j < subs.length; j++) {
-          const sub = subs[j];
-          const header = sub.title;
-          const headerIdx = remainingText.indexOf(header);
-          if (headerIdx < 0) continue;
-          const nextSub = j < subs.length - 1 ? subs[j + 1] : null;
-          const nextHeader = nextSub ? nextSub.title : null;
-          let subContent;
-          if (nextHeader) {
-            const nextIdx = remainingText.indexOf(nextHeader, headerIdx + header.length);
-            subContent = nextIdx >= 0 ? remainingText.slice(headerIdx, nextIdx).trim() : remainingText.slice(headerIdx).trim();
-          } else {
-            subContent = remainingText.slice(headerIdx).trim();
-          }
-          const contentStart = subContent.indexOf('\n');
-          updatedContent[sub.id] = contentStart >= 0 ? subContent.slice(contentStart).trim() : '';
-        }
-        const existingVersions = await getSubsectionVersions(projectId) || {};
-        const newVersions = { ...existingVersions };
-        for (const sub of subs) {
-          const key = `${chId}_${sub.id}`;
-          const oldContent = rawContent[chId]?.[sub.id];
-          if (oldContent) {
-            const list = existingVersions[key] || [];
-            if (list.length === 0 || list[list.length - 1].content !== oldContent) {
-              newVersions[key] = [...list, { content: oldContent, label: 'Remove AI', timestamp: Date.now() }];
-            }
-          }
-        }
-        await saveSubsectionVersions(projectId, newVersions);
-        const merged = { ...rawContent, [chId]: updatedContent };
-        await saveGeneratedContent(projectId, merged);
-        if (onContentUpdated) onContentUpdated(chId, updatedContent);
-        const currentIter = (results[chId]?.iterations || 0) + 1;
-        setResults(prev => ({ ...prev, [chId]: { done: true, iterations: currentIter } }));
-        completed.push(chapterTitle);
-        setRemoveAIUsed(prev => prev + 1);
         const { checkPlagiarism } = await import('../../utils/plagiarismChecker');
         const flatText = getChapterFlatText(chId);
+        let postScore = null;
         if (flatText.trim()) {
-          const aiResult = computeAIScores(flatText);
-          const plagiarismResult = checkPlagiarism(flatText, sources);
-          if (aiResult) {
-            setScores(prev => ({ ...prev, [chId]: { ai: aiResult, plagiarism: plagiarismResult } }));
-            setScoreHistory(prev => {
-              const existing = prev[chId] || [];
-              const next = [...existing, aiResult.score];
-              return { ...prev, [chId]: next.slice(-5) };
-            });
-          }
+          const aiResult = computeAIScores(humanisedText);
+          const plagiarismResult = checkPlagiarism(humanisedText, sources);
+          postScore = aiResult ? { ai: aiResult, plagiarism: plagiarismResult } : null;
         }
+        const newVersion = {
+          level,
+          text: humanisedText,
+          preScore: preScore?.score || null,
+          postScore: postScore?.ai?.score || null,
+          scoreBreakdown: postScore?.ai || null,
+          plagiarismResult: postScore?.plagiarism || null,
+          timestamp: Date.now(),
+          applied: false,
+        };
+        setChapterVersions(prev => {
+          const existing = prev[chId] || [];
+          return { ...prev, [chId]: [...existing, newVersion] };
+        });
+        setSelectedVersionIdx(prev => {
+          const versions = chapterVersions[chId] || [];
+          return { ...prev, [chId]: versions.length };
+        });
+        setExpandedChapter(chId);
+        completed.push(chapterTitle + ` (Level ${level})`);
+        setRemoveAIUsed(prev => prev + 1);
       } catch (e) {
         console.error(`Remove AI failed for chapter ${chId}:`, e);
         notify(`Failed to process "${getChapterDisplayTitle(ch)}". Try again.`, 'error');
@@ -306,33 +196,115 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     setProcessing(false);
     setSelectedChapters(new Set());
     if (completed.length > 0) {
-      notify(`✅ ${completed.join(', ')} humanised successfully!`, 'success');
+      notify(`✅ ${completed.join(', ')} generated! Review and click Apply to save.`, 'success');
     }
   };
 
-  const handleCheckScore = async (chId) => {
+  const handleCheckScore = async (chId, versionIdx) => {
     if (checkingScore[chId]) return;
-    const ch = chapters.find(c => c.id === chId);
-    if (!ch) return;
+    const versions = chapterVersions[chId] || [];
+    let textToCheck;
+    if (versionIdx !== undefined && versions[versionIdx]) {
+      textToCheck = versions[versionIdx].text;
+    } else {
+      textToCheck = getChapterFlatText(chId);
+    }
+    if (!textToCheck || !textToCheck.trim()) { notify('No content to check.', 'warning'); return; }
     setCheckingScore(prev => ({ ...prev, [chId]: true }));
     try {
-      const fullText = getChapterFlatText(chId);
-      if (!fullText.trim()) { setCheckingScore(prev => ({ ...prev, [chId]: false })); return; }
       const { computeAIScores } = await import('../../utils/aiScoreUtils');
-      const aiResult = computeAIScores(fullText);
+      const aiResult = computeAIScores(textToCheck);
       const { checkPlagiarism } = await import('../../utils/plagiarismChecker');
-      const plagiarismResult = checkPlagiarism(fullText, sources);
-      setScores(prev => ({ ...prev, [chId]: { ai: aiResult, plagiarism: plagiarismResult } }));
-      if (aiResult) {
-        setScoreHistory(prev => {
-          const existing = prev[chId] || [];
-          return existing.length > 0 ? prev : { ...prev, [chId]: [aiResult.score] };
+      const plagiarismResult = checkPlagiarism(textToCheck, sources);
+      if (versionIdx !== undefined && versions[versionIdx]) {
+        setChapterVersions(prev => {
+          const list = [...(prev[chId] || [])];
+          if (list[versionIdx]) {
+            list[versionIdx] = {
+              ...list[versionIdx],
+              preScore: list[versionIdx].preScore !== null ? list[versionIdx].preScore : aiResult.score,
+              postScore: aiResult.score,
+              scoreBreakdown: aiResult,
+              plagiarismResult,
+            };
+          }
+          return { ...prev, [chId]: list };
         });
+      } else {
+        notify(`Score: ${Math.round(aiResult.score)}/100`, 'info');
       }
     } catch (e) {
       console.error('Score check failed:', e);
     }
     setCheckingScore(prev => ({ ...prev, [chId]: false }));
+  };
+
+  const handleApplyVersion = async (chId, versionIdx) => {
+    const versions = chapterVersions[chId] || [];
+    const version = versions[versionIdx];
+    if (!version) { notify('Version not found.', 'error'); return; }
+    if (processing) return;
+    setProcessing(true);
+    setProcessingChapter(chId);
+    try {
+      const ch = chapters.find(c => c.id === chId);
+      if (!ch) { setProcessing(false); setProcessingChapter(null); return; }
+      const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
+      let remainingText = version.text;
+      let updatedContent = { ...(rawContent[chId] || {}) };
+      for (let j = 0; j < subs.length; j++) {
+        const sub = subs[j];
+        const header = sub.title;
+        const headerIdx = remainingText.indexOf(header);
+        if (headerIdx < 0) continue;
+        const nextSub = j < subs.length - 1 ? subs[j + 1] : null;
+        const nextHeader = nextSub ? nextSub.title : null;
+        let subContent;
+        if (nextHeader) {
+          const nextIdx = remainingText.indexOf(nextHeader, headerIdx + header.length);
+          subContent = nextIdx >= 0 ? remainingText.slice(headerIdx, nextIdx).trim() : remainingText.slice(headerIdx).trim();
+        } else {
+          subContent = remainingText.slice(headerIdx).trim();
+        }
+        const contentStart = subContent.indexOf('\n');
+        updatedContent[sub.id] = contentStart >= 0 ? subContent.slice(contentStart).trim() : '';
+      }
+      const existingVersions = await getSubsectionVersions(projectId) || {};
+      const newWrittenVersions = { ...existingVersions };
+      for (const sub of subs) {
+        const key = `${chId}_${sub.id}`;
+        const oldContent = rawContent[chId]?.[sub.id];
+        if (oldContent) {
+          const list = existingVersions[key] || [];
+          if (list.length === 0 || list[list.length - 1].content !== oldContent) {
+            newWrittenVersions[key] = [...list, { content: oldContent, label: `Remove AI Level ${version.level}`, timestamp: Date.now() }];
+          }
+        }
+      }
+      await saveSubsectionVersions(projectId, newWrittenVersions);
+      const merged = { ...rawContent, [chId]: updatedContent };
+      await saveGeneratedContent(projectId, merged);
+      if (onContentUpdated) onContentUpdated(chId, updatedContent);
+      setChapterVersions(prev => {
+        const list = [...(prev[chId] || [])];
+        return { ...prev, [chId]: list.map((v, i) => ({ ...v, applied: i === versionIdx })) };
+      });
+      setSelectedVersionIdx(prev => ({ ...prev, [chId]: versionIdx }));
+      notify(`✅ Level ${version.level} applied to "${getChapterDisplayTitle(ch)}"!`, 'success');
+    } catch (e) {
+      console.error('Apply version failed:', e);
+      notify('Failed to apply version.', 'error');
+    }
+    setProcessingChapter(null);
+    setProcessing(false);
+  };
+
+  const handleRevertVersion = (chId) => {
+    setChapterVersions(prev => {
+      const list = [...(prev[chId] || [])];
+      return { ...prev, [chId]: list.map(v => ({ ...v, applied: false })) };
+    });
+    notify('Reverted. The writing page now shows content before Remove AI.', 'info');
   };
 
   const handleApplySuggestion = (chId, idx, newText) => {
@@ -390,6 +362,20 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
 
   const hasUnsavedEdits = (chId) => {
     return sentenceEdits[chId] && Object.keys(sentenceEdits[chId]).length > 0;
+  };
+
+  const getNextLevel = (chId) => {
+    const versions = chapterVersions[chId] || [];
+    const levelsDone = versions.map(v => v.level);
+    for (let l = 1; l <= 3; l++) {
+      if (!levelsDone.includes(l)) return l;
+    }
+    return 3;
+  };
+
+  const getAppliedVersion = (chId) => {
+    const versions = chapterVersions[chId] || [];
+    return versions.find(v => v.applied) || null;
   };
 
   const handleResetConfirm = async () => {
@@ -507,15 +493,16 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                 const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
                 const hasContent = subs.some(s => rawContent[ch.id]?.[s.id]);
                 const isSelected = selectedChapters.has(ch.id);
-                const isDone = results[ch.id]?.done;
-                const chIterations = results[ch.id]?.iterations || 0;
-                const chScore = scores[ch.id];
-                const chScoreHistory = scoreHistory[ch.id] || [];
-                const sentenceData = chScore?.ai?.sentences || [];
-                const flaggedCount = chScore?.ai?.flaggedSentenceCount || 0;
-                const totalSentences = chScore?.ai?.totalSentences || 0;
-                const breakdown = chScore?.ai?.breakdown;
-                const topIssues = chScore?.ai?.topIssues || [];
+                const versions = chapterVersions[ch.id] || [];
+                const versionCount = versions.length;
+                const selectedIdx = selectedVersionIdx[ch.id] !== undefined ? selectedVersionIdx[ch.id] : (versionCount - 1);
+                const selectedVersion = versionCount > 0 ? versions[Math.max(0, selectedIdx)] : null;
+                const appliedVersion = getAppliedVersion(ch.id);
+                const sentenceData = selectedVersion?.scoreBreakdown?.sentences || [];
+                const flaggedCount = selectedVersion?.scoreBreakdown?.flaggedSentenceCount || 0;
+                const totalSentences = selectedVersion?.scoreBreakdown?.totalSentences || 0;
+                const breakdown = selectedVersion?.scoreBreakdown?.breakdown;
+                const topIssues = selectedVersion?.scoreBreakdown?.topIssues || [];
                 return (
                   <div key={ch.id} style={{
                     display: 'flex', flexDirection: 'column',
@@ -542,8 +529,8 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                           <div style={{ display: 'flex', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '11px', color: colors.textSecondary }}>{subs.length} subsections</span>
                             {ch.completed && <span style={{ fontSize: '11px', color: '#059669' }}>✓ Completed</span>}
-                            {isDone && <span style={{ fontSize: '11px', color: '#7c3aed' }}>✨ Humanised</span>}
-                            {chIterations > 0 && <span style={{ fontSize: '11px', color: '#7c3aed' }}>Iteration {chIterations}</span>}
+                            {versionCount > 0 && <span style={{ fontSize: '11px', color: '#7c3aed' }}>✨ {versionCount} version{versionCount > 1 ? 's' : ''}</span>}
+                            {appliedVersion && <span style={{ fontSize: '11px', color: '#059669' }}>✓ Level {appliedVersion.level} Applied</span>}
                           </div>
                         </div>
                       </div>
@@ -559,20 +546,19 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                       </div>
                     </div>
 
-                    {chScore && chScore.ai && (
+                    {selectedVersion && selectedVersion.scoreBreakdown && (
                       <div style={{ marginTop: '12px', padding: '16px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '120px', height: '120px' }}>
                             <svg width="120" height="120" style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
                               <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
-                              <circle cx="60" cy="60" r="50" fill="none" stroke={getScoreColor(chScore.ai.score)} strokeWidth="10"
-                                strokeDasharray={Math.PI * 100} strokeDashoffset={Math.PI * 100 * (1 - (chScore.ai.score || 0) / 100)}
+                              <circle cx="60" cy="60" r="50" fill="none" stroke={getScoreColor(selectedVersion.postScore || 0)} strokeWidth="10"
+                                strokeDasharray={Math.PI * 100} strokeDashoffset={Math.PI * 100 * (1 - (selectedVersion.postScore || 0) / 100)}
                                 strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }} />
                             </svg>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '22px', fontWeight: '700', color: getScoreColor(chScore.ai.score) }}>{chScore.ai.score}<span style={{ fontSize: '11px', fontWeight: '400', color: '#9ca3af' }}>/100</span></div>
-                              <div style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginTop: '1px' }}>{chScore.ai.verdictLabel.replace(/[✅🔴⚠️]/g, '').trim()}</div>
-                              {chScore.ai.confidence > 0 && <div style={{ fontSize: '9px', color: '#9ca3af' }}>{chScore.ai.confidence}% conf</div>}
+                              <div style={{ fontSize: '22px', fontWeight: '700', color: getScoreColor(selectedVersion.postScore || 0) }}>{Math.round(selectedVersion.postScore || 0)}<span style={{ fontSize: '11px', fontWeight: '400', color: '#9ca3af' }}>/100</span></div>
+                              {selectedVersion.preScore !== null && <div style={{ fontSize: '9px', color: '#9ca3af' }}>Pre: {Math.round(selectedVersion.preScore)}</div>}
                             </div>
                           </div>
                           <div style={{ flex: 1, minWidth: '200px' }}>
@@ -597,146 +583,194 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                             ))}
                           </div>
                         )}
-                        <ScoreChart history={chScoreHistory} colors={colors} />
                       </div>
                     )}
 
                     {expandedChapter === ch.id && (
                       <div style={{ marginTop: '10px' }}>
-                        {sentenceData.length > 0 ? (
+                        {versionCount > 0 && selectedVersion ? (
                           <>
-                            {flaggedCount > 0 && (
-                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '8px' }}>
-                                <button onClick={(e) => { e.stopPropagation(); handleFixAll(ch.id, sentenceData); }}
-                                  style={{ padding: '6px 16px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer' }}>
-                                  🚀 Fix All ({flaggedCount} flagged)
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button onClick={(e) => { e.stopPropagation(); const nv = Math.max(0, (selectedVersionIdx[ch.id] || 0) - 1); setSelectedVersionIdx(prev => ({ ...prev, [ch.id]: nv })); }}
+                                  style={{ padding: '4px 10px', fontSize: '14px', borderRadius: '4px', backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}`, cursor: 'pointer', opacity: selectedIdx > 0 ? 1 : 0.3 }}>
+                                  ◄
+                                </button>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: colors.text, minWidth: '80px', textAlign: 'center' }}>Level {selectedVersion.level}/3</span>
+                                <button onClick={(e) => { e.stopPropagation(); const nv = Math.min(versionCount - 1, (selectedVersionIdx[ch.id] || 0) + 1); setSelectedVersionIdx(prev => ({ ...prev, [ch.id]: nv })); }}
+                                  style={{ padding: '4px 10px', fontSize: '14px', borderRadius: '4px', backgroundColor: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}`, cursor: 'pointer', opacity: selectedIdx < versionCount - 1 ? 1 : 0.3 }}>
+                                  ►
                                 </button>
                               </div>
-                            )}
-                            <div style={{ padding: '8px 12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '400px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text }}>
-                              {sentenceData.map((s, i) => {
-                                const editedText = getEditedSentenceText(ch.id, s, i);
-                                const isEdited = sentenceEdits[ch.id]?.[i] !== undefined;
-                                const isSelected = selectedSentence?.chId === ch.id && selectedSentence?.idx === i;
-                                const isManual = showManualEdit?.chId === ch.id && showManualEdit?.idx === i;
-                                const hasSuggestions = s.suggestions && s.suggestions.length > 0;
-                                const isFlagged = s.aiProbability > 0.5;
-                                const leftColor = isEdited ? '#059669' : isFlagged ? (s.aiProbability > 0.8 ? '#dc2626' : '#f59e0b') : 'transparent';
-                                return (
-                                  <div key={i} style={{ marginBottom: '6px' }}>
-                                    <div onClick={() => isFlagged && setSelectedSentence(isSelected ? null : { chId: ch.id, idx: i })}
-                                      style={{
-                                        display: 'flex', gap: '8px', cursor: isFlagged ? 'pointer' : 'default',
-                                        padding: '4px 6px', borderRadius: '4px',
-                                        backgroundColor: isSelected ? (isDarkMode ? '#374151' : '#f3f4f6') : 'transparent',
-                                        borderLeft: `3px solid ${leftColor}`,
-                                        transition: 'background-color 0.15s',
-                                      }}>
-                                      <span style={{ flex: 1 }}>
-                                        {isEdited ? <span style={{ color: '#059669' }}>{editedText}</span> : s.text}{' '}
-                                      </span>
-                                      {isFlagged && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0, marginTop: '2px' }}>
-                                        {Math.round(s.aiProbability * 100)}%
-                                      </span>}
-                                      {isEdited && <span style={{ fontSize: '10px', color: '#059669', flexShrink: 0, marginTop: '2px' }}>✓</span>}
-                                    </div>
-                                    {isSelected && (
-                                      <div style={{ marginTop: '4px', marginLeft: '12px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#fefce8', borderRadius: '6px', border: '1px solid #fde68a' }}>
-                                        <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '6px' }}>
-                                          💡 Flags: {s.flags.join(', ') || 'none'}
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                {versions.map((v, vi) => (
+                                  <div key={vi} onClick={(e) => { e.stopPropagation(); setSelectedVersionIdx(prev => ({ ...prev, [ch.id]: vi })); }}
+                                    style={{ width: '10px', height: '10px', borderRadius: '50%', cursor: 'pointer', backgroundColor: vi === selectedIdx ? (v.applied ? '#059669' : '#7c3aed') : '#d1d5db', border: vi === selectedIdx ? '2px solid #374151' : 'none' }} />
+                                ))}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '12px', color: colors.textSecondary }}>Score: <strong style={{ color: getScoreColor(selectedVersion.postScore || 0) }}>{selectedVersion.postScore !== null ? `${Math.round(selectedVersion.postScore)}/100` : 'Not checked'}</strong>{selectedVersion.preScore !== null ? ` (was ${Math.round(selectedVersion.preScore)})` : ''}</span>
+                                <button onClick={(e) => { e.stopPropagation(); handleCheckScore(ch.id, selectedIdx); }}
+                                  style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px', backgroundColor: 'transparent', color: '#7c3aed', border: '1px solid #7c3aed', cursor: checkingScore[ch.id] ? 'not-allowed' : 'pointer' }}>
+                                  {checkingScore[ch.id] ? '⏳' : '📊 Check Score'}
+                                </button>
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                {selectedVersion.applied ? (
+                                  <>
+                                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: '600', padding: '4px 10px' }}>✓ Applied</span>
+                                    <button onClick={(e) => { e.stopPropagation(); handleRevertVersion(ch.id); }}
+                                      style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: 'transparent', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer' }}>↩ Revert</button>
+                                  </>
+                                ) : (
+                                  <button onClick={(e) => { e.stopPropagation(); handleApplyVersion(ch.id, selectedIdx); }}
+                                    style={{ padding: '6px 16px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}>
+                                    {processing && processingChapter === ch.id ? '⏳ Applying...' : '✅ Apply This Version'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {selectedVersion.scoreBreakdown && sentenceData.length > 0 && selectedVersion.applied ? (
+                              <>
+                                {flaggedCount > 0 && (
+                                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '8px' }}>
+                                    <button onClick={(e) => { e.stopPropagation(); handleFixAll(ch.id, sentenceData); }}
+                                      style={{ padding: '6px 16px', fontSize: '12px', fontWeight: '600', borderRadius: '6px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer' }}>
+                                      🚀 Fix All ({flaggedCount} flagged)
+                                    </button>
+                                  </div>
+                                )}
+                                <div style={{ padding: '8px 12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '400px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text }}>
+                                  {sentenceData.map((s, i) => {
+                                    const editedText = getEditedSentenceText(ch.id, s, i);
+                                    const isEdited = sentenceEdits[ch.id]?.[i] !== undefined;
+                                    const isSelected = selectedSentence?.chId === ch.id && selectedSentence?.idx === i;
+                                    const isManual = showManualEdit?.chId === ch.id && showManualEdit?.idx === i;
+                                    const hasSuggestions = s.suggestions && s.suggestions.length > 0;
+                                    const isFlagged = s.aiProbability > 0.5;
+                                    const leftColor = isEdited ? '#059669' : isFlagged ? (s.aiProbability > 0.8 ? '#dc2626' : '#f59e0b') : 'transparent';
+                                    return (
+                                      <div key={i} style={{ marginBottom: '6px' }}>
+                                        <div onClick={() => isFlagged && setSelectedSentence(isSelected ? null : { chId: ch.id, idx: i })}
+                                          style={{
+                                            display: 'flex', gap: '8px', cursor: isFlagged ? 'pointer' : 'default',
+                                            padding: '4px 6px', borderRadius: '4px',
+                                            backgroundColor: isSelected ? (isDarkMode ? '#374151' : '#f3f4f6') : 'transparent',
+                                            borderLeft: `3px solid ${leftColor}`,
+                                            transition: 'background-color 0.15s',
+                                          }}>
+                                          <span style={{ flex: 1 }}>
+                                            {isEdited ? <span style={{ color: '#059669' }}>{editedText}</span> : s.text}{' '}
+                                          </span>
+                                          {isFlagged && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0, marginTop: '2px' }}>
+                                            {Math.round(s.aiProbability * 100)}%
+                                          </span>}
+                                          {isEdited && <span style={{ fontSize: '10px', color: '#059669', flexShrink: 0, marginTop: '2px' }}>✓</span>}
                                         </div>
-                                        {isManual ? (
-                                          <div>
-                                            <textarea value={manualEditDraft}
-                                              onChange={(e) => setManualEditDraft(e.target.value)}
-                                              style={{ width: '100%', minHeight: '60px', padding: '6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical', backgroundColor: isDarkMode ? '#1f2937' : 'white', color: colors.text }}
-                                            />
-                                            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                                              <button onClick={() => handleSaveManualEdit(ch.id, i, manualEditDraft)}
-                                                style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Save</button>
-                                              <button onClick={() => { setShowManualEdit(null); setManualEditDraft(''); }}
-                                                style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>Cancel</button>
+                                        {isSelected && (
+                                          <div style={{ marginTop: '4px', marginLeft: '12px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#fefce8', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                                            <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '6px' }}>
+                                              💡 Flags: {s.flags.join(', ') || 'none'}
                                             </div>
-                                          </div>
-                                        ) : (
-                                          <>
-                                            {hasSuggestions ? (
+                                            {isManual ? (
                                               <div>
-                                                <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '4px' }}>📝 Suggested fixes:</div>
-                                                {s.suggestions.map((sug, si) => {
-                                                  const alreadyApplied = sentenceEdits[ch.id]?.[i] === sug;
-                                                  return (
-                                                    <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', padding: '4px 6px', backgroundColor: alreadyApplied ? '#d1fae5' : (isDarkMode ? '#374151' : 'white'), borderRadius: '4px', border: '1px solid #e5e7eb' }}>
-                                                      <span style={{ flex: 1, fontSize: '12px', color: colors.text }}>{sug}</span>
-                                                      {alreadyApplied ? (
-                                                        <span style={{ fontSize: '11px', color: '#059669', fontWeight: '500' }}>Applied ✓</span>
-                                                      ) : (
-                                                        <button onClick={() => handleApplySuggestion(ch.id, i, sug)}
-                                                          style={{ padding: '2px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500', flexShrink: 0 }}>Apply</button>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                })}
+                                                <textarea value={manualEditDraft}
+                                                  onChange={(e) => setManualEditDraft(e.target.value)}
+                                                  style={{ width: '100%', minHeight: '60px', padding: '6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical', backgroundColor: isDarkMode ? '#1f2937' : 'white', color: colors.text }}
+                                                />
+                                                <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                                                  <button onClick={() => handleSaveManualEdit(ch.id, i, manualEditDraft)}
+                                                    style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Save</button>
+                                                  <button onClick={() => { setShowManualEdit(null); setManualEditDraft(''); }}
+                                                    style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '4px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>Cancel</button>
+                                                </div>
                                               </div>
                                             ) : (
-                                              <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '6px' }}>No automatic suggestions available for this combination of flags.</div>
+                                              <>
+                                                {hasSuggestions ? (
+                                                  <div>
+                                                    <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '4px' }}>📝 Suggested fixes:</div>
+                                                    {s.suggestions.map((sug, si) => {
+                                                      const alreadyApplied = sentenceEdits[ch.id]?.[i] === sug;
+                                                      return (
+                                                        <div key={si} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', padding: '4px 6px', backgroundColor: alreadyApplied ? '#d1fae5' : (isDarkMode ? '#374151' : 'white'), borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                                                          <span style={{ flex: 1, fontSize: '12px', color: colors.text }}>{sug}</span>
+                                                          {alreadyApplied ? (
+                                                            <span style={{ fontSize: '11px', color: '#059669', fontWeight: '500' }}>Applied ✓</span>
+                                                          ) : (
+                                                            <button onClick={() => handleApplySuggestion(ch.id, i, sug)}
+                                                              style={{ padding: '2px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500', flexShrink: 0 }}>Apply</button>
+                                                          )}
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                ) : (
+                                                  <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '6px' }}>No automatic suggestions available for this combination of flags.</div>
+                                                )}
+                                                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', borderTop: '1px solid #e5e7eb', paddingTop: '6px' }}>
+                                                  <button onClick={() => { setShowManualEdit({ chId: ch.id, idx: i }); setManualEditDraft(sentenceEdits[ch.id]?.[i] || s.text); }}
+                                                    style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>✏️ Edit manually</button>
+                                                  <button onClick={() => handleDismissSentence(ch.id, i)}
+                                                    style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#9ca3af', border: '1px solid #d1d5db', cursor: 'pointer' }}>Dismiss</button>
+                                                </div>
+                                              </>
                                             )}
-                                            <div style={{ display: 'flex', gap: '6px', marginTop: '6px', borderTop: '1px solid #e5e7eb', paddingTop: '6px' }}>
-                                              <button onClick={() => { setShowManualEdit({ chId: ch.id, idx: i }); setManualEditDraft(sentenceEdits[ch.id]?.[i] || s.text); }}
-                                                style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}>✏️ Edit manually</button>
-                                              <button onClick={() => handleDismissSentence(ch.id, i)}
-                                                style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '3px', backgroundColor: 'transparent', color: '#9ca3af', border: '1px solid #d1d5db', cursor: 'pointer' }}>Dismiss</button>
-                                            </div>
-                                          </>
+                                          </div>
                                         )}
                                       </div>
-                                    )}
+                                    );
+                                  })}
+                                </div>
+                                {hasUnsavedEdits(ch.id) && (
+                                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
+                                    <button onClick={() => handleApplyChanges(ch.id)}
+                                      style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: processingChapter === ch.id ? 'not-allowed' : 'pointer', fontWeight: '600', opacity: processingChapter === ch.id ? 0.7 : 1 }}>
+                                      {processingChapter === ch.id ? '⏳ Applying...' : '✅ Apply Changes'}
+                                    </button>
+                                    <button onClick={() => { setSentenceEdits(prev => { const n = { ...prev }; delete n[ch.id]; return n; }); notify('Edits reverted.', 'info'); }}
+                                      style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: 'transparent', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer', fontWeight: '500' }}>Revert All</button>
                                   </div>
-                                );
-                              })}
-                            </div>
-                            {hasUnsavedEdits(ch.id) && (
-                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
-                                <button onClick={() => handleApplyChanges(ch.id)}
-                                  style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: '#059669', color: 'white', border: 'none', cursor: processingChapter === ch.id ? 'not-allowed' : 'pointer', fontWeight: '600', opacity: processingChapter === ch.id ? 0.7 : 1 }}>
-                                  {processingChapter === ch.id ? '⏳ Applying...' : '✅ Apply Changes'}
-                                </button>
-                                <button onClick={() => { setSentenceEdits(prev => { const n = { ...prev }; delete n[ch.id]; return n; }); notify('Edits reverted.', 'info'); }}
-                                  style={{ padding: '6px 14px', fontSize: '11px', borderRadius: '6px', backgroundColor: 'transparent', color: '#dc2626', border: '1px solid #dc2626', cursor: 'pointer', fontWeight: '500' }}>Revert All</button>
+                                )}
+                                <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                    <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '500' }}>Sentence Density Map</span>
+                                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>{flaggedCount} flagged of {totalSentences}</span>
+                                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '10px' }}>
+                                      <span style={{ color: '#dc2626' }}>■ High AI</span>
+                                      <span style={{ color: '#f59e0b' }}>■ Medium</span>
+                                      <span style={{ color: '#059669' }}>■ Low</span>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '1px', height: '14px', alignItems: 'flex-end' }}>
+                                    {sentenceData.map((s, i) => {
+                                      const isFixed = sentenceEdits[ch.id]?.[i] !== undefined;
+                                      const origProb = s.aiProbability;
+                                      const effectiveProb = isFixed ? 0 : origProb;
+                                      const h = Math.max(4, Math.round(effectiveProb * 14));
+                                      const color = isFixed ? '#059669' : (origProb > 0.8 ? '#dc2626' : origProb > 0.5 ? '#f59e0b' : '#059669');
+                                      return <div key={i} title={`${isFixed ? '[FIXED] ' : ''}"${s.text.slice(0, 60)}..."\nAI: ${Math.round(origProb * 100)}%`}
+                                        style={{ flex: 1, height: `${h}px`, backgroundColor: color, borderRadius: '1px', minWidth: '2px', cursor: 'pointer', transition: 'height 0.2s' }} />;
+                                    })}
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text, whiteSpace: 'pre-wrap' }}>
+                                {selectedVersion.text.slice(0, 2000)}
+                                {selectedVersion.text.length > 2000 && (
+                                  <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
+                                )}
                               </div>
                             )}
-                            <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '500' }}>Sentence Density Map</span>
-                                <span style={{ fontSize: '10px', color: '#9ca3af' }}>{flaggedCount} flagged of {totalSentences}</span>
-                                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '10px' }}>
-                                  <span style={{ color: '#dc2626' }}>■ High AI</span>
-                                  <span style={{ color: '#f59e0b' }}>■ Medium</span>
-                                  <span style={{ color: '#059669' }}>■ Low</span>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', gap: '1px', height: '14px', alignItems: 'flex-end' }}>
-                                {sentenceData.map((s, i) => {
-                                  const isFixed = sentenceEdits[ch.id]?.[i] !== undefined;
-                                  const origProb = s.aiProbability;
-                                  const effectiveProb = isFixed ? 0 : origProb;
-                                  const h = Math.max(4, Math.round(effectiveProb * 14));
-                                  const color = isFixed ? '#059669' : (origProb > 0.8 ? '#dc2626' : origProb > 0.5 ? '#f59e0b' : '#059669');
-                                  return <div key={i} title={`${isFixed ? '[FIXED] ' : ''}"${s.text.slice(0, 60)}..."\nAI: ${Math.round(origProb * 100)}%`}
-                                    style={{ flex: 1, height: `${h}px`, backgroundColor: color, borderRadius: '1px', minWidth: '2px', cursor: 'pointer', transition: 'height 0.2s' }} />;
-                                })}
-                              </div>
-                            </div>
                           </>
                         ) : (
-                          <>
-                            <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text, whiteSpace: 'pre-wrap' }}>
-                              {getChapterContent(ch.id).slice(0, 2000)}
-                              {getChapterContent(ch.id).length > 2000 && (
-                                <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
-                              )}
-                            </div>
-                          </>
+                          <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text, whiteSpace: 'pre-wrap' }}>
+                            {getChapterContent(ch.id).slice(0, 2000)}
+                            {getChapterContent(ch.id).length > 2000 && (
+                              <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
@@ -762,7 +796,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                   border: 'none', cursor: processing ? 'not-allowed' : 'pointer',
                   opacity: processing ? 0.7 : 1,
                 }}>
-                {processing ? 'Processing...' : `🚀 Remove AI${selectedChapters.size === 1 && results[[...selectedChapters][0]]?.iterations > 0 ? ` More (iter ${results[[...selectedChapters][0]].iterations + 1})` : ''} (${selectedChapters.size} chapter${selectedChapters.size > 1 ? 's' : ''})`}
+                {processing ? 'Processing...' : `🚀 Remove AI (Level ${getNextLevel([...selectedChapters][0])}) (${selectedChapters.size} chapter${selectedChapters.size > 1 ? 's' : ''})`}
               </button>
             </div>
           )}

@@ -1,7 +1,98 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getChapterDisplayTitle } from '../../utils/writeHelpers.jsx';
 
 const REMOVE_AI_LIMIT = 6;
+
+const AIGauge = ({ score, confidence, size = 160 }) => {
+  const radius = (size - 20) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const r = useRef(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimatedScore(score), 100);
+    return () => clearTimeout(timer);
+  }, [score]);
+  const offset = circumference - (animatedScore / 100) * circumference;
+  const color = score >= 60 ? '#059669' : score >= 40 ? '#f59e0b' : '#dc2626';
+  const label = score >= 60 ? 'Likely Human' : score >= 40 ? 'Needs Work' : 'Likely AI';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e5e7eb" strokeWidth="12" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth="12"
+          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 1s ease-in-out' }} />
+      </svg>
+      <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: '28px', fontWeight: '700', color }}>{Math.round(animatedScore)}<span style={{ fontSize: '14px', fontWeight: '400' }}>/100</span></span>
+        <span style={{ fontSize: '11px', fontWeight: '500', color: colors?.textSecondary || '#6b7280', marginTop: '2px' }}>{label}</span>
+        {confidence > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{confidence}% confidence</span>}
+      </div>
+    </div>
+  );
+};
+
+const BreakdownBar = ({ label, value, color, invertColor = false }) => {
+  const effectiveColor = value >= 60 ? '#059669' : value >= 40 ? '#f59e0b' : '#dc2626';
+  const barColor = invertColor ? (value <= 40 ? '#059669' : value <= 60 ? '#f59e0b' : '#dc2626') : effectiveColor;
+  const displayValue = invertColor ? 100 - value : value;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+      <span style={{ width: '90px', fontSize: '11px', color: '#6b7280', flexShrink: 0, textAlign: 'right' }}>{label}</span>
+      <div style={{ flex: 1, height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ width: `${displayValue}%`, height: '100%', backgroundColor: barColor, borderRadius: '4px', transition: 'width 0.8s ease-in-out' }} />
+      </div>
+      <span style={{ width: '30px', fontSize: '11px', fontWeight: '600', color: barColor, textAlign: 'right' }}>{displayValue}%</span>
+    </div>
+  );
+};
+
+const ScoreChart = ({ history, colors }) => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!canvasRef.current || !history || history.length < 2) return;
+    const ctx = canvasRef.current.getContext('2d');
+    const w = canvasRef.current.width;
+    const h = canvasRef.current.height;
+    const pad = { top: 4, bottom: 12, left: 4, right: 4 };
+    ctx.clearRect(0, 0, w, h);
+    const max = Math.max(...history, 100);
+    const min = Math.min(...history, 0);
+    const range = max - min || 1;
+    const xStep = (w - pad.left - pad.right) / (history.length - 1);
+    const points = history.map((v, i) => ({
+      x: pad.left + i * xStep,
+      y: pad.top + (h - pad.top - pad.bottom) * (1 - (v - min) / range)
+    }));
+    ctx.beginPath();
+    ctx.strokeStyle = '#7c3aed';
+    ctx.lineWidth = 2;
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      const cpX = (points[i - 1].x + points[i].x) / 2;
+      ctx.bezierCurveTo(cpX, points[i - 1].y, cpX, points[i].y, points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#7c3aed';
+    points.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, i === points.length - 1 ? 3 : 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '8px sans-serif';
+    history.forEach((v, i) => {
+      ctx.fillText(v, points[i].x - 4, h - 1);
+    });
+  }, [history]);
+  if (!history || history.length < 2) return null;
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Score History</div>
+      <canvas ref={canvasRef} width={160} height={50} style={{ width: '100%', height: '50px', backgroundColor: '#f9fafb', borderRadius: '4px' }} />
+    </div>
+  );
+};
 
 const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isDarkMode, notify, fmt, onContentUpdated, sources = [] }) => {
   const [selectedChapters, setSelectedChapters] = useState(new Set());
@@ -16,6 +107,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   const [processingReset, setProcessingReset] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState(null);
   const [checkingScore, setCheckingScore] = useState({});
+  const [scoreHistory, setScoreHistory] = useState({});
 
   useEffect(() => {
     try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {}
@@ -34,6 +126,14 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
       if (text) parts.push(`${subs[i].title}\n\n${text}`);
     }
     return parts.join('\n\n');
+  }, [chapters, rawContent]);
+
+  const getChapterFlatText = useCallback((chapterId) => {
+    const ch = chapters.find(c => c.id === chapterId);
+    if (!ch) return '';
+    const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
+    const content = rawContent[chapterId] || {};
+    return subs.map(s => content[s.id] || '').filter(Boolean).join(' ');
   }, [chapters, rawContent]);
 
   const toggleChapter = (id) => {
@@ -107,9 +207,25 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
         const merged = { ...rawContent, [chId]: updatedContent };
         await saveGeneratedContent(projectId, merged);
         if (onContentUpdated) onContentUpdated(chId, updatedContent);
+        const currentIter = (results[chId]?.iterations || 0) + 1;
+        setResults(prev => ({ ...prev, [chId]: { done: true, iterations: currentIter } }));
         completed.push(chapterTitle);
         setRemoveAIUsed(prev => prev + 1);
-        setResults(prev => ({ ...prev, [chId]: { done: true } }));
+        const { computeAIScores } = await import('../../utils/aiScoreUtils');
+        const { checkPlagiarism } = await import('../../utils/plagiarismChecker');
+        const flatText = getChapterFlatText(chId);
+        if (flatText.trim()) {
+          const aiResult = computeAIScores(flatText);
+          const plagiarismResult = checkPlagiarism(flatText, sources);
+          if (aiResult) {
+            setScores(prev => ({ ...prev, [chId]: { ai: aiResult, plagiarism: plagiarismResult } }));
+            setScoreHistory(prev => {
+              const existing = prev[chId] || [];
+              const next = [...existing, aiResult.score];
+              return { ...prev, [chId]: next.slice(-5) };
+            });
+          }
+        }
       } catch (e) {
         console.error(`Remove AI failed for chapter ${chId}:`, e);
         notify(`Failed to process "${getChapterDisplayTitle(ch)}". Try again.`, 'error');
@@ -129,15 +245,19 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     if (!ch) return;
     setCheckingScore(prev => ({ ...prev, [chId]: true }));
     try {
-      const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-      const content = rawContent[chId] || {};
-      const fullText = subs.map(s => content[s.id] || '').filter(Boolean).join(' ');
+      const fullText = getChapterFlatText(chId);
       if (!fullText.trim()) { setCheckingScore(prev => ({ ...prev, [chId]: false })); return; }
       const { computeAIScores } = await import('../../utils/aiScoreUtils');
       const aiResult = computeAIScores(fullText);
       const { checkPlagiarism } = await import('../../utils/plagiarismChecker');
       const plagiarismResult = checkPlagiarism(fullText, sources);
       setScores(prev => ({ ...prev, [chId]: { ai: aiResult, plagiarism: plagiarismResult } }));
+      if (aiResult) {
+        setScoreHistory(prev => {
+          const existing = prev[chId] || [];
+          return existing.length > 0 ? prev : { ...prev, [chId]: [aiResult.score] };
+        });
+      }
     } catch (e) {
       console.error('Score check failed:', e);
     }
@@ -159,7 +279,8 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     const subs = (ch.subsections || []).filter(s => s.type !== 'references' && !s.deleted);
     return subs.some(s => content[s.id]);
   });
-  const canSelect = generatedChapters.filter(ch => !selectedChapters.has(ch.id));
+
+  const getScoreColor = (score) => score >= 60 ? '#059669' : score >= 40 ? '#f59e0b' : '#dc2626';
 
   return (
     <div style={{ backgroundColor: colors.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${colors.border}` }}>
@@ -192,7 +313,14 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                 const hasContent = subs.some(s => rawContent[ch.id]?.[s.id]);
                 const isSelected = selectedChapters.has(ch.id);
                 const isDone = results[ch.id]?.done;
+                const chIterations = results[ch.id]?.iterations || 0;
                 const chScore = scores[ch.id];
+                const chScoreHistory = scoreHistory[ch.id] || [];
+                const sentenceData = chScore?.ai?.sentences || [];
+                const flaggedCount = chScore?.ai?.flaggedSentenceCount || 0;
+                const totalSentences = chScore?.ai?.totalSentences || 0;
+                const breakdown = chScore?.ai?.breakdown;
+                const topIssues = chScore?.ai?.topIssues || [];
                 return (
                   <div key={ch.id} style={{
                     display: 'flex', flexDirection: 'column',
@@ -220,6 +348,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                             <span style={{ fontSize: '11px', color: colors.textSecondary }}>{subs.length} subsections</span>
                             {ch.completed && <span style={{ fontSize: '11px', color: '#059669' }}>✓ Completed</span>}
                             {isDone && <span style={{ fontSize: '11px', color: '#7c3aed' }}>✨ Humanised</span>}
+                            {chIterations > 0 && <span style={{ fontSize: '11px', color: '#7c3aed' }}>Iteration {chIterations}</span>}
                           </div>
                         </div>
                       </div>
@@ -235,32 +364,92 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                       </div>
                     </div>
 
-                    {chScore && (
-                      <div style={{ marginTop: '10px', padding: '10px 12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
-                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px' }}>
-                          {chScore.ai ? (
-                            <>
-                              <span>AI Score: <strong style={{ color: chScore.ai.verdict === 'pass' ? '#059669' : chScore.ai.verdict === 'borderline' ? '#f59e0b' : '#dc2626' }}>{chScore.ai.score}/100 ({chScore.ai.verdictLabel})</strong></span>
-                              <span>Burstiness: <strong style={{ color: (chScore.ai.burstiness?.cv || 0) >= 0.4 ? '#059669' : '#f59e0b' }}>{((chScore.ai.burstiness?.cv || 0) * 100).toFixed(0)}%</strong></span>
-                              <span>Banned: <strong style={{ color: (chScore.ai.banned?.count || 0) > 0 ? '#dc2626' : '#059669' }}>{chScore.ai.banned?.count || 0}</strong></span>
-                              <span>Transitions: <strong>{(chScore.ai.transitions?.frequency || 0).toFixed(1)}/sentence</strong></span>
-                            </>
-                          ) : (
-                            <>
-                              <span>AI Score: <strong style={{ color: (chScore.verdict || chScore.overall?.verdict) === 'pass' ? '#059669' : '#dc2626' }}>{chScore.score || chScore.overall?.score || 'N/A'}/100</strong></span>
-                              <span>Burstiness: <strong style={{ color: (chScore.burstiness?.cv || chScore.overall?.burstiness?.cv || 0) >= 0.4 ? '#059669' : '#f59e0b' }}>{((chScore.burstiness?.cv || chScore.overall?.burstiness?.cv || 0) * 100).toFixed(0)}%</strong></span>
-                              <span>Banned: <strong style={{ color: (chScore.banned || chScore.overall?.banned?.count || 0) > 0 ? '#dc2626' : '#059669' }}>{chScore.banned || chScore.overall?.banned?.count || 0}</strong></span>
-                              <span>Transitions: <strong>{(chScore.transitions?.frequency || chScore.overall?.transitions?.frequency || 0).toFixed(1)}/sentence</strong></span>
-                            </>
-                          )}
-                          <span style={{ borderLeft: `1px solid ${colors.border}`, paddingLeft: '12px' }}>Plagiarism: <strong style={{ color: (chScore.plagiarism?.score || 0) >= 30 ? '#dc2626' : (chScore.plagiarism?.score || 0) >= 15 ? '#f59e0b' : '#059669' }}>{chScore.plagiarism?.score || 0}%</strong> ({chScore.plagiarism?.matches?.length || 0} flagged)</span>
+                    {chScore && chScore.ai && (
+                      <div style={{ marginTop: '12px', padding: '16px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '120px', height: '120px' }}>
+                            <svg width="120" height="120" style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
+                              <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+                              <circle cx="60" cy="60" r="50" fill="none" stroke={getScoreColor(chScore.ai.score)} strokeWidth="10"
+                                strokeDasharray={Math.PI * 100} strokeDashoffset={Math.PI * 100 * (1 - (chScore.ai.score || 0) / 100)}
+                                strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }} />
+                            </svg>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '22px', fontWeight: '700', color: getScoreColor(chScore.ai.score) }}>{chScore.ai.score}<span style={{ fontSize: '11px', fontWeight: '400', color: '#9ca3af' }}>/100</span></div>
+                              <div style={{ fontSize: '10px', fontWeight: '500', color: '#6b7280', marginTop: '1px' }}>{chScore.ai.verdictLabel.replace(/[✅🔴⚠️]/g, '').trim()}</div>
+                              {chScore.ai.confidence > 0 && <div style={{ fontSize: '9px', color: '#9ca3af' }}>{chScore.ai.confidence}% conf</div>}
+                            </div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: '200px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: colors.text, marginBottom: '8px' }}>Breakdown</div>
+                            {breakdown && (
+                              <>
+                                <BreakdownBar label="Perplexity" value={breakdown.perplexityScore} />
+                                <BreakdownBar label="Burstiness" value={breakdown.burstinessScore} />
+                                <BreakdownBar label="Stylometrics" value={breakdown.stylometricScore} />
+                                <BreakdownBar label="Formality" value={breakdown.formalityScore} invertColor />
+                                <BreakdownBar label="Repetition" value={breakdown.repetitionScore} invertColor />
+                                {breakdown.plagiarismScore > 0 && <BreakdownBar label="Plagiarism" value={100 - breakdown.plagiarismScore} />}
+                              </>
+                            )}
+                          </div>
                         </div>
+                        {topIssues.length > 0 && (
+                          <div style={{ marginTop: '12px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#fefce8', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                            <div style={{ fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>Top Issues ({flaggedCount} of {totalSentences} sentences flagged)</div>
+                            {topIssues.map((issue, i) => (
+                              <div key={i} style={{ fontSize: '11px', color: '#92400e', paddingLeft: '12px' }}>• {issue}</div>
+                            ))}
+                          </div>
+                        )}
+                        <ScoreChart history={chScoreHistory} colors={colors} />
                       </div>
                     )}
 
                     {expandedChapter === ch.id && (
-                      <div style={{ marginTop: '10px', padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.6', color: colors.text, whiteSpace: 'pre-wrap' }}>
-                        {getChapterContent(ch.id).slice(0, 2000)}{getChapterContent(ch.id).length > 2000 ? '...' : ''}
+                      <div style={{ marginTop: '10px' }}>
+                        <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text }}>
+                          {sentenceData.length > 0 ? (
+                            sentenceData.map((s, i) => {
+                              const bg = s.aiProbability > 0.8 ? 'rgba(239,68,68,0.12)' : s.aiProbability > 0.5 ? 'rgba(234,179,8,0.12)' : 'transparent';
+                              const border = s.aiProbability > 0.8 ? '1px solid rgba(239,68,68,0.2)' : s.aiProbability > 0.5 ? '1px solid rgba(234,179,8,0.2)' : 'none';
+                              return (
+                                <span key={i} title={s.flags.length > 0 ? `Flags: ${s.flags.join(', ')}\nSuggestions: ${s.suggestions.join(', ')}` : 'No issues'}
+                                  style={{ backgroundColor: bg, border, borderRadius: '2px', cursor: 'pointer', padding: '1px 0' }}>
+                                  {s.text}{' '}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <>
+                              <div style={{ whiteSpace: 'pre-wrap' }}>{getChapterContent(ch.id).slice(0, 2000)}</div>
+                              {getChapterContent(ch.id).length > 2000 && (
+                                <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        {sentenceData.length > 0 && (
+                          <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '500' }}>Sentence Density Map</span>
+                              <span style={{ fontSize: '10px', color: '#9ca3af' }}>{flaggedCount} flagged of {totalSentences}</span>
+                              <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', fontSize: '10px' }}>
+                                <span style={{ color: '#dc2626' }}>■ High AI</span>
+                                <span style={{ color: '#f59e0b' }}>■ Medium</span>
+                                <span style={{ color: '#059669' }}>■ Low</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1px', height: '14px', alignItems: 'flex-end' }}>
+                              {sentenceData.map((s, i) => {
+                                const h = Math.max(4, Math.round(s.aiProbability * 14));
+                                const color = s.aiProbability > 0.8 ? '#dc2626' : s.aiProbability > 0.5 ? '#f59e0b' : '#059669';
+                                return <div key={i} title={`"${s.text.slice(0, 80)}..."\nAI: ${Math.round(s.aiProbability * 100)}%\nFlags: ${s.flags.join(', ') || 'none'}`}
+                                  style={{ flex: 1, height: `${h}px`, backgroundColor: color, borderRadius: '1px', minWidth: '2px', cursor: 'pointer', transition: 'height 0.2s' }} />;
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -285,7 +474,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                   border: 'none', cursor: processing ? 'not-allowed' : 'pointer',
                   opacity: processing ? 0.7 : 1,
                 }}>
-                {processing ? 'Processing...' : `🚀 Remove AI (${selectedChapters.size} chapter${selectedChapters.size > 1 ? 's' : ''})`}
+                {processing ? 'Processing...' : `🚀 Remove AI${selectedChapters.size === 1 && results[[...selectedChapters][0]]?.iterations > 0 ? ` More (iter ${results[[...selectedChapters][0]].iterations + 1})` : ''} (${selectedChapters.size} chapter${selectedChapters.size > 1 ? 's' : ''})`}
               </button>
             </div>
           )}

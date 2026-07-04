@@ -1,4 +1,4 @@
-import{genAI as m,MODEL as f}from"./config-DCzKqYyT.js";import{getWordCountPreset as X}from"./config-DCzKqYyT.js";import{c as E,b as y}from"./sourceExtractor-nNZ27EZL.js";import{e as q,g as J}from"./sourceExtractor-nNZ27EZL.js";import{r as S}from"./instruments-4ylHIOXe.js";import{a as Q,g as j,b as Z,c as _,d as ee,e as te,f as ne,h as re}from"./instruments-4ylHIOXe.js";import"./mermaid-DWqxh0qa.js";import"./react-vendor-BS-ySqmm.js";const I=`IMPORTANT TABLE RULES:
+import{genAI as g,MODEL as m}from"./config-DCzKqYyT.js";import{getWordCountPreset as q}from"./config-DCzKqYyT.js";import{c as y,b as A}from"./sourceExtractor-nNZ27EZL.js";import{e as z,g as Q}from"./sourceExtractor-nNZ27EZL.js";import{r as v}from"./instruments-4ylHIOXe.js";import{a as Z,g as _,b as ee,c as te,d as ne,e as re,f as ae,h as ie}from"./instruments-4ylHIOXe.js";import"./mermaid-DWqxh0qa.js";import"./react-vendor-BS-ySqmm.js";const b=`IMPORTANT TABLE RULES:
 - Use natural markdown table format with header row and separator row
 - Header row: | Column 1 | Column 2 | Column 3 |
 - Separator row: |----------|----------|----------|
@@ -13,11 +13,11 @@ EXAMPLES of appropriate tables:
 For Chapter 4: demographic profile tables, descriptive statistics, frequency distributions
 For Chapter 2: literature comparison tables, theoretical summary tables
 For Chapter 3: methodology summary tables
-For Chapter 5: findings summary tables, comparison tables`,v=async e=>{try{const t=m.getGenerativeModel({model:f,tools:[{googleSearch:{}}]});let n="",r=[];if(e.referenceData){if(e.referenceData.type==="combined"){const u=e.referenceData.text||"",l=(e.referenceData.files||[]).filter(d=>d.content?.startsWith("data:image/"));l.length>0?(r=l.map(d=>{const g=d.content.match(/^data:(image\/\w+);base64,(.+)$/);return g?{inlineData:{mimeType:g[1],data:g[2]}}:null}).filter(Boolean),n=`
-The user has uploaded ${l.length} screenshot(s) showing their desired chapter structure, along with pasted text.
+For Chapter 5: findings summary tables, comparison tables`,L=async e=>{try{const t=g.getGenerativeModel({model:m,tools:[{googleSearch:{}}]});let n="",r=[];if(e.referenceData){if(e.referenceData.type==="combined"){const d=e.referenceData.text||"",h=(e.referenceData.files||[]).filter(u=>u.content?.startsWith("data:image/"));h.length>0?(r=h.map(u=>{const p=u.content.match(/^data:(image\/\w+);base64,(.+)$/);return p?{inlineData:{mimeType:p[1],data:p[2]}}:null}).filter(Boolean),n=`
+The user has uploaded ${h.length} screenshot(s) showing their desired chapter structure, along with pasted text.
 
 PASTED TEXT:
-${u}
+${d}
 
 CRITICAL: Examine ALL images AND the pasted text carefully. Extract:
 1. EVERY heading and sub-heading with exact numbering (2.1, 2.1.1, etc.)
@@ -28,7 +28,7 @@ CRITICAL: Examine ALL images AND the pasted text carefully. Extract:
 
 Generate subtopics that MIRROR this structure EXACTLY for: "${e.topic}". DO NOT add or remove sections. Match precisely.`):n=`
 UPLOADED REFERENCE TEXT:
-${u}
+${d}
 
 CRITICAL: Extract ONLY the structure:
 1. EVERY heading with exact numbering
@@ -36,7 +36,7 @@ CRITICAL: Extract ONLY the structure:
 3. Where visuals are mentioned/placed
 4. EXACT NUMBER of sections
 
-IGNORE the actual content words. Generate subtopics matching this EXACT structure for: "${e.topic}".`}else if(e.referenceData.type==="file")if(e.referenceData.content?.startsWith("data:image/")){const o=e.referenceData.content.match(/^data:(image\/\w+);base64,(.+)$/);o&&(r=[{inlineData:{mimeType:o[1],data:o[2]}}]),n=`
+IGNORE the actual content words. Generate subtopics matching this EXACT structure for: "${e.topic}".`}else if(e.referenceData.type==="file")if(e.referenceData.content?.startsWith("data:image/")){const i=e.referenceData.content.match(/^data:(image\/\w+);base64,(.+)$/);i&&(r=[{inlineData:{mimeType:i[1],data:i[2]}}]),n=`
 The user has uploaded an IMAGE showing their desired chapter structure. Examine the image CAREFULLY. Extract ALL:
 1. Headings and sub-headings with exact numbering (2.1, 2.1.1, 3.0)
 2. HIERARCHY and DEPTH of subsections
@@ -48,8 +48,8 @@ Generate subtopics that MIRROR this structure EXACTLY for: "${e.topic}".`}else n
 UPLOADED TEXT:
 ${e.referenceData.content||""}
 
-Extract ONLY the structure (headings, numbering, hierarchy, visual placements). IGNORE the content. Match the structure EXACTLY for: "${e.topic}".`;else if(e.referenceData.type==="files"){const o=(e.referenceData.files||[]).filter(l=>l.content?.startsWith("data:image/"));r=o.map(l=>{const d=l.content.match(/^data:(image\/\w+);base64,(.+)$/);return d?{inlineData:{mimeType:d[1],data:d[2]}}:null}).filter(Boolean),n=`
-The user has uploaded ${o.length} screenshot(s). Examine ALL images. Extract the complete structure: headings, numbering, hierarchy, visual placements, section count. Mirror EXACTLY for: "${e.topic}".`}else if(e.referenceData.content){if(e.referenceData.content?.startsWith("data:image/")){const o=e.referenceData.content.match(/^data:(image\/\w+);base64,(.+)$/);o&&(r=[{inlineData:{mimeType:o[1],data:o[2]}}])}n=`
+Extract ONLY the structure (headings, numbering, hierarchy, visual placements). IGNORE the content. Match the structure EXACTLY for: "${e.topic}".`;else if(e.referenceData.type==="files"){const i=(e.referenceData.files||[]).filter(h=>h.content?.startsWith("data:image/"));r=i.map(h=>{const u=h.content.match(/^data:(image\/\w+);base64,(.+)$/);return u?{inlineData:{mimeType:u[1],data:u[2]}}:null}).filter(Boolean),n=`
+The user has uploaded ${i.length} screenshot(s). Examine ALL images. Extract the complete structure: headings, numbering, hierarchy, visual placements, section count. Mirror EXACTLY for: "${e.topic}".`}else if(e.referenceData.content){if(e.referenceData.content?.startsWith("data:image/")){const i=e.referenceData.content.match(/^data:(image\/\w+);base64,(.+)$/);i&&(r=[{inlineData:{mimeType:i[1],data:i[2]}}])}n=`
 UPLOADED REFERENCE:
 ${e.referenceData.content}
 
@@ -66,10 +66,10 @@ ${e.referenceData?"CRITICAL: Return ONLY a JSON array matching the EXACT structu
 
 DO NOT include "References" as a subsection.
 
-Example: ["2.0 Introduction", "2.1 Theoretical Framework", "2.1.1 Key Theory", "2.2 Empirical Review", "2.3 Summary"]`;let i=r.length>0?[...r,{text:a}]:[{text:a}];const p=(await t.generateContent({contents:[{role:"user",parts:i}]})).response.text();return y(p)}catch(t){return console.error("Error generating subtopics:",t),null}},N=async e=>{try{const t=m.getGenerativeModel({model:f,tools:[{googleSearch:{}}],generationConfig:{temperature:.4,topP:.85}}),n=e.wordCount||{min:500,max:1e3},r=Math.floor((n.min+n.max)/2),a="Start directly with the subsection heading.";let i="";e.sourceMode==="user-only"&&e.userSources?.length>0?i=`
+Example: ["2.0 Introduction", "2.1 Theoretical Framework", "2.1.1 Key Theory", "2.2 Empirical Review", "2.3 Summary"]`;let o=r.length>0?[...r,{text:a}]:[{text:a}];const f=(await t.generateContent({contents:[{role:"user",parts:o}]})).response.text();return A(f)}catch(t){return console.error("Error generating subtopics:",t),null}},x=async e=>{try{const t=g.getGenerativeModel({model:m,tools:[{googleSearch:{}}],generationConfig:{temperature:.4,topP:.85}}),n=e.wordCount||{min:500,max:1e3},r=Math.floor((n.min+n.max)/2),a="Start directly with the subsection heading.";let o="";e.sourceMode==="user-only"&&e.userSources?.length>0?o=`
 ## USER-PROVIDED SOURCES (MANDATORY)
 The student has uploaded the following papers. These are the ONLY sources you may cite.
-${JSON.stringify(e.userSources.map(h=>({title:h.title,authors:h.authors,year:h.year,methodology:h.methodology,keyFindings:h.keyFindings,theoreticalFramework:h.theoreticalFramework})),null,2).substring(0,15e3)}
+${JSON.stringify(e.userSources.map(c=>({title:c.title,authors:c.authors,year:c.year,methodology:c.methodology,keyFindings:c.keyFindings,theoreticalFramework:c.theoreticalFramework})),null,2).substring(0,15e3)}
 
 ### USER SOURCE RULES
 - For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
@@ -77,16 +77,16 @@ ${JSON.stringify(e.userSources.map(h=>({title:h.title,authors:h.authors,year:h.y
 - If Google Search Grounding cannot find a specific paper after trying, do NOT cite it.
 - At least 2 different sources must be cited across the subsection.
 - When discussing a concept or finding, reference the specific source: (Author, Year).
-- Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`:e.sourceMode==="combine"&&e.userSources?.length>0&&(i=`
+- Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`:e.sourceMode==="combine"&&e.userSources?.length>0&&(o=`
 ## USER-PROVIDED SOURCES (PRIORITY)
 The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${JSON.stringify(e.userSources.map(h=>({title:h.title,authors:h.authors,year:h.year,methodology:h.methodology,keyFindings:h.keyFindings,theoreticalFramework:h.theoreticalFramework})),null,2).substring(0,15e3)}
+${JSON.stringify(e.userSources.map(c=>({title:c.title,authors:c.authors,year:c.year,methodology:c.methodology,keyFindings:c.keyFindings,theoreticalFramework:c.theoreticalFramework})),null,2).substring(0,15e3)}
 
 ### COMBINED SOURCE RULES
 - Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
 - Supplement with additional sources found via Google Search Grounding where user sources do not provide sufficient coverage.
 - At least 60% of citations should come from the user's papers.
-- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`);const c=`You are an advanced academic writing assistant helping a ${e.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`);const l=`You are an advanced academic writing assistant helping a ${e.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
 ${e.thesisContext?`
 ## THESIS CONTEXT — PREVIOUS CHAPTERS
 This thesis has already written the following chapters. Use this context to maintain consistency in terminology, arguments, and references across chapters:
@@ -107,7 +107,7 @@ CHAPTER: ${e.chapter}
 SUBSECTION: ${e.subsection}
 TARGET WORD COUNT: ${r} words (range: ${n.min}–${n.max})
 METHODOLOGY: ${e.methodology||"mixed methods"} — all content MUST align with this methodology
-${e.organization?`CASE STUDY: ${e.organization}`:""}${i}
+${e.organization?`CASE STUDY: ${e.organization}`:""}${o}
 ${e.findings?`RESEARCH FINDINGS DATA: ${typeof e.findings=="object"?JSON.stringify(e.findings):e.findings}
 
 ## CHAPTER 4 — RESULTS & ANALYSIS INSTRUCTIONS
@@ -187,7 +187,7 @@ ${e.childrenTopics?.length>0?`
 ## SUB-TOPICS TO COVER IN THIS SECTION
 This section has the following sub-topics that must be covered. Include EACH as an H3 subheading within the text:
 
-${e.childrenTopics.map((s,h)=>`${h+1}. ${s}`).join(`
+${e.childrenTopics.map((s,c)=>`${c+1}. ${s}`).join(`
 `)}
 `:""}
 ${e.guidelines?`
@@ -251,7 +251,7 @@ You must NEVER use the following:
 - For tables, use natural markdown table format: | Header 1 | Header 2 |
 - For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
 - For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
-${I}
+${b}
 
 ## VISUAL GUIDANCE
 If the user has provided screenshots, images, or reference files:
@@ -267,7 +267,7 @@ Why this is bad: generic opener, stacked transitions, no specific claim, no cita
 "Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores: a finding that challenges the assumption that AI tools primarily benefit advanced learners."
 Why this is good: specific data, grounded claim, meaningful citation, original insight, varied sentence rhythm.
 
-Write the complete content now. Aim for approximately ${r} words.`,p=await t.generateContent(c),u=p.response.text(),o=p.response.candidates;let l=[],d=!1;o&&o[0]?.groundingMetadata?.groundingChunks&&(l=o[0].groundingMetadata.groundingChunks.filter(s=>s.web).map(s=>({title:s.web.title||"",uri:s.web.uri||""})),d=l.length>0);const g=E(u);return{text:d?g:`[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${g}`,sources:l,groundingUsed:d}}catch(t){throw console.error("Error generating academic content:",t),t}},L=async(e,t)=>{try{const n=m.getGenerativeModel({model:f,tools:[{googleSearch:{}}],generationConfig:{temperature:.5,topP:.85}}),r=t?.extraInstruction?`
+Write the complete content now. Aim for approximately ${r} words.`,f=await t.generateContent(l),d=f.response.text(),i=f.response.candidates;let h=[],u=!1;i&&i[0]?.groundingMetadata?.groundingChunks&&(h=i[0].groundingMetadata.groundingChunks.filter(s=>s.web).map(s=>({title:s.web.title||"",uri:s.web.uri||""})),u=h.length>0);const p=y(d);return{text:u?p:`[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${p}`,sources:h,groundingUsed:u}}catch(t){throw console.error("Error generating academic content:",t),t}},$=async(e,t)=>{try{const n=g.getGenerativeModel({model:m,tools:[{googleSearch:{}}],generationConfig:{temperature:.5,topP:.85}}),r=t?.extraInstruction?`
 
 ## ADDITIONAL INSTRUCTION
 ${t.extraInstruction}`:"",a=`You are a senior academic editor performing a quality review on AI-generated thesis content. Your task: identify all detectable AI writing patterns and rewrite the text so it is COMPLETELY INDISTINGUISHABLE from human academic writing.
@@ -311,9 +311,9 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
 - Preserve ALL: tables, diagrams, [CHART:{...}] tags, data, numbers, statistics.
 - Preserve ALL subsection headings exactly as they appear.
 - DO NOT change the word count drastically (stay within 85–115% of original).
-- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`,i=await n.generateContent(a);return E(i.response.text())}catch(n){return console.error("Error in self-review:",n),e}},x=async(e,t,n,r)=>{try{const a=m.getGenerativeModel({model:f,tools:[{googleSearch:{}}]});let i="",c=[];if(t.files?.length){const l=t.files.filter(s=>s.type==="image"&&s.content),d=t.files.filter(s=>s.type!=="image");c=l.map(s=>{const h=s.content.match(/^data:(image\/\w+);base64,(.+)$/);return h?{inlineData:{mimeType:h[1],data:h[2]}}:null}).filter(Boolean);const g=t.files.map(s=>s.name).join(", ");i=`
-Uploaded ${t.files.length} file(s): ${g}.`,d.length>0&&d.forEach(s=>{s.extractedText&&(i+=`
-Content from ${s.name}: ${s.extractedText.substring(0,3e3)}`)})}const p=`You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
+- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`,o=await n.generateContent(a);return y(o.response.text())}catch(n){return console.error("Error in self-review:",n),e}},U=async(e,t,n,r)=>{try{const a=g.getGenerativeModel({model:m,tools:[{googleSearch:{}}]});let o="",l=[];if(t.files?.length){const h=t.files.filter(s=>s.type==="image"&&s.content),u=t.files.filter(s=>s.type!=="image");l=h.map(s=>{const c=s.content.match(/^data:(image\/\w+);base64,(.+)$/);return c?{inlineData:{mimeType:c[1],data:c[2]}}:null}).filter(Boolean);const p=t.files.map(s=>s.name).join(", ");o=`
+Uploaded ${t.files.length} file(s): ${p}.`,u.length>0&&u.forEach(s=>{s.extractedText&&(o+=`
+Content from ${s.name}: ${s.extractedText.substring(0,3e3)}`)})}const f=`You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
 
 SUBSECTION: ${n}
 THESIS TITLE: "${r?.title}"
@@ -321,10 +321,10 @@ ${r?.topic?`RESEARCH QUESTION: "${r.topic}"`:""}
 FIELD: ${r?.field}
 
 FEEDBACK TO APPLY:
-"${t.text}"${i}
+"${t.text}"${o}
 
 CURRENT TEXT:
-${E(e)}
+${y(e)}
 
 ## INSTRUCTION HIERARCHY (highest to lowest priority)
 
@@ -358,7 +358,17 @@ ${E(e)}
 - NO em dashes.
 - Plain text only.
 
-Return ONLY the complete modified text for this subsection.`,u=c.length>0?[...c,{text:p}]:[{text:p}],o=await a.generateContent({contents:[{role:"user",parts:u}]});return E(o.response.text())}catch(a){throw console.error("Error applying feedback:",a),a}},$=async(e,t=null)=>{try{const n=m.getGenerativeModel({model:f,tools:[{googleSearch:{}}],generationConfig:{temperature:.9,topP:.95}}),r=t?.topic||"thesis topic",a=t?.field||"social sciences",i=t?.chapter||"thesis chapter",c=t?.subsection||"subsection",p=t?.diagnosticReport||"",o={education:["pedagogical","curricular","instructional strategies","learner outcomes","differentiated instruction","formative assessment","scaffolding","constructivist"],psychology:["cognitive processes","behavioral patterns","psychological constructs","affective factors","neuropsychological","developmental trajectories","therapeutic interventions"],business:["organizational performance","strategic alignment","stakeholder value","competitive advantage","operational efficiency","market dynamics","corporate governance"],"computer science":["computational efficiency","algorithmic complexity","system architecture","data structures","implementation details","performance benchmarks","software engineering practices"],engineering:["design parameters","performance metrics","structural integrity","system optimization","engineering tolerances","failure modes","prototype evaluation"],medicine:["clinical outcomes","diagnostic accuracy","therapeutic efficacy","patient prognosis","physiological mechanisms","treatment protocols","biomarker analysis"],sociology:["social structures","cultural norms","institutional frameworks","demographic patterns","social stratification","community dynamics","collective behavior"],economics:["market efficiency","resource allocation","economic indicators","welfare implications","distributional effects","incentive structures","equilibrium analysis"]}[a.toLowerCase()]||["empirical evidence","theoretical foundations","analytical framework","research findings","methodological approach"],l=`You are Professor ${a.charAt(0).toUpperCase()+a.slice(1)} Studies, a renowned scholar with 25 years of published research. Rewrite the following thesis excerpt as YOU would write it — with genuine academic voice, ${a}-specific vocabulary, and the natural rhythm of someone who has written dozens of peer-reviewed articles.
+Return ONLY the complete modified text for this subsection.`,d=l.length>0?[...l,{text:f}]:[{text:f}],i=await a.generateContent({contents:[{role:"user",parts:d}]});return y(i.response.text())}catch(a){throw console.error("Error applying feedback:",a),a}},F=async(e,t=null)=>{try{const n=g.getGenerativeModel({model:m,tools:[{googleSearch:{}}],generationConfig:{temperature:.9,topP:.95}}),r=t?.topic||"thesis topic",a=t?.field||"social sciences",o=t?.chapter||"thesis chapter",l=t?.subsection||"subsection",f=t?.diagnosticReport||"",d=t?.flaggedSentences||[];let i="";if(d.length>0){const E=d.filter(T=>T.aiProbability>.5).slice(0,15).map((T,I)=>`SENTENCE ${I+1}: "${T.text.slice(0,150)}"
+  Flags: ${T.flags.join(", ")||"none"}
+  Suggestions: ${T.suggestions.join(", ")||"none"}`).join(`
+
+`);E&&(i=`
+## TARGETED REWRITE — FLAGGED SENTENCES
+The following sentences were flagged as AI-like. Rewrite each one with specific fixes:
+
+${E}
+
+For each flagged sentence above, apply its specific suggestions. Do NOT rewrite sentences not listed above.`)}const u={education:["pedagogical","curricular","instructional strategies","learner outcomes","differentiated instruction","formative assessment","scaffolding","constructivist"],psychology:["cognitive processes","behavioral patterns","psychological constructs","affective factors","neuropsychological","developmental trajectories","therapeutic interventions"],business:["organizational performance","strategic alignment","stakeholder value","competitive advantage","operational efficiency","market dynamics","corporate governance"],"computer science":["computational efficiency","algorithmic complexity","system architecture","data structures","implementation details","performance benchmarks","software engineering practices"],engineering:["design parameters","performance metrics","structural integrity","system optimization","engineering tolerances","failure modes","prototype evaluation"],medicine:["clinical outcomes","diagnostic accuracy","therapeutic efficacy","patient prognosis","physiological mechanisms","treatment protocols","biomarker analysis"],sociology:["social structures","cultural norms","institutional frameworks","demographic patterns","social stratification","community dynamics","collective behavior"],economics:["market efficiency","resource allocation","economic indicators","welfare implications","distributional effects","incentive structures","equilibrium analysis"]}[a.toLowerCase()]||["empirical evidence","theoretical foundations","analytical framework","research findings","methodological approach"],p=`You are Professor ${a.charAt(0).toUpperCase()+a.slice(1)} Studies, a renowned scholar with 25 years of published research. Rewrite the following thesis excerpt as YOU would write it — with genuine academic voice, ${a}-specific vocabulary, and the natural rhythm of someone who has written dozens of peer-reviewed articles.
 
 TEXT TO REWRITE:
 ${e}
@@ -366,9 +376,9 @@ ${e}
 THESIS TITLE: "${r}"
 ${t?.researchTopic?`RESEARCH QUESTION: "${t.researchTopic}"`:""}
 FIELD: ${a}
-CHAPTER: ${i}
-SUBSECTION: ${c}
-${p}
+CHAPTER: ${o}
+SUBSECTION: ${l}
+${f}${i}
 
 ## HUMAN WRITING FINGERPRINTS TO INJECT
 
@@ -390,7 +400,7 @@ Mix these patterns unpredictably — never two sentences with the same structure
 
 ### FIELD-SPECIFIC VOCABULARY
 Use vocabulary natural to ${a} scholars:
-${o.map(s=>`- "${s}"`).join(`
+${u.map(E=>`- "${E}"`).join(`
 `)}
 AVOID generic social-science filler: "explores", "delves into", "navigates", "investigates", "the realm of", "a myriad of".
 
@@ -420,10 +430,10 @@ Use hedging language ONLY in interpretations, NEVER in descriptions of what was 
 - NO contractions — write out all words fully.
 - Maintain formal academic third-person tone throughout.
 
-Return ONLY the rewritten text. No explanations, no meta-commentary.`,d=await n.generateContent(l);let g=E(d.response.text());if(!g||g.trim().length<50)return e;try{const s=m.getGenerativeModel({model:f,generationConfig:{temperature:.4,topP:.85}}),h=`You are a meticulous academic copy-editor. Review the following text for any issues introduced during editing and polish it.
+Return ONLY the rewritten text. No explanations, no meta-commentary.`,s=await n.generateContent(p);let c=y(s.response.text());if(!c||c.trim().length<50)return e;try{const E=g.getGenerativeModel({model:m,generationConfig:{temperature:.4,topP:.85}}),T=`You are a meticulous academic copy-editor. Review the following text for any issues introduced during editing and polish it.
 
 TEXT TO POLISH:
-${g}
+${c}
 
 ## POLISH CHECKLIST
 1. Are all in-text citations still properly formatted as (Author, Year)? Fix any that got corrupted.
@@ -435,24 +445,24 @@ ${g}
 7. NO em dashes — use commas or parentheses instead.
 8. NO markdown headings, NO HTML tags.
 
-Return ONLY the polished text. No explanations, no annotations.`,R=await s.generateContent(h),T=E(R.response.text());T&&T.trim().length>50&&(g=T)}catch(s){console.warn("[humaniseContent] Polish pass failed, using humanised output:",s.message)}return g}catch(n){throw console.error("Error humanising:",n),n}},U=async(e,t,n=null,r="ai-only")=>{try{const a=m.getGenerativeModel({model:f,tools:[{googleSearch:{}}]}),i=t==="apa"?"APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.":t==="mla"?"MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.":"Chicago: Author Last, First. Year. Title of Work. Publisher.";let c="";n?.length>0&&(r==="user-only"||r==="combine")&&(c=`
+Return ONLY the polished text. No explanations, no annotations.`,I=await E.generateContent(T),R=y(I.response.text());R&&R.trim().length>50&&(c=R)}catch(E){console.warn("[humaniseContent] Polish pass failed, using humanised output:",E.message)}return c}catch(n){throw console.error("Error humanising:",n),n}},k=async(e,t,n=null,r="ai-only")=>{try{const a=g.getGenerativeModel({model:m,tools:[{googleSearch:{}}]}),o=t==="apa"?"APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.":t==="mla"?"MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.":"Chicago: Author Last, First. Year. Title of Work. Publisher.";let l="";n?.length>0&&(r==="user-only"||r==="combine")&&(l=`
 ## USER-PROVIDED SOURCES (VERIFIED)
 The student has uploaded the following papers. These are REAL, VERIFIABLE sources. Use them to create reference entries when the in-text citations match.
 
-${JSON.stringify(n.map(o=>({title:o.title,authors:o.authors,year:o.year,methodology:o.methodology,keyFindings:o.keyFindings,theoreticalFramework:o.theoreticalFramework})),null,2)}
+${JSON.stringify(n.map(i=>({title:i.title,authors:i.authors,year:i.year,methodology:i.methodology,keyFindings:i.keyFindings,theoreticalFramework:i.theoreticalFramework})),null,2)}
 
 ### USER SOURCE RULES
 - If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
 - These sources may not have DOI/URL — format them as "Author, A. A. (Year). Title. [Unpublished source]" if no publication venue is known.
-- Prioritize Google Search Grounding for complete reference details, but fall back to user-provided metadata when search fails.`);const p=`You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
+- Prioritize Google Search Grounding for complete reference details, but fall back to user-provided metadata when search fails.`);const f=`You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
 
 IN-TEXT CITATIONS (extracted from thesis content):
-${e.map(o=>`- ${o}`).join(`
+${e.map(i=>`- ${i}`).join(`
 `)}
 
 REFERENCE STYLE: ${t.toUpperCase()}
-STYLE GUIDE: ${i}
-${c}
+STYLE GUIDE: ${o}
+${l}
 
 ## CRITICAL RULES
 
@@ -482,7 +492,7 @@ ${c}
 - Each entry must be a complete, standalone reference string.
 
 Example (APA):
-Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`,u=await a.generateContent(p);return E(u.response.text())}catch(a){throw console.error("Error generating references:",a),a}},F=async e=>{try{const t=m.getGenerativeModel({model:f}),n=`Generate a conceptual framework description for a thesis.
+Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`,d=await a.generateContent(f);return y(d.response.text())}catch(a){throw console.error("Error generating references:",a),a}},M=async e=>{try{const t=g.getGenerativeModel({model:m}),n=`Generate a conceptual framework description for a thesis.
 
 Topic: ${e?.topic||e?.title}
 Field: ${e?.field}
@@ -497,7 +507,7 @@ Moderating: moderating variable (if any)
 H1: IndependentVariable → DependentVariable
 H2: IndependentVariable → MediatingVariable → DependentVariable
 
-List ALL variables with their full academic names. Use only the format above, no JSON.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},k=async e=>{try{const t=m.getGenerativeModel({model:f}),n=`Generate a theoretical framework description for a thesis.
+List ALL variables with their full academic names. Use only the format above, no JSON.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},P=async e=>{try{const t=g.getGenerativeModel({model:m}),n=`Generate a theoretical framework description for a thesis.
 
 Topic: ${e?.topic||e?.title}
 Field: ${e?.field}
@@ -507,7 +517,7 @@ Return a structured description:
 Theory 1: name and key concepts
 Theory 2: name and key concepts
 Relationship: how they connect
-Application: how they apply to this study`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},M=async e=>{try{const t=m.getGenerativeModel({model:f}),n=`Generate a research design description for a thesis.
+Application: how they apply to this study`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},G=async e=>{try{const t=g.getGenerativeModel({model:m}),n=`Generate a research design description for a thesis.
 
 Topic: ${e?.topic||e?.title}
 Methodology: ${e?.methodology||"mixed methods"}
@@ -520,32 +530,32 @@ Step 3: ...
 Step 4: ...
 Step 5: ...
 
-List the key methodological steps in order. Use plain text, no diagrams.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},P=async(e,t,n)=>{try{const r=m.getGenerativeModel({model:f}),a=n?`
+List the key methodological steps in order. Use plain text, no diagrams.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},H=async(e,t,n)=>{try{const r=g.getGenerativeModel({model:m}),a=n?`
 
 REAL RESEARCH FINDINGS:
-${JSON.stringify(n).substring(0,2e4)}`:"",i=`Generate realistic data for a results table.
+${JSON.stringify(n).substring(0,2e4)}`:"",o=`Generate realistic data for a results table.
 
 Topic: ${t?.topic||t?.title}
 Subsection: ${e}
 Methodology: ${t?.methodology||"quantitative"}${a}
 
-${I}
+${b}
 
-Return a markdown table with 4-6 rows of realistic data based on the research findings provided. Use proper column headers and realistic values.`;return(await r.generateContent(i)).response.text().trim()}catch(r){return console.error("Error:",r),null}},G=async(e,t,n,r)=>{try{const a=m.getGenerativeModel({model:f}),i=r?`
+Return a markdown table with 4-6 rows of realistic data based on the research findings provided. Use proper column headers and realistic values.`;return(await r.generateContent(o)).response.text().trim()}catch(r){return console.error("Error:",r),null}},Y=async(e,t,n,r)=>{try{const a=g.getGenerativeModel({model:m}),o=r?`
 
 REAL RESEARCH FINDINGS:
-${JSON.stringify(r).substring(0,2e4)}`:"",c=`Generate data for a ${e} chart.
+${JSON.stringify(r).substring(0,2e4)}`:"",l=`Generate data for a ${e} chart.
 
 Topic: ${n?.topic||n?.title}
-Subsection: ${t}${i}
+Subsection: ${t}${o}
 
 Return in this exact format:
 [CHART: ${e} | Chart Title | Label1: value, Label2: value, Label3: value, ...]
 
-Use REAL data values from the research findings. For pie charts, values should sum to 100.`;return(await a.generateContent(c)).response.text().trim()}catch(a){return console.error("Error:",a),null}},H=async e=>{try{const t=m.getGenerativeModel({model:f}),n=e.chapters||{},r=Object.entries(n);if(r.length===0)return null;const a=r.map(([o,l])=>{const d=l.title||o,g=l.content||"";return`--- ${d} ---
-${g||"No content available."}`}).join(`
+Use REAL data values from the research findings. For pie charts, values should sum to 100.`;return(await a.generateContent(l)).response.text().trim()}catch(a){return console.error("Error:",a),null}},D=async e=>{try{const t=g.getGenerativeModel({model:m}),n=e.chapters||{},r=Object.entries(n);if(r.length===0)return null;const a=r.map(([i,h])=>{const u=h.title||i,p=h.content||"";return`--- ${u} ---
+${p||"No content available."}`}).join(`
 
-`),i=`You are a thesis defence expert preparing a student for their viva voce.
+`),o=`You are a thesis defence expert preparing a student for their viva voce.
 
 THESIS TITLE: "${e.title||""}"
 ${e.researchTopic?`RESEARCH QUESTION: "${e.researchTopic}"`:""}
@@ -561,8 +571,8 @@ Based on this content, think of every possible question a panel member could ask
 For each question, provide ONE clear answer. Write the answer in plain, basic English — as if you are explaining to someone who is new to academic work. Use simple words and short sentences. Do not use jargon unless absolutely necessary, and explain it if you do. The answer should be a moderate length — a few sentences that give the most correct and helpful explanation without being too short or too long.
 
 Return ONLY valid JSON with chapter IDs as keys and arrays of {question, answer} objects. Example:
-{"proposal":[{"question":"...","answer":"..."}],"chapter1":[{"question":"...","answer":"..."}]}`,u=(await t.generateContent(i)).response.text().match(/\{[\s\S]*\}/);if(u)try{return JSON.parse(u[0])}catch{}return null}catch(t){return console.error("Error generating defence questions:",t),null}},Y=(e,t)=>!e||e.length===0?"":[...new Set(e)].sort().map(r=>{const a=r.split(/[, ]+/),i=a[0]||"Author",c=a[1]||"n.d.";switch(t){case"apa":return`${i}. (${c}). Title of the work. Publisher.`;case"mla":return`${i}. Title of the Work. Publisher, ${c}.`;case"chicago":return`${i}. ${c}. Title of the Work. Publisher.`;case"harvard":return`${i} (${c}). Title of the work. Publisher.`;default:return`${i} (${c})`}}).join(`
-`),V=async(e,t)=>{try{const n=m.getGenerativeModel({model:f}),r=e.substring(0,15e3),a=`Extract field-specific abbreviations from this thesis content. Only include abbreviations that are specialized technical terms relevant to the thesis topic or academic field.
+{"proposal":[{"question":"...","answer":"..."}],"chapter1":[{"question":"...","answer":"..."}]}`,d=(await t.generateContent(o)).response.text().match(/\{[\s\S]*\}/);if(d)try{return JSON.parse(d[0])}catch{}return null}catch(t){return console.error("Error generating defence questions:",t),null}},V=(e,t)=>!e||e.length===0?"":[...new Set(e)].sort().map(r=>{const a=r.split(/[, ]+/),o=a[0]||"Author",l=a[1]||"n.d.";switch(t){case"apa":return`${o}. (${l}). Title of the work. Publisher.`;case"mla":return`${o}. Title of the Work. Publisher, ${l}.`;case"chicago":return`${o}. ${l}. Title of the Work. Publisher.`;case"harvard":return`${o} (${l}). Title of the work. Publisher.`;default:return`${o} (${l})`}}).join(`
+`),W=async(e,t)=>{try{const n=g.getGenerativeModel({model:m}),r=e.substring(0,15e3),a=`Extract field-specific abbreviations from this thesis content. Only include abbreviations that are specialized technical terms relevant to the thesis topic or academic field.
 
 PROJECT: "${t}"
 
@@ -580,10 +590,10 @@ RULES:
 - EXCLUDE very common non-technical terms: number, total, info, etc.
 - Focus on abbreviations that a reader of this specific thesis would need defined (e.g., field-specific acronyms, statistical terms, methodology-specific abbreviations)
 - Return [] if no abbreviations meeting these criteria are found
-- Return ONLY the JSON array, no other text`,i=await n.generateContent(a);return y(i.response.text())||[]}catch(n){return console.error("Error extracting abbreviations:",n),[]}},D=async(e,t)=>{try{const n=m.getGenerativeModel({model:f});let r="";Object.entries(t||{}).forEach(([u,o])=>{!o||typeof o!="object"||(r+=`
---- ${u} ---
-`,Object.values(o).forEach(l=>{typeof l=="string"&&(r+=l.substring(0,3e3)+`
-`)}))});const a=r.substring(0,5e4),i=`You are writing the abstract for an academic thesis.
+- Return ONLY the JSON array, no other text`,o=await n.generateContent(a);return A(o.response.text())||[]}catch(n){return console.error("Error extracting abbreviations:",n),[]}},B=async(e,t)=>{try{const n=g.getGenerativeModel({model:m});let r="";Object.entries(t||{}).forEach(([d,i])=>{!i||typeof i!="object"||(r+=`
+--- ${d} ---
+`,Object.values(i).forEach(h=>{typeof h=="string"&&(r+=h.substring(0,3e3)+`
+`)}))});const a=r.substring(0,5e4),o=`You are writing the abstract for an academic thesis.
 
 THESIS TITLE: "${e?.title||""}"
 ${e?.topic?`RESEARCH QUESTION: "${e.topic}"`:""}
@@ -603,4 +613,4 @@ Write a concise academic abstract (200-350 words) that covers:
 - Key findings and results
 - Conclusions and implications
 
-Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;return(await n.generateContent(i)).response.text().trim()||null}catch(n){return console.error("Error generating abstract:",n),null}};export{Q as analyzeTranscriptText,x as applyFeedbackToContent,V as extractAbbreviations,q as extractPaperMetadata,Y as formatReferences,D as generateAbstract,N as generateAcademicContent,j as generateCaseStudyProtocol,G as generateChartData,F as generateConceptualFramework,P as generateDataTable,H as generateDefenceQuestions,Z as generateDocumentAnalysisTemplate,_ as generateFocusGroupProtocol,ee as generateInterviewGuide,J as generateLiteratureMatrix,te as generateObservationChecklist,ne as generateQuestionnaire,U as generateReferences,M as generateResearchDesignFlowchart,re as generateSampleData,v as generateSubtopics,k as generateTheoreticalFramework,X as getWordCountPreset,$ as humaniseContent,S as recommendLiteratureReviewType,L as selfReviewContent};
+Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;return(await n.generateContent(o)).response.text().trim()||null}catch(n){return console.error("Error generating abstract:",n),null}};export{Z as analyzeTranscriptText,U as applyFeedbackToContent,W as extractAbbreviations,z as extractPaperMetadata,V as formatReferences,B as generateAbstract,x as generateAcademicContent,_ as generateCaseStudyProtocol,Y as generateChartData,M as generateConceptualFramework,H as generateDataTable,D as generateDefenceQuestions,ee as generateDocumentAnalysisTemplate,te as generateFocusGroupProtocol,ne as generateInterviewGuide,Q as generateLiteratureMatrix,re as generateObservationChecklist,ae as generateQuestionnaire,k as generateReferences,G as generateResearchDesignFlowchart,ie as generateSampleData,L as generateSubtopics,P as generateTheoreticalFramework,q as getWordCountPreset,F as humaniseContent,v as recommendLiteratureReviewType,$ as selfReviewContent};

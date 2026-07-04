@@ -472,6 +472,27 @@ export const humaniseContent = async (text, promptData = null) => {
     const chapter = promptData?.chapter || 'thesis chapter';
     const subsection = promptData?.subsection || 'subsection';
     const diagnosticReport = promptData?.diagnosticReport || '';
+    const flaggedSentences = promptData?.flaggedSentences || [];
+
+    let flaggedSection = '';
+    if (flaggedSentences.length > 0) {
+      const list = flaggedSentences
+        .filter(s => s.aiProbability > 0.5)
+        .slice(0, 15)
+        .map((s, i) =>
+          `SENTENCE ${i + 1}: "${s.text.slice(0, 150)}"\n  Flags: ${s.flags.join(', ') || 'none'}\n  Suggestions: ${s.suggestions.join(', ') || 'none'}`
+        )
+        .join('\n\n');
+      if (list) {
+        flaggedSection = `
+## TARGETED REWRITE — FLAGGED SENTENCES
+The following sentences were flagged as AI-like. Rewrite each one with specific fixes:
+
+${list}
+
+For each flagged sentence above, apply its specific suggestions. Do NOT rewrite sentences not listed above.`;
+      }
+    }
 
     const fieldVocabulary = {
       'education': ['pedagogical', 'curricular', 'instructional strategies', 'learner outcomes', 'differentiated instruction', 'formative assessment', 'scaffolding', 'constructivist'],
@@ -495,7 +516,7 @@ ${promptData?.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"`
 FIELD: ${field}
 CHAPTER: ${chapter}
 SUBSECTION: ${subsection}
-${diagnosticReport}
+${diagnosticReport}${flaggedSection}
 
 ## HUMAN WRITING FINGERPRINTS TO INJECT
 

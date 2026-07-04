@@ -145,13 +145,30 @@ const generateMarkdownDocument = async (config) => {
     addH1(displayTitle);
 
     const chapterContent = generatedSubsections[ch.id] || {};
+    const subsectionMap = {};
+    if (ch.subsections && Array.isArray(ch.subsections)) {
+      for (const sub of ch.subsections) {
+        if (sub && sub.id) subsectionMap[sub.id] = sub;
+      }
+    }
     const subsectionEntries = Object.entries(chapterContent)
       .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
 
-    for (const [, text] of subsectionEntries) {
+    for (const [key, text] of subsectionEntries) {
       if (!text || typeof text !== 'string') continue;
 
-      const rawLines = text.split('\n');
+      const subMeta = subsectionMap[key];
+      if (subMeta && subMeta.title) {
+        const headingMatch = subMeta.title.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);
+        const depth = headingMatch ? (headingMatch[3] ? 3 : headingMatch[2] === '0' ? 1 : 2) : 2;
+        const prefix = '#'.repeat(depth);
+        lines.push('');
+        lines.push(`${prefix} ${subMeta.title}`);
+        lines.push('');
+      }
+
+      let cleanText = text.replace(/^\s*\d+\.\d+(\.\d+)?\s+.+[\r\n]*/, '');
+      const rawLines = cleanText.split('\n');
       let i = 0;
       let visualType = null;
       let visualLines = [];

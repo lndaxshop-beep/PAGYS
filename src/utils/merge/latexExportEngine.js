@@ -145,13 +145,27 @@ const generateLatexDocument = async (config) => {
     lines.push(`\\chapter{${escapeLatex(displayTitle)}}`);
 
     const chapterContent = generatedSubsections[ch.id] || {};
+    const subsectionMap = {};
+    if (ch.subsections && Array.isArray(ch.subsections)) {
+      for (const sub of ch.subsections) {
+        if (sub && sub.id) subsectionMap[sub.id] = sub;
+      }
+    }
     const subsectionEntries = Object.entries(chapterContent)
       .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
 
-    for (const [, text] of subsectionEntries) {
+    for (const [key, text] of subsectionEntries) {
       if (!text || typeof text !== 'string') continue;
 
-      const rawLines = text.split('\n');
+      const subMeta = subsectionMap[key];
+      if (subMeta && subMeta.title) {
+        const headingMatch = subMeta.title.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);
+        const depth = headingMatch ? (headingMatch[3] ? 'subsection' : headingMatch[2] === '0' ? 'chapter' : 'section') : 'section';
+        lines.push(`\\${depth}{${escapeLatex(subMeta.title)}}`);
+      }
+
+      let cleanText = text.replace(/^\s*\d+\.\d+(\.\d+)?\s+.+[\r\n]*/, '');
+      const rawLines = cleanText.split('\n');
       let i = 0;
       let visualType = null;
       let visualLines = [];

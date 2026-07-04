@@ -94,7 +94,7 @@ const MyFiles = () => {
         fileName: `${ch.id}.doc`, lastEdited: new Date().toLocaleDateString(),
         wordCount: estimateWordCount(content[ch.id]),
         content: content[ch.id]?.complete || '',
-        subsections: (ch.subsections || []).filter(s => s.type !== 'references' && !s.deleted && content[ch.id]?.[s.id]).map(s => s.title),
+        subsections: (ch.subsections || []).filter(s => s.type !== 'references' && !s.deleted && content[ch.id]?.[s.id]),
         references: refs[ch.id]?.citations || [],
         hasReferences: content[ch.id]?.references ? true : false,
         generated: hasGeneratedContent(content[ch.id]),

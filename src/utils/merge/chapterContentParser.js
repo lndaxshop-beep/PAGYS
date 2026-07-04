@@ -62,6 +62,13 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
 
   const subsectionEntries = orderContentBySubsections(content, subsections);
 
+  const subsectionMap = {};
+  if (subsections && Array.isArray(subsections)) {
+    for (const sub of subsections) {
+      if (sub && sub.id) subsectionMap[sub.id] = sub;
+    }
+  }
+
   const flushMarkdownTable = (lines, captionLine) => {
     if (lines.length < 2) return null;
     const parsed = parseMarkdownTable(lines);
@@ -101,10 +108,22 @@ export const parseChapterContent = async (content, chapterId, format, chapterInd
     return processChartMarker(line);
   };
 
-  for (const [, text] of subsectionEntries) {
+  for (const [key, text] of subsectionEntries) {
     if (!text || typeof text !== 'string') continue;
 
+    const subMeta = subsectionMap[key];
+    if (subMeta && subMeta.title) {
+      const level = getHeadingLevel(subMeta.title, prevHeading);
+      prevHeading = level;
+      children.push(new Paragraph({
+        heading: level,
+        spacing: { before: 240, after: 120 },
+        children: [new TextRun({ text: sanitizeXmlText(subMeta.title), bold: true, size: level === HeadingLevel.HEADING_1 ? 28 : level === HeadingLevel.HEADING_2 ? 26 : 24, font: fontFamily })]
+      }));
+    }
+
     let processedText = text.replace(/<p[^>]*>/gi, '\n').replace(/<\/p>/gi, '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/?span[^>]*>/gi, '').replace(/<\/?strong[^>]*>/gi, '').replace(/<\/?em[^>]*>/gi, '');
+    processedText = processedText.replace(/^\s*\d+\.\d+(\.\d+)?\s+.+[\r\n]*/, '');
     const plainHierarchy = detectPlainTextHierarchy(processedText);
     if (plainHierarchy) processedText = processedText + '\n\n' + plainHierarchy;
 

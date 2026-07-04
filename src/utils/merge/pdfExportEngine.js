@@ -174,17 +174,33 @@ const fmDocxToHtml = (docxFns, project, placeholders, format) => {
   return htmlParts.join('\n');
 };
 
-const parseChapterContentToHtml = async (content, chapterId, format) => {
+const parseChapterContentToHtml = async (content, chapterId, format, subsections = null) => {
   const htmlParts = [];
   if (!content) return htmlParts;
+
+  const subsectionMap = {};
+  if (subsections && Array.isArray(subsections)) {
+    for (const sub of subsections) {
+      if (sub && sub.id) subsectionMap[sub.id] = sub;
+    }
+  }
 
   const subsectionEntries = Object.entries(content)
     .filter(([key]) => !['references', 'References', 'complete', 'fullChapter'].includes(key));
 
-  for (const [, text] of subsectionEntries) {
+  for (const [key, text] of subsectionEntries) {
     if (!text || typeof text !== 'string') continue;
 
-    const lines = text.split('\n');
+    const subMeta = subsectionMap[key];
+    if (subMeta && subMeta.title) {
+      const headingMatch = subMeta.title.match(/^(\d+\.\d+(\.\d+)?)\s+(.+)/);
+      const depth = headingMatch ? (headingMatch[3] ? 3 : headingMatch[2] === '0' ? 1 : 2) : 2;
+      const tag = depth === 1 ? 'h1' : depth === 2 ? 'h2' : 'h3';
+      htmlParts.push(`<${tag}>${escapeHtml(subMeta.title)}</${tag}>`);
+    }
+
+    let cleanText = text.replace(/^\s*\d+\.\d+(\.\d+)?\s+.+[\r\n]*/, '');
+    const lines = cleanText.split('\n');
     let i = 0;
     let visualType = null;
     let visualLines = [];
@@ -410,7 +426,7 @@ const generatePdfDocument = async (config) => {
     const displayTitle = ch.customTitle || ch.title;
     contentHtmlParts.push(`<h1>${escapeHtml(displayTitle)}</h1>`);
     const chapterContent = generatedSubsections[ch.id] || {};
-    const parsed = await parseChapterContentToHtml(chapterContent, ch.id, formatConfig);
+    const parsed = await parseChapterContentToHtml(chapterContent, ch.id, formatConfig, ch.subsections);
     contentHtmlParts.push(parsed.join('\n'));
     contentHtmlParts.push(`<div class="page-break"></div>`);
     onProgress?.(`Processing chapter ${ci + 1}/${selectedChapters.length}...`);

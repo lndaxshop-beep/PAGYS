@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getChapterDisplayTitle } from '../../utils/writeHelpers.jsx';
-
-const REMOVE_AI_LIMIT = 6;
+import { PRICES_GHS } from '../../constants/pricing';
 
 const AIGauge = ({ score, confidence, size = 160 }) => {
   const radius = (size - 20) / 2;
@@ -94,10 +93,17 @@ const ScoreChart = ({ history, colors }) => {
   );
 };
 
-const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isDarkMode, notify, fmt, onContentUpdated, sources = [] }) => {
+const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isDarkMode, notify, fmt, onContentUpdated, sources = [], processSmallPayment }) => {
+  const isPremium = projectData?.tier === 'premium';
+  const baseLimit = isPremium ? 10 : 5;
+  const resetPrice = isPremium ? PRICES_GHS.removeAIResetPremium : PRICES_GHS.removeAIReset;
+
   const [selectedChapters, setSelectedChapters] = useState(new Set());
   const [removeAIUsed, setRemoveAIUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`removeAIUsed_${projectId}`) || '0'); } catch { return 0; }
+  });
+  const [removeAIResets, setRemoveAIResets] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`removeAIResets_${projectId}`) || '0'); } catch { return 0; }
   });
   const [processing, setProcessing] = useState(false);
   const [processingChapter, setProcessingChapter] = useState(null);
@@ -116,7 +122,12 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {}
   }, [removeAIUsed, projectId]);
 
-  const removeAILeft = REMOVE_AI_LIMIT - removeAIUsed;
+  useEffect(() => {
+    try { localStorage.setItem(`removeAIResets_${projectId}`, JSON.stringify(removeAIResets)); } catch {}
+  }, [removeAIResets, projectId]);
+
+  const effectiveLimit = baseLimit + removeAIResets * 3;
+  const removeAILeft = effectiveLimit - removeAIUsed;
 
   const getChapterContent = useCallback((chapterId) => {
     const ch = chapters.find(c => c.id === chapterId);
@@ -330,12 +341,14 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   };
 
   const handleResetConfirm = async () => {
+    if (processingReset) return;
     setProcessingReset(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setRemoveAIUsed(0);
-    setShowResetModal(false);
+    const success = await processSmallPayment(projectId, resetPrice, { type: 'remove_ai_reset' }, () => {
+      setRemoveAIResets(prev => prev + 1);
+      setShowResetModal(false);
+      notify('Remove AI refilled with 3 more uses!', 'success');
+    });
     setProcessingReset(false);
-    notify('Remove AI uses have been reset to 6!', 'success');
   };
 
   const generatedChapters = chapters.filter(ch => {
@@ -638,7 +651,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
               <p style={{ color: '#dc2626', fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>You've used all your Remove AI uses.</p>
               <button onClick={() => setShowResetModal(true)}
                 style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '500', cursor: 'pointer', fontSize: '13px' }}>
-                Reset Remove AI ({fmt(2)})
+                Reset Remove AI ({fmt(resetPrice)})
               </button>
             </div>
           )}
@@ -658,7 +671,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
           <div style={{ backgroundColor: colors.surface, borderRadius: '16px', maxWidth: '400px', width: '90%', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
             <div style={{ fontSize: '40px', textAlign: 'center', marginBottom: '16px' }}>🔄</div>
             <h2 style={{ textAlign: 'center', fontSize: '22px', fontWeight: '700', color: colors.text, margin: '0 0 8px' }}>Reset Remove AI</h2>
-            <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>Get 6 more Remove AI uses.</p>
+            <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>Get 3 more Remove AI uses.</p>
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Feature</span>
@@ -666,13 +679,13 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(2)}</span>
+                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(resetPrice)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button onClick={handleResetConfirm} disabled={processingReset}
                 style={{ backgroundColor: processingReset ? colors.border : '#2563eb', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer', fontSize: '15px', opacity: processingReset ? 0.7 : 1 }}>
-                {processingReset ? 'Processing...' : `Pay ${fmt(2)}`}
+                {processingReset ? 'Processing...' : `Pay ${fmt(resetPrice)}`}
               </button>
               <button onClick={() => setShowResetModal(false)} disabled={processingReset}
                 style={{ backgroundColor: 'transparent', color: colors.textSecondary, padding: '10px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontWeight: '500', cursor: processingReset ? 'not-allowed' : 'pointer', fontSize: '14px' }}>

@@ -505,6 +505,7 @@ const MyFiles = () => {
             fmt={fmt}
             sources={sourceLibrary.sources}
             onContentUpdated={handleContentUpdated}
+            processSmallPayment={processSmallPayment}
           />
         )}
       </div>

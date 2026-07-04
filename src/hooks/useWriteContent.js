@@ -291,7 +291,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
           processedFiles.push({ name: file.name, type: 'document', extractedText: extracted?.text || '' });
         }
       }
-      const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: processedFiles }, currentFeedbackSubsection.title, project);
+      const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: processedFiles }, currentFeedbackSubsection.title, project, userSources, sourceMode);
       return { modifiedContent, feedbackKey };
     } catch (error) { throw error; }
     finally { setApplyingSubFeedback(false); }

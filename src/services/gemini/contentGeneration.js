@@ -379,7 +379,7 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
   } catch (error) { console.error('Error in self-review:', error); return text; }
 };
 
-export const applyFeedbackToContent = async (currentContent, feedback, subsectionTitle, project) => {
+export const applyFeedbackToContent = async (currentContent, feedback, subsectionTitle, project, userSources = null, sourceMode = 'ai-only') => {
   try {
     const model = genAI.getGenerativeModel({ 
       model: MODEL,
@@ -403,6 +403,44 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
         });
       }
     }
+
+    let sourceModeInstruction = '';
+    if (sourceMode === 'user-only' && userSources?.length > 0) {
+      const sourcesJson = JSON.stringify(userSources.map(s => ({
+        title: s.title, authors: s.authors, year: s.year,
+        methodology: s.methodology, keyFindings: s.keyFindings,
+        theoreticalFramework: s.theoreticalFramework
+      })), null, 2);
+      sourceModeInstruction = `
+## USER-PROVIDED SOURCES (MANDATORY)
+The student has uploaded the following papers. These are the ONLY sources you may cite.
+${sourcesJson.substring(0, 15000)}
+
+### USER SOURCE RULES
+- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
+- You MUST find and cite from the REAL published paper — not just the title and authors listed here.
+- If Google Search Grounding cannot find a specific paper after trying, do NOT cite it.
+- At least 2 different sources must be cited across the subsection.
+- When discussing a concept or finding, reference the specific source: (Author, Year).
+- Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`;
+    } else if (sourceMode === 'combine' && userSources?.length > 0) {
+      const sourcesJson = JSON.stringify(userSources.map(s => ({
+        title: s.title, authors: s.authors, year: s.year,
+        methodology: s.methodology, keyFindings: s.keyFindings,
+        theoreticalFramework: s.theoreticalFramework
+      })), null, 2);
+      sourceModeInstruction = `
+## USER-PROVIDED SOURCES (PRIORITY)
+The student has uploaded the following papers. PRIORITIZE these sources for citations.
+${sourcesJson.substring(0, 15000)}
+
+### COMBINED SOURCE RULES
+- Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
+- Supplement with additional sources found via Google Search Grounding where user sources do not provide sufficient coverage.
+- At least 60% of citations should come from the user's papers.
+- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`;
+    }
+
     const prompt = `You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
 
 SUBSECTION: ${subsectionTitle}
@@ -414,7 +452,7 @@ FEEDBACK TO APPLY:
 "${feedback.text}"${filesInstruction}
 
 CURRENT TEXT:
-${cleanOutput(currentContent)}
+${cleanOutput(currentContent)}${sourceModeInstruction}
 
 ## INSTRUCTION HIERARCHY (highest to lowest priority)
 
@@ -426,10 +464,10 @@ ${cleanOutput(currentContent)}
 - Only if the feedback is vague (e.g., "improve this section") should you use your best judgment for minimal improvements.
 
 ### PRIORITY 2 — CITATION INTEGRITY
-- PRESERVE ALL in-text citations exactly as they appear — do not change, remove, or replace any (Author, Year) markers.
+- ${sourceModeInstruction ? 'INTEGRATE user-provided sources into the text using (Author, Year) citations where relevant.' : 'PRESERVE ALL in-text citations exactly as they appear — do not change, remove, or replace any (Author, Year) markers.'}
 - PRESERVE [CITATION:...] markers exactly as they appear.
-- DO NOT add new citations that were not in the original text.
-- Ensure every paragraph still has at least one in-text citation after editing.
+- ${sourceModeInstruction ? 'ADD new citations from user-provided sources where they support the arguments.' : 'DO NOT add new citations that were not in the original text.'}
+- Ensure every paragraph has at least one in-text citation after editing.
 
 ### PRIORITY 3 — STRUCTURAL PRESERVATION
 - Keep ALL subsection headings exactly as they are — do not modify heading text.

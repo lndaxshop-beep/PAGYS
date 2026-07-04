@@ -94,7 +94,7 @@ const ScoreChart = ({ history, colors }) => {
 };
 
 const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isDarkMode, notify, fmt, onContentUpdated, sources = [], processSmallPayment }) => {
-  const isPremium = projectData?.tier === 'premium';
+  const isPremium = projectData?.tier === 'premium' || projectData?.isPremium;
   const baseLimit = isPremium ? 10 : 5;
   const resetPrice = isPremium ? PRICES_GHS.removeAIResetPremium : PRICES_GHS.removeAIReset;
 

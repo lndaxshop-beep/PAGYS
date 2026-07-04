@@ -494,19 +494,7 @@ For each flagged sentence above, apply its specific suggestions. Do NOT rewrite 
       }
     }
 
-    const fieldVocabulary = {
-      'education': ['pedagogical', 'curricular', 'instructional strategies', 'learner outcomes', 'differentiated instruction', 'formative assessment', 'scaffolding', 'constructivist'],
-      'psychology': ['cognitive processes', 'behavioral patterns', 'psychological constructs', 'affective factors', 'neuropsychological', 'developmental trajectories', 'therapeutic interventions'],
-      'business': ['organizational performance', 'strategic alignment', 'stakeholder value', 'competitive advantage', 'operational efficiency', 'market dynamics', 'corporate governance'],
-      'computer science': ['computational efficiency', 'algorithmic complexity', 'system architecture', 'data structures', 'implementation details', 'performance benchmarks', 'software engineering practices'],
-      'engineering': ['design parameters', 'performance metrics', 'structural integrity', 'system optimization', 'engineering tolerances', 'failure modes', 'prototype evaluation'],
-      'medicine': ['clinical outcomes', 'diagnostic accuracy', 'therapeutic efficacy', 'patient prognosis', 'physiological mechanisms', 'treatment protocols', 'biomarker analysis'],
-      'sociology': ['social structures', 'cultural norms', 'institutional frameworks', 'demographic patterns', 'social stratification', 'community dynamics', 'collective behavior'],
-      'economics': ['market efficiency', 'resource allocation', 'economic indicators', 'welfare implications', 'distributional effects', 'incentive structures', 'equilibrium analysis'],
-    };
-    const fieldTerms = fieldVocabulary[field.toLowerCase()] || ['empirical evidence', 'theoretical foundations', 'analytical framework', 'research findings', 'methodological approach'];
-
-    const pass1Prompt = `You are Professor ${field.charAt(0).toUpperCase() + field.slice(1)} Studies, a renowned scholar with 25 years of published research. Rewrite the following thesis excerpt as YOU would write it — with genuine academic voice, ${field}-specific vocabulary, and the natural rhythm of someone who has written dozens of peer-reviewed articles.
+    const pass1Prompt = `You are a smart graduate student who writes clearly and naturally. Rewrite the following thesis excerpt so it sounds like a real person wrote it — not AI.
 
 TEXT TO REWRITE:
 ${text}
@@ -518,92 +506,49 @@ CHAPTER: ${chapter}
 SUBSECTION: ${subsection}
 ${diagnosticReport}${flaggedSection}
 
-## HUMAN WRITING FINGERPRINTS TO INJECT
+## CRITICAL RULES — FOLLOW EVERY ONE
 
-### CONFIDENCE VARIATION (CRITICAL)
-Vary your certainty level across the text, never within the same sentence:
-- Be ASSERTIVE about findings you can defend: "The data demonstrate a clear pattern."
-- Be TENTATIVE about interpretations: "This may suggest a relationship, though further research is needed."
-- Be NEUTRAL when describing methods: "Participants were asked to rate their agreement."
-The same author should sound confident about some claims and cautious about others — this is a hallmark of honest academic writing.
+### 1. SENTENCE RHYTHM (MOST IMPORTANT)
+- DRAMATICALLY vary sentence length. Mix 3-word sentences with 30-word sentences.
+- No two consecutive sentences should start with the same word.
+- Vary paragraph lengths from 1 sentence to 8 sentences.
+- Use short punchy statements: "This matters. Here's why."
+- Then immediately follow with a longer, flowing sentence.
 
-### SYNTAX VARIETY (CRITICAL)
-Mix these patterns unpredictably — never two sentences with the same structure in a row:
-- Fronted adverbial: "Unlike prior studies, this analysis focused on..."
-- Mid-sentence aside: "The results, it should be noted, were not uniform."
-- Inversion for emphasis: "Of greater significance is the finding that..."
-- Short punch: "This was not the case."
-- Long nested clause: "The extent to which these factors, when considered together, influence the outcome remains an open question."
-- Simple declarative: "Three themes emerged from the data."
+### 2. TONE — SOUND LIKE A PERSON, NOT A PROFESSOR
+- Write like a smart student explaining something, not a textbook.
+- USE contractions: don't, won't, isn't, it's, they're, there's, hasn't, wasn't.
+- Mix confident statements ("The data clearly show...") with thoughtful uncertainty ("This might suggest...", "It's possible that...").
+- Simple vocabulary is GOOD. Avoid jargon and fancy words.
+- Never say "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion".
 
-### FIELD-SPECIFIC VOCABULARY
-Use vocabulary natural to ${field} scholars:
-${fieldTerms.map(t => `- "${t}"`).join('\n')}
-AVOID generic social-science filler: "explores", "delves into", "navigates", "investigates", "the realm of", "a myriad of".
+### 3. CONVERSATIONAL ACADEMIC STYLE
+- Start sentences with variety: "So...", "But...", "What's interesting is...", "Looking at...", "The thing about..."
+- Use "I" or "we" occasionally: "I found that...", "We can see..."
+- Add natural fillers: "actually", "basically", "importantly", "interestingly", "honestly"
+- Vary confidence: some claims sound certain, others sound like speculation.
+- Long sentences should feel like someone thinking out loud, not formulaic.
 
-### STRATEGIC REPETITION
-When a concept is central to the argument, repeat the exact term rather than substituting synonyms. Academic readers expect precise terminology. Only use a synonym when the meaning genuinely shifts.
+### 4. WHAT TO AVOID AT ALL COSTS
+- NO transitions (furthermore, moreover, additionally, consequently, thus, hence)
+- NO formal openers ("This study examines", "The research aims to", "It is important to")
+- NO overly complex sentences with multiple nested clauses
+- NO perfect uniformity — sentences should have different rhythms
+- NO big vocabulary where simple words work
 
-### PARAGRAPH-LEVEL THINKING
-Each paragraph should feel like a UNIT of thought, not a sequence of sentences:
-- Start with a claim or observation
-- Develop it with evidence or reasoning
-- Optionally acknowledge a nuance or counterpoint
-- End with a link to the next paragraph
-Not every paragraph needs all four steps, but readers should sense an intentional shape.
-
-### HEDGING PLACEMENT
-Use hedging language ONLY in interpretations, NEVER in descriptions of what was done:
-- Good: "The intervention appeared to improve outcomes, though the small sample size warrants caution."
-- Bad: "The study appeared to use a convenience sampling method." (This is a fact — don't hedge it)
-
-## STRUCTURAL PRESERVATION RULES
+### 5. STRUCTURAL PRESERVATION
 - Keep ALL in-text citations (Author, Year) exactly as written.
 - Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged.
 - Keep ALL subsection headings exactly as they appear.
-- KEEP the total word count within 85-115% of the original.
-- Do NOT add reference lists, bibliographies, or word count footnotes.
-- NO markdown headings, NO HTML tags, NO em dashes.
-- NO contractions — write out all words fully.
-- Maintain formal academic third-person tone throughout.
+- Keep the total word count within 85-115% of the original.
+- No markdown headings, no HTML tags.
 
-Return ONLY the rewritten text. No explanations, no meta-commentary.`;
+Return ONLY the rewritten text. No explanations.`;
 
-    // Pass 1: Humanise (high temp)
+    // Generate humanised text (high temp for creativity)
     const result1 = await model.generateContent(pass1Prompt);
     let humanised = cleanOutput(result1.response.text());
     if (!humanised || humanised.trim().length < 50) return text;
-
-    // Pass 2: Polish (low temp) — ensure academic tone preserved, fix any errors from Pass 1
-    try {
-      const polishModel = genAI.getGenerativeModel({
-        model: MODEL,
-        generationConfig: { temperature: 0.4, topP: 0.85 }
-      });
-      const polishPrompt = `You are a meticulous academic copy-editor. Review the following text for any issues introduced during editing and polish it.
-
-TEXT TO POLISH:
-${humanised}
-
-## POLISH CHECKLIST
-1. Are all in-text citations still properly formatted as (Author, Year)? Fix any that got corrupted.
-2. Are there any grammatical errors, missing words, or broken sentences? Fix them.
-3. Is the academic tone consistent and formal? No contractions, no casual language.
-4. Are all data, tables, chart tags, and diagrams intact? Do not modify them.
-5. Are all subsection headings preserved exactly?
-6. Is the word count within 85-115% of the original?
-7. NO em dashes — use commas or parentheses instead.
-8. NO markdown headings, NO HTML tags.
-
-Return ONLY the polished text. No explanations, no annotations.`;
-      const result2 = await polishModel.generateContent(polishPrompt);
-      const polished = cleanOutput(result2.response.text());
-      if (polished && polished.trim().length > 50) {
-        humanised = polished;
-      }
-    } catch (e) {
-      console.warn('[humaniseContent] Polish pass failed, using humanised output:', e.message);
-    }
 
     return humanised;
   } catch (error) { console.error('Error humanising:', error); throw error; }

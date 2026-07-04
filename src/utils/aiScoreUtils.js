@@ -17,13 +17,17 @@ export const computeAIScores = (text, sources = []) => {
     (1 - Math.min(1, transitions.frequency / 10)) * 50
   )));
   const burstinessScore = Math.round(Math.min(100, Math.max(0, (burstiness.cv / 1.0) * 100)));
-  const score = Math.round(
-    perplexity.score * 0.25 +
-    burstinessScore * 0.20 +
-    stylometricScore * 0.20 +
-    formalityScore * 0.20 +
-    repetition.score * 0.15
-  );
+  const burstinessBoost = burstiness.cv > 0.5 ? 15 : burstiness.cv > 0.35 ? 10 : burstiness.cv > 0.2 ? 5 : -10;
+  const formalityPenalty = formality.score > 0.6 ? -15 : 0;
+  const score = Math.round(Math.max(0, Math.min(100,
+    perplexity.score * 0.10 +
+    burstinessScore * 0.30 +
+    stylometricScore * 0.25 +
+    formalityScore * 0.25 +
+    repetition.score * 0.10 +
+    burstinessBoost +
+    formalityPenalty
+  )));
   return {
     score,
     burstiness: { cv: burstiness.cv, mean: burstiness.mean, stdDev: burstiness.stdDev, sentenceLengths: burstiness.sentenceLengths },

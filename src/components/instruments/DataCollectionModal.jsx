@@ -35,7 +35,7 @@ const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-      <div style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', maxWidth: '1000px', width: '95%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', border: `1px solid ${colors.border}` }}>
+      <div className="modal-card-wide" style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '32px', maxWidth: '1000px', width: '95%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', border: `1px solid ${colors.border}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: colors.text, marginBottom: '4px' }}>Data Collection Instruments</h2>

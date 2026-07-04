@@ -49,7 +49,7 @@ const DiffModal = ({ isOpen, oldText, newText, title, onAccept, onReject }) => {
       aria-labelledby="diff-modal-title"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}
     >
-      <div
+      <div className="modal-card-wide"
         onClick={(e) => e.stopPropagation()}
         style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
       >

@@ -710,9 +710,15 @@ const Write = () => {
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.background }} onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }} onTouchEnd={(e) => { const diff = e.changedTouches[0].clientX - touchStartX.current; if (diff > 60) setSidebarOpen(true); else if (diff < -60) setSidebarOpen(false); }}>
+      <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.background }} onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }} onTouchEnd={(e) => { const diff = e.changedTouches[0].clientX - touchStartX.current; if (diff > 60) setSidebarOpen(true); else if (diff < -60) setSidebarOpen(false); }}>
       {/* Mobile sidebar overlay */}
       <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} style={{ display: sidebarOpen && isMobile ? 'block' : 'none', position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
+      {/* Mobile drag handle */}
+      {isMobile && (
+        <div onClick={() => setSidebarOpen(true)} style={{ position: 'fixed', top: '50%', left: 0, transform: 'translateY(-50%)', width: '20px', height: '60px', zIndex: 201, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: sidebarOpen ? 0 : 0.6, transition: 'opacity 0.3s ease' }}>
+          <div style={{ width: '4px', height: '32px', backgroundColor: colors.textSecondary, borderRadius: '3px', opacity: 0.4 }} />
+        </div>
+      )}
       {/* Left pane drawer */}
       <div className={`left-pane-drawer ${sidebarOpen ? 'open' : ''}`} style={{
         width: '400px', minWidth: '400px', height: '100vh', overflowY: 'auto', backgroundColor: colors.surface,
@@ -733,10 +739,12 @@ const Write = () => {
       </div>
 
       <div className="content-area" style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: colors.surface, borderLeft: `1px solid ${colors.border}` }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
+        <div className="content-area-inner" style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 32px 80px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: colors.text, padding: '4px 8px', display: 'none' }}>
-              ☰
+            <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.text, padding: '8px', display: 'none', position: 'fixed', top: '8px', left: '8px', zIndex: 301, borderRadius: '8px', backgroundColor: colors.surface, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform 0.3s ease' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: sidebarOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}>
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
             </button>
             <div style={{ flex: 1 }}>
               <WriteHeader onBack={() => navigate('/dashboard')} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleTour={() => setShowHelpModal(true)} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
@@ -901,7 +909,7 @@ const Write = () => {
 
       {resetModalType && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000 }}>
-          <div style={{ backgroundColor: colors.surface, borderRadius: '16px', maxWidth: '400px', width: '90%', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <div className="modal-card" style={{ backgroundColor: colors.surface, borderRadius: '16px', maxWidth: '400px', width: '90%', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
             <div style={{ fontSize: '40px', textAlign: 'center', marginBottom: '16px' }}>✏️</div>
             <h2 style={{ textAlign: 'center', fontSize: '22px', fontWeight: '700', color: colors.text, margin: '0 0 8px' }}>
               Reset Feedback
@@ -967,7 +975,7 @@ const Write = () => {
       )}
       {showPlagiarismModal && plagiarismResult && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }} onClick={() => setShowPlagiarismModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '480px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '480px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: colors.text }}>📋 Similarity Check</h2>
               <button onClick={() => setShowPlagiarismModal(false)} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '18px' }}>✕</button>
@@ -1045,6 +1053,20 @@ const Write = () => {
           .left-pane-drawer.open { transform: translateX(0); }
           .content-area { width: 100% !important; border-left: none !important; }
           .hamburger-btn { display: block !important; }
+
+          .content-area-inner { padding: 16px 16px 80px !important; }
+          .content-buttons-row { flex-direction: column !important; gap: 8px !important; }
+          .content-buttons-left { flex-wrap: wrap !important; }
+          .content-buttons-right { width: 100% !important; }
+          .content-buttons-right button { flex: 1 !important; }
+
+          .modal-card { width: 100vw !important; max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; padding: 16px !important; }
+          .modal-card-wide { width: 100vw !important; max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; padding: 12px !important; }
+          .modal-card-wide [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 480px) {
+          .content-area-inner { padding: 12px 12px 80px !important; }
+          h1 { font-size: 24px !important; }
         }
       `}</style>
     </div>

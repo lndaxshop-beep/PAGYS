@@ -114,6 +114,7 @@ const LiteratureSearchModal = ({ isOpen, onClose, onSaveSources, project }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="modal-card"
         style={{ backgroundColor: colors.surface, borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '700px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>

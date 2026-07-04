@@ -30,8 +30,8 @@ const ContentButtons = ({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
+      <div className="content-buttons-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="content-buttons-left" style={{ display: 'flex', gap: '12px' }}>
           {!isViewingReferences ? (
             <>
               <button data-tour="write-btn" onClick={onGenerate} disabled={!canGenerate} style={btnStyle(!canGenerate)}>
@@ -70,7 +70,7 @@ const ContentButtons = ({
           )}
         </div>
         {!isViewingReferences && (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="content-buttons-right" style={{ display: 'flex', gap: '8px' }}>
             <button onClick={onPrev} disabled={currentSubsectionIndex === 0} style={{
               padding: '8px 16px', backgroundColor: currentSubsectionIndex === 0 ? colors.border : colors.primary,
               color: currentSubsectionIndex === 0 ? colors.textSecondary : 'white',

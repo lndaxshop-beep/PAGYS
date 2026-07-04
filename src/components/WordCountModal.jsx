@@ -110,7 +110,7 @@ const WordCountModal = ({ chapter, level, currentWordCount, onSubmit, onClose, s
       justifyContent: 'center',
       zIndex: 1000
     }}>
-      <div style={{
+      <div className="modal-card" style={{
         backgroundColor: colors.surface,
         borderRadius: '16px',
         padding: '32px',

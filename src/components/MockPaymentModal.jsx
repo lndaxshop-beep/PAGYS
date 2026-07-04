@@ -65,7 +65,7 @@ const MockPaymentModal = ({ email, amount, currency, metadata, onClose, onSucces
         position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
       }} onClick={handleCancel}>
-        <div style={{
+        <div className="modal-card" style={{
           backgroundColor: '#ffffff', borderRadius: '16px', padding: '40px 32px',
           maxWidth: '380px', width: '90%', textAlign: 'center',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
@@ -105,7 +105,7 @@ const MockPaymentModal = ({ email, amount, currency, metadata, onClose, onSucces
       position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
     }} onClick={handleCancel}>
-      <div style={{
+      <div className="modal-card" style={{
         backgroundColor: '#ffffff', borderRadius: '16px',
         maxWidth: '400px', width: '90%', overflow: 'hidden',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',

@@ -96,6 +96,7 @@ const HelpModal = ({ isOpen, onClose }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="modal-card-wide"
         style={{
           width: '90%', maxWidth: '960px', maxHeight: '85vh',
           backgroundColor: colors.surface,

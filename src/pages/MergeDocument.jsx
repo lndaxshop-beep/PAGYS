@@ -692,7 +692,7 @@ const MergeDocument = () => {
                 style={{ ...textareaStyle, minHeight: '120px' }}
                 value={placeholders.abstractText || ''}
                 onChange={(e) => updatePlaceholder('abstractText', e.target.value)}
-                placeholder="[Write your abstract here or leave blank for AI generation]"
+                placeholder="[Write your abstract here or leave blank for auto-generation]"
               />
               <button
                 onClick={handleGenerateAbstractClick}

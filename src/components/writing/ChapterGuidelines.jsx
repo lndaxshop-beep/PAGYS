@@ -65,7 +65,7 @@ const ChapterGuidelines = ({ chapter, onUpdate }) => {
           borderRadius: '6px', border: `1px solid ${colors.border}`,
         }}>
           <p style={{ fontSize: '11px', color: colors.textSecondary, margin: '0 0 6px', fontWeight: '500' }}>
-            Custom instructions for this chapter (sent to AI with every generation):
+            Custom instructions for this chapter (applied with every generation):
           </p>
           <textarea
             value={text}

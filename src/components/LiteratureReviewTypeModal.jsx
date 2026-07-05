@@ -431,7 +431,7 @@ const LiteratureReviewTypeModal = ({ topic, field, onSubmit, onClose, project })
               borderTop: `1px solid ${colors.border}`,
               paddingTop: '16px'
             }}>
-              The chosen literature review type will guide the AI in structuring and writing your Chapter 2.
+              The chosen literature review type will guide how we structure and write your Chapter 2.
               You can change this later if needed.
             </p>
           </>

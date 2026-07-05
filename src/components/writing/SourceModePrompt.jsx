@@ -44,7 +44,7 @@ const SourceModePrompt = ({ isOpen, onConfirm, onDismiss }) => {
             fontSize: '13px', lineHeight: '1.6', color: colors.textSecondary,
             margin: '0 0 20px',
           }}>
-            Choose how the AI finds and cites sources in your thesis. This can be changed later in project settings.
+            Choose how we find and cite sources in your thesis. This can be changed later in project settings.
           </p>
 
           {/* Option: User Sources */}
@@ -131,7 +131,7 @@ const SourceModePrompt = ({ isOpen, onConfirm, onDismiss }) => {
                   fontSize: '12px', lineHeight: '1.6', color: colors.textSecondary,
                   margin: 0,
                 }}>
-                  We use AI-powered search to find and cite sources. 
+                  We search online to find and cite sources. 
                   Some references may not be traceable to real publications. 
                   Review the reference list carefully before submission.
                 </p>
@@ -149,7 +149,7 @@ const SourceModePrompt = ({ isOpen, onConfirm, onDismiss }) => {
             }}>
               💡 You can always add more literature sources using the{' '}
               <strong>Search Literature</strong> feature in MyFiles. 
-              Adding more sources gives the AI better material to work with and 
+              Adding more sources gives us better material to work with and 
               produces more accurate, trustworthy references.
             </p>
           </div>

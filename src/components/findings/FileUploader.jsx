@@ -84,8 +84,8 @@ const FileUploader = ({ responseType, selectedOption, uploadedFiles, onFileUploa
               const ext = file.name.split('.').pop()?.toLowerCase();
               const iconMap = { csv: '📊', xlsx: '📊', xls: '📊', pdf: '📕', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', txt: '📄', doc: '📝', docx: '📝' };
               const typeIcon = iconMap[ext] || '📄';
-              const hintMap = { csv: 'Tabular data — rows and columns will be extracted', xlsx: 'Excel data — sheets will be parsed', xls: 'Excel data — sheets will be parsed', pdf: 'Document text — AI will extract findings', jpg: 'Image — AI will analyze visually', jpeg: 'Image — AI will analyze visually', png: 'Image — AI will analyze visually' };
-              const hint = hintMap[ext] || 'AI will analyze content';
+              const hintMap = { csv: 'Tabular data — rows and columns will be extracted', xlsx: 'Excel data — sheets will be parsed', xls: 'Excel data — sheets will be parsed', pdf: 'Document text — we will extract findings', jpg: 'Image — we will analyze visually', jpeg: 'Image — we will analyze visually', png: 'Image — we will analyze visually' };
+              const hint = hintMap[ext] || 'We will analyze content';
               return (
               <div key={index} style={{
                 display: 'flex',

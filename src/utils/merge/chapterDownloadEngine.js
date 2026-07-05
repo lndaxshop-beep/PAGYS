@@ -52,12 +52,24 @@ export const generateChapterDocument = async ({ chapter, content, formatConfig, 
         children: [new TextRun({ text: 'REFERENCES', bold: true, size: 28, font: fontFamily })]
       })
     );
-    const refLines = content.references.split('\n').filter(Boolean);
-    refLines.forEach(line => {
+    const refLines = content.references.split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .filter(l => !l.toLowerCase().startsWith('references'));
+    const merged = [];
+    for (const line of refLines) {
+      const looksLikeNewEntry = /^[A-Z][a-z]/.test(line) && !line.startsWith('(') && !line.startsWith('[');
+      if (looksLikeNewEntry || merged.length === 0) {
+        merged.push(line);
+      } else {
+        merged[merged.length - 1] += ' ' + line;
+      }
+    }
+    merged.forEach(line => {
       children.push(
         new Paragraph({
           spacing: { after: 120 },
-          indent: { left: 360, hanging: 360 },
+          indent: { left: 720, hanging: 720 },
           children: [new TextRun({ text: sanitizeXmlText(line.trim()), size: 24, font: fontFamily })]
         })
       );

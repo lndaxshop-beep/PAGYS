@@ -240,9 +240,24 @@ export const distributeWordCount = (min, max, subsections, currentTitle) => {
 
 export const extractCitations = (content) => {
   if (!content) return [];
-  const regex = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)*,\s*\d{4}[a-z]?)\)/g;
-  const matches = content.match(regex) || [];
-  return matches.map(m => m.slice(1, -1).trim());
+  const results = [];
+
+  // Parenthetical: (Author, Year) or (Author, Year, p. 45) or (Author, Year; Author, Year)
+  const parentheticalRe = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)*,\s*\d{4}[a-z]?(?:[,;]\s*[^)]*)?)\)/g;
+  let match;
+  while ((match = parentheticalRe.exec(content)) !== null) {
+    results.push(match[1].trim());
+  }
+
+  // Narrative: Author (Year) — but skip if inside a parenthetical
+  const narrativeRe = /([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)\s*\((\d{4}[a-z]?)\)/g;
+  while ((match = narrativeRe.exec(content)) !== null) {
+    const charBefore = match.index > 0 ? content[match.index - 1] : '';
+    if (charBefore === '(') continue;
+    results.push(`${match[1].trim()}, ${match[2]}`);
+  }
+
+  return [...new Set(results)];
 };
 
 export const formatCitationEntry = (citation, style) => {
@@ -268,22 +283,25 @@ const detectSourceType = (domain, uri) => {
   return 'web';
 };
 
-export const formatGroundedReference = (source, style) => {
+export const formatGroundedReference = (source, style, authorHint = null, yearHint = null) => {
   if (!source || !source.uri) return null;
   const url = source.uri;
-  let domain = '';
-  try { const hostname = new URL(url).hostname; domain = hostname.replace('www.', '').replace(/^([a-z]{2}\.)*/, ''); } catch { domain = url.slice(0, 40); }
-  const title = source.title || domain.charAt(0).toUpperCase() + domain.slice(1);
-  const sourceType = detectSourceType(domain, url);
+  const author = authorHint || (() => {
+    let domain = '';
+    try { const hostname = new URL(url).hostname; domain = hostname.replace('www.', '').replace(/^([a-z]{2}\.)*/, ''); } catch { domain = url.slice(0, 40); }
+    return domain.charAt(0).toUpperCase() + domain.slice(1);
+  })();
+  const year = yearHint || 'n.d.';
+  const title = source.title || `${author}.`;
+  const sourceType = detectSourceType('', url);
   const hasUrl = sourceType === 'web';
-  const cleanDomain = domain.charAt(0).toUpperCase() + domain.slice(1);
-  if (style === 'apa') return hasUrl ? `${cleanDomain}. (n.d.). ${title}. ${url}` : `${cleanDomain}. (n.d.). ${title}.`;
-  if (style === 'mla') return hasUrl ? `"${title}." ${cleanDomain}, ${url}.` : `"${title}." ${cleanDomain}.`;
-  if (style === 'harvard') return hasUrl ? `${cleanDomain} (n.d.). ${title}. Available at: ${url}.` : `${cleanDomain} (n.d.). ${title}.`;
-  if (style === 'chicago') return hasUrl ? `"${title}." ${cleanDomain}. ${url}.` : `"${title}." ${cleanDomain}.`;
-  if (style === 'ieee') return hasUrl ? `"${title}," ${cleanDomain}. [Online]. Available: ${url}` : `"${title}," ${cleanDomain}.`;
-  if (hasUrl) return `${cleanDomain}. ${title}. ${url}`;
-  return `${cleanDomain}. ${title}.`;
+  if (style === 'apa') return hasUrl ? `${author} (${year}). ${title}. ${url}` : `${author} (${year}). ${title}.`;
+  if (style === 'mla') return hasUrl ? `"${title}." ${author}, ${year}. ${url}.` : `"${title}." ${author}, ${year}.`;
+  if (style === 'harvard') return hasUrl ? `${author} (${year}). ${title}. Available at: ${url}.` : `${author} (${year}). ${title}.`;
+  if (style === 'chicago') return hasUrl ? `${author}. ${year}. "${title}." ${url}.` : `${author}. ${year}. "${title}."`;
+  if (style === 'ieee') return hasUrl ? `${author}, "${title}," ${year}. [Online]. Available: ${url}` : `${author}, "${title}," ${year}.`;
+  if (hasUrl) return `${author} (${year}). ${title}. ${url}`;
+  return `${author} (${year}). ${title}.`;
 };
 
 export const normalizeNumbering = (text) => {
@@ -302,7 +320,4 @@ export const normalizeNumbering = (text) => {
   }).join('\n');
 };
 
-export const formatSimpleReference = (author, year) => {
-  const y = year || 'n.d.';
-  return `[UNVERIFIED CITATION NEEDS MANUAL REVIEW: ${author}, ${y}]`;
-};
+

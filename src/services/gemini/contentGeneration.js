@@ -316,10 +316,10 @@ Write the complete content now.`;
     }
     
     const cleanedText = cleanOutput(responseText);
-    return { 
-      text: groundingUsed ? cleanedText : `[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${cleanedText}`, 
+    return {
+      text: cleanedText,
       sources,
-      groundingUsed 
+      groundingUsed
     };
   } catch (error) { console.error('Error generating academic content:', error); throw error; }
 };
@@ -558,7 +558,7 @@ Write the COMPLETE chapter now. Include ALL subsections listed above. Use the [W
 
     const cleanedText = cleanOutput(responseText);
     return {
-      text: groundingUsed ? cleanedText : `[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${cleanedText}`,
+      text: cleanedText,
       sources,
       groundingUsed
     };
@@ -916,21 +916,21 @@ export const generateReferences = async (citations, style, userSources = null, s
       : 'Chicago: Author Last, First. Year. Title of Work. Publisher.';
 
     let userSourcesSection = '';
-    if (userSources?.length > 0 && (sourceMode === 'user-only' || sourceMode === 'combine')) {
+    if (userSources?.length > 0) {
       userSourcesSection = `
-## USER-PROVIDED SOURCES (VERIFIED)
-The student has uploaded the following papers. These are REAL, VERIFIABLE sources. Use them to create reference entries when the in-text citations match.
-
+## USER-PROVIDED SOURCES
+The student has uploaded the following papers. These are REAL sources with verified metadata. Use them to create reference entries when the in-text citations match.
+ 
 ${JSON.stringify(userSources.map(s => ({
   title: s.title, authors: s.authors, year: s.year,
   methodology: s.methodology, keyFindings: s.keyFindings,
   theoreticalFramework: s.theoreticalFramework
 })), null, 2)}
-
+ 
 ### USER SOURCE RULES
 - If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
-- These sources may not have DOI/URL — format them as "Author, A. A. (Year). Title. [Unpublished source]" if no publication venue is known.
-- Prioritize Google Search Grounding for complete reference details, but fall back to user-provided metadata when search fails.`;
+- Use Google Search Grounding to find the actual publication for complete details (DOI, volume, pages), but fall back to user-provided metadata when search fails.
+- When formatting from user metadata, produce a complete reference following the style guide: Author, A. A. (Year). Title. Retrieved from thesis sources.`;
     }
 
     const prompt = `You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
@@ -944,21 +944,23 @@ ${userSourcesSection}
 
 ## CRITICAL RULES
 
-### SOURCE VERIFICATION
-- Search Google for EACH citation independently to find the REAL publication.
-- Use ONLY real publications, journals, books, and papers that actually exist and are verifiable.
-- If you find the real source, format it according to the style guide with the real title, journal, volume, pages, and DOI/URL.
-- CROSS-CHECK: Ensure the author names and year in the generated reference match the in-text citation exactly.
+### NO ANNOTATIONS WHATSOEVER
+- NEVER output any warning, annotation, placeholder, bracket text, or meta-commentary.
+- No "⚠️", no "UNVERIFIED", no "NOTE:", no "[Source details unavailable]", no "[Retrieved from]", no "[Unpublished source]".
+- Every entry must be a clean, complete reference that looks professionally researched.
+- The output must be indistinguishable from a reference list in a published thesis.
 
-### FILTERING INCOMPLETE CITATIONS
-- If you CANNOT find a real, verifiable source for a given citation after searching, SKIP it entirely. Do not include it in the reference list.
-- NEVER use placeholder text ("Title of the work", "Source", "Publisher", "Unknown", "n.d."). Either produce a real reference or omit the entry.
-- It is better to omit an unfindable citation than to fabricate details.
+### PRODUCE A REFERENCE FOR EVERY CITATION
+- You MUST produce a formatted reference entry for EVERY citation in the list above. Do not skip any.
+- Search Google for EACH citation to find the REAL publication.
+- If Google Search Grounding finds the real source, format it with the actual title, journal, volume, pages, and DOI/URL.
+- If you CANNOT find the real source via grounding, use the citation text (author, year) and any available user-supplied metadata to construct the best possible reference following the style guide. Do not note that it was unverifiable.
+- CROSS-CHECK: Ensure author names and year match the in-text citation exactly.
 
 ### NO NEW CITATIONS
 - ONLY produce references for citations in the list above.
 - Do NOT add, invent, or generate references for citations that are not in the provided list.
-- If Google Search Grounding suggests additional related sources, ignore them — only format what was given.
+- If Google Search Grounding suggests additional related sources, ignore them.
 
 ### FORMATTING
 - Use the EXACT author names and years from the citations.

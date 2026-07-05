@@ -1,4 +1,5 @@
-export const CITATION_REGEX = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)*,\s*\d{4}[a-z]?)\)/g;
+export const CITATION_REGEX = /\(([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?(?:\s*[;]\s*[A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)*,\s*\d{4}[a-z]?(?:[,;]\s*[^)]*)?)\)/g;
+export const NARRATIVE_CITATION_REGEX = /([A-Z][a-zA-Z\s&,\.\-\';]+(?:et\s+al[.,]*)?)\s*\((\d{4}[a-z]?)\)/g;
 export const CITATION_MARKER_REGEX = /\[CITATION:\s*([^\]]+)\]/g;
 
 const splitParagraphs = (text) => {
@@ -13,6 +14,12 @@ const extractCitations = (text) => {
   const regex = new RegExp(CITATION_REGEX.source, 'g');
   while ((match = regex.exec(text)) !== null) {
     results.push({ raw: match[0], text: match[1], index: match.index });
+  }
+  const narrativeRe = new RegExp(NARRATIVE_CITATION_REGEX.source, 'g');
+  while ((match = narrativeRe.exec(text)) !== null) {
+    const charBefore = match.index > 0 ? text[match.index - 1] : '';
+    if (charBefore === '(') continue;
+    results.push({ raw: match[0], text: `${match[1].trim()}, ${match[2]}`, index: match.index, isNarrative: true });
   }
   const markerRegex = new RegExp(CITATION_MARKER_REGEX.source, 'g');
   while ((match = markerRegex.exec(text)) !== null) {

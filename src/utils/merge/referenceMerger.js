@@ -9,7 +9,16 @@ const parseRefEntries = (refString) => {
     if (!started) continue;
     if (line) entries.push(line);
   }
-  return entries;
+  const merged = [];
+  for (const entry of entries) {
+    const looksLikeNewEntry = /^[A-Z][a-z]/.test(entry) && !entry.startsWith('(') && !entry.startsWith('[');
+    if (looksLikeNewEntry || merged.length === 0) {
+      merged.push(entry);
+    } else {
+      merged[merged.length - 1] += ' ' + entry;
+    }
+  }
+  return merged;
 };
 
 const getDedupKey = (entry) => {

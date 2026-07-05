@@ -26,8 +26,9 @@ import FeedbackModal from '../components/writing/FeedbackModal';
 
 import LiteratureSearchModal from '../components/LiteratureSearchModal';
 import DiffModal from '../components/DiffModal';
+import SourceModePrompt from '../components/writing/SourceModePrompt';
 import { PageSkeleton } from '../components/Skeleton';
-import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject } from '../services/firestoreService';
+import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject, updateProject } from '../services/firestoreService';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
@@ -85,6 +86,8 @@ const Write = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [regeneratingChapter, setRegeneratingChapter] = useState(null);
   const [isEditingWordCount, setIsEditingWordCount] = useState(null);
+  const [showSourceModePrompt, setShowSourceModePrompt] = useState(false);
+  const pendingChapterGeneration = useRef(false);
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
@@ -114,7 +117,8 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
   const feedbackBase = project?.tier === 'premium' ? 12 : 6;
 
-  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
+  const resolvedSourceMode = project?.referenceSourceMode === 'user' ? 'user-only' : project?.referenceSourceMode === 'random' ? 'ai-only' : sourceLibrary.sourceMode;
+  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, resolvedSourceMode, feedbackBase);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
 
@@ -383,6 +387,43 @@ const Write = () => {
   };
 
   const wrappedGenerateChapter = async () => {
+    if (!project?.referenceSourceMode) {
+      pendingChapterGeneration.current = true;
+      setShowSourceModePrompt(true);
+      return;
+    }
+    doGenerateChapter();
+  };
+
+  const handleSourceModeConfirm = async (choice, remember) => {
+    setShowSourceModePrompt(false);
+    if (remember && project?.id) {
+      try {
+        await updateProject(project.id, { referenceSourceMode: choice });
+        setProject(prev => prev ? { ...prev, referenceSourceMode: choice } : prev);
+      } catch (e) {
+        console.error('Failed to save source mode:', e);
+      }
+    } else {
+      setProject(prev => prev ? { ...prev, referenceSourceMode: choice } : prev);
+    }
+    if (pendingChapterGeneration.current) {
+      pendingChapterGeneration.current = false;
+      doGenerateChapter();
+    }
+  };
+
+  const handleSourceModeDismiss = () => {
+    setShowSourceModePrompt(false);
+    pendingChapterGeneration.current = false;
+  };
+
+  const doGenerateChapter = async () => {
+    const mode = project?.referenceSourceMode || 'user';
+    if (mode === 'user' && (!sourceLibrary.sources || sourceLibrary.sources.length === 0)) {
+      toastError('You chose "Use my sources" but no literature sources are uploaded yet. Go to MyFiles to add sources, or change your source choice.');
+      return;
+    }
     try {
       const result = await handleGenerateChapter();
       if (!result || result.error) { toastError(result?.message || 'Chapter generation failed.'); return; }
@@ -921,6 +962,12 @@ const Write = () => {
           onCancel={confirmModal.onCancel}
         />
       )}
+
+      <SourceModePrompt
+        isOpen={showSourceModePrompt}
+        onConfirm={handleSourceModeConfirm}
+        onDismiss={handleSourceModeDismiss}
+      />
 
       <HelpModal isOpen={showHelpModal} onClose={handleHelpClose} />
 

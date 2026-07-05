@@ -82,11 +82,20 @@ export const generateMergedDocument = async (config) => {
     }),
   ];
 
-  refResult.entries.forEach(entry => {
+  const mergedRefs = [];
+  for (const entry of refResult.entries) {
+    const looksLikeNewEntry = /^[A-Z][a-z]/.test(entry) && !entry.startsWith('(') && !entry.startsWith('[');
+    if (looksLikeNewEntry || mergedRefs.length === 0) {
+      mergedRefs.push(entry);
+    } else {
+      mergedRefs[mergedRefs.length - 1] += ' ' + entry;
+    }
+  }
+  mergedRefs.forEach(entry => {
     referencesChildren.push(
       new Paragraph({
         spacing: { after: 120 },
-        indent: { left: 360, hanging: 360 },
+        indent: { left: 720, hanging: 720 },
         children: [new TextRun({ text: sanitizeXmlText(entry), size: 24, font: formatConfig.fontFamily })]
       })
     );

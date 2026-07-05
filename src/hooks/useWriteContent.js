@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { extractCitations, formatGroundedReference, formatSimpleReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatGroundedReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 
 const buildThesisContext = (currentChapterId, chapters, generatedSubsections) => {
   const chapterOrder = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
@@ -263,32 +263,38 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
     if (referenceEntries.length === 0) {
       const storedSources = localStorage.getItem(`groundingSources_${activeChapter}`);
       const groundingSources = storedSources ? JSON.parse(storedSources) : [];
-      const seenUrls = new Set();
-      groundingSources.forEach(source => {
-        if (source.uri && !seenUrls.has(source.uri)) {
-          seenUrls.add(source.uri);
-          const formatted = formatGroundedReference(source, style);
-          if (formatted) referenceEntries.push(formatted);
-        }
-      });
-    }
-
-    if (referenceEntries.length === 0 && userSources?.length > 0) {
-      userSources.forEach(source => {
-        if (source.title && source.title !== 'Unknown') {
-          const author = source.authors || 'Unknown Author';
-          const year = source.year || 'n.d.';
-          referenceEntries.push(`${formatSimpleReference(author, year, style).replace(' ⚠️ Verify this reference', '')} — ${source.title}`);
-        }
-      });
-    }
-
-    if (referenceEntries.length === 0) {
       uniqueCitations.forEach(citation => {
-        const parts = citation.split(/[, ]+/);
-        const author = parts[0] || 'Unknown Author';
-        const year = parts[1]?.replace(/[a-z]?\)$/, '') || 'n.d.';
-        referenceEntries.push(`${formatSimpleReference(author, year, style)} ⚠️ Verify this reference`);
+        const authorMatch = citation.match(/^([A-Za-z-]+)/);
+        const yearMatch = citation.match(/(\d{4})/);
+        const author = authorMatch?.[1] || 'Unknown';
+        const year = yearMatch?.[1] || '';
+        const matchingSource = groundingSources.find(s =>
+          s.title?.toLowerCase().includes(author.toLowerCase()) ||
+          s.uri?.toLowerCase().includes(author.toLowerCase())
+        );
+        if (matchingSource) {
+          const formatted = formatGroundedReference(matchingSource, style, author, year);
+          if (formatted) referenceEntries.push(formatted);
+        } else if (userSources?.length > 0) {
+          const matchingUserSource = userSources.find(s =>
+            (s.authors || '').toLowerCase().includes(author.toLowerCase()) ||
+            (s.title || '').toLowerCase().includes(author.toLowerCase())
+          );
+          if (matchingUserSource) {
+            const yr = matchingUserSource.year || year || 'n.d.';
+            if (style === 'apa') referenceEntries.push(`${matchingUserSource.authors || author} (${yr}). ${matchingUserSource.title}.`);
+            else if (style === 'mla') referenceEntries.push(`${matchingUserSource.authors || author}. "${matchingUserSource.title}." ${yr}.`);
+            else referenceEntries.push(`${matchingUserSource.authors || author} (${yr}). ${matchingUserSource.title}.`);
+          } else {
+            if (style === 'apa') referenceEntries.push(`${author} (${year || 'n.d.'}).`);
+            else if (style === 'mla') referenceEntries.push(`${author}. ${year || 'n.d.'}.`);
+            else referenceEntries.push(`${author} (${year || 'n.d.'}).`);
+          }
+        } else {
+          if (style === 'apa') referenceEntries.push(`${author} (${year || 'n.d.'}).`);
+          else if (style === 'mla') referenceEntries.push(`${author}. ${year || 'n.d.'}.`);
+          else referenceEntries.push(`${author} (${year || 'n.d.'}).`);
+        }
       });
     }
 

@@ -1,6 +1,5 @@
 import { genAI, MODEL } from './config';
 import { cleanOutput, extractJSONArray } from './utils';
-import { TABLE_RULES } from './writingRules';
 
 export const generateSubtopics = async (promptData) => {
   try {
@@ -83,9 +82,9 @@ export const generateAcademicContent = async (promptData) => {
     const model = genAI.getGenerativeModel({ 
       model: MODEL,
       tools: [{ googleSearch: {} }],
-      generationConfig: { temperature: 0.4, topP: 0.85 }
+      generationConfig: { temperature: 0.7, topP: 0.85 }
     });
-    const structureInstruction = 'Start directly with the subsection heading.';
+    const structureInstruction = '';
 
     let sourceModeInstruction = '';
     if (promptData.sourceMode === 'user-only' && promptData.userSources?.length > 0) {
@@ -124,181 +123,45 @@ ${sourcesJson.substring(0, 15000)}
 - If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`;
     }
 
-    const prompt = `You are an advanced academic writing assistant helping a ${promptData.level} student write their thesis. Generate content that reads like a thoughtful, professional scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+    const prompt = `You are a PhD candidate writing a formal academic thesis section. Write at a professional academic level — clear, authoritative, and naturally scholarly.
 ${promptData.thesisContext ? `
 ## THESIS CONTEXT — PREVIOUS CHAPTERS
-This thesis has already written the following chapters. Use this context to maintain consistency in terminology, arguments, and references across chapters:
+Earlier chapters have already established the following. Maintain consistency:
 ${promptData.thesisContext.previousChapters.map(ch => `### ${ch.title}\n${ch.summary}`).join('\n\n')}
-
-### CONSISTENCY RULES
-- Use the same terminology and variable names established in previous chapters.
-- When referencing findings or arguments from earlier chapters, use phrases like "as discussed in Chapter X" or "consistent with the findings presented earlier."
-- Do not redefine terms that were already defined in previous chapters.
-- Build upon arguments from previous chapters rather than repeating them.` : ''}
+- Use the same terminology and variable names.
+- Reference earlier findings with phrases like "as discussed in Chapter X."
+- Do not redefine terms already defined.` : ''}
 THESIS TITLE: "${promptData.topic}"
 ${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
 FIELD: ${promptData.field || 'Not specified'}
 CHAPTER: ${promptData.chapter}
 SUBSECTION: ${promptData.subsection}
-METHODOLOGY: ${promptData.methodology || 'mixed methods'} — all content MUST align with this methodology
-${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
+METHODOLOGY: ${promptData.methodology || 'mixed methods'}${promptData.organization ? `
+CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
 
-## CHAPTER 4 — RESULTS & ANALYSIS INSTRUCTIONS
-You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above contains real survey responses, demographic data, and key findings.
-
-### DATA ANALYSIS
-- Reference specific numbers, percentages, and statistics from the findings data.
-- Identify meaningful patterns and trends in the data.
-- Connect findings to the research questions or objectives implied by the topic.
-- Use proper statistical language: "the mean score was", "a majority of respondents", "the distribution shows".
-
-### ACADEMIC RESULTS WRITING
-- Present findings objectively in past tense: "the data revealed", "respondents reported".
-- Describe what the data shows without interpreting causes in Chapter 4.
-- Follow proper academic structure: introduce the analysis, present the data, highlight key observations.
-- Every paragraph should connect to a specific finding from the data.` : ''}
-
-## VISUALS — YOU MUST INCLUDE THEM WHERE APPROPRIATE
-
-You MUST include proper tables, charts, and diagrams throughout the thesis. Use the following chapter-specific guidelines:
-
-**Chapter 2 (Literature Review):** Include at least one conceptual framework diagram showing independent, dependent, mediating, and moderating variables. Include comparison tables of literature. Use [FRAMEWORK: ...] for conceptual frameworks.
-
-**Chapter 3 (Methodology):** Include a research design flowchart. Use [FRAMEWORK: flowchart | ...] for methodologies.
-
-**Chapter 4 (Results/Analysis):** This chapter MUST have:
-- A demographic profile table of respondents
-- Descriptive statistics tables for each research question
-- Charts showing distributions — use [CHART: bar | title | Label1: value, Label2: value, ...] for categorical data
-- Use [CHART: pie | title | data] for percentage/proportion data
-- Use [CHART: line | title | data] for trend data
-- Tables at appropriate places showing frequencies, means, correlations
-
-**Chapter 5 (Discussion/Conclusion):** Include comparison tables contrasting findings with prior research.
-
-**FORMAT FOR TABLES:** Write natural markdown tables:
-| Variable | Frequency | Percentage |
-|----------|-----------|-----------|
-| Male | 45 | 45.0% |
-| Female | 55 | 55.0% |
-
-**FORMAT FOR CHARTS:** Use this simple inline format:
-[CHART: type | Title | Label1: value, Label2: value, Label3: value, ...]
-Types: bar, line, pie, horizontalBar
-Example: [CHART: bar | Satisfaction Levels | Very Satisfied: 45, Satisfied: 30, Neutral: 15, Dissatisfied: 10]
-
-**FORMAT FOR CONCEPTUAL FRAMEWORKS:** Use this format:
-[FRAMEWORK: Title of Framework
-  Independent: Variable1, Variable2
-  Dependent: Variable3
-  Mediating: Variable4
-  Moderating: Variable5
-  H1: Variable1 → Variable3
-  H2: Variable2 → Variable4
-]
-
-For hierarchical structures (org charts, governance, classifications), use:
-[FRAMEWORK: Title
-  Hierarchy: Parent → Child1, Child2
-  Hierarchy: Child1 → Grandchild
-]
-
-**GUIDELINES:**
-- Place each visual on its own line between paragraphs
-- Reference each visual in the text: "As Table X shows", "Figure Y illustrates"
-- All data in tables and charts must come from the research findings provided
-- For Chapter 4 especially: every claim should be backed by a table or chart showing the actual data
-- Do NOT use code fences (\`\`\`) for visuals — use the formats above
-- **CRITICAL: NEVER draw text-based diagrams using ASCII characters (├, ──, └, │, etc.). If a visual format does not fit your content, describe the relationship in plain text instead.**
-- **CRITICAL: NEVER describe a framework, hierarchy, org chart, or relationship using plain text with dashes or bullet points as a substitute for a diagram. If you find yourself writing something like "Figure X.Y:" followed by a list of items with dashes, STOP — use [FRAMEWORK: ...] format instead. The system needs the structured format to render the diagram properly.**
-- **CRITICAL: NEVER include ASCII art, text diagrams, or visual elements drawn with characters like / \\ | ^ _ - = * in your response. These do not render in the final thesis document. If you need to describe a visual, use [FRAMEWORK: ...], [CHART: ...], or a markdown table.**
-- **CRITICAL: NEVER use \`\`\`mermaid, \`\`\`chart, \`\`\`table, or \`\`\`diagram code fences. These formats are deprecated and do not render. Use [FRAMEWORK: ...] for frameworks and hierarchies, [CHART: type | Title | data] for charts, and markdown tables for tabular data.**
-
-${structureInstruction}
+## CHAPTER 4 — RESULTS & ANALYSIS
+You are writing Chapter 4 (Results/Analysis). The findings data above contains survey responses and key results. Reference specific numbers and statistics. Present findings in past tense.` : ''}
 ${promptData.childrenTopics?.length > 0 ? `
-
-## SUB-TOPICS TO COVER IN THIS SECTION
-This section has the following sub-topics that must be covered. Include EACH as an H3 subheading within the text:
+## SUB-TOPICS TO COVER
+Include each of the following as subheadings within this section:
 
 ${promptData.childrenTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 ` : ''}
 ${promptData.guidelines ? `
-
 ## CHAPTER-SPECIFIC GUIDELINES
-The student has provided the following custom instructions specific to this chapter. These take priority over general rules where they conflict:
-
 ${promptData.guidelines}
 ` : ''}
 
----
+## VISUALS (optional reference)
+If you include a table, chart, or framework diagram, the system will automatically render it. These formats are available:
 
-# CRITICAL RULES — FOLLOW EVERY SINGLE ONE
+- **Tables:** standard markdown table syntax
+- **Charts:** [CHART: type | Title | Label1: value, Label2: value, ...] (types: bar, line, pie, horizontalBar)
+- **Frameworks:** [FRAMEWORK: Title\n  Independent: ...\n  Dependent: ...\n  H1: ...\n]
+- **Hierarchies:** [FRAMEWORK: Title\n  Hierarchy: Parent → Child\n]
 
-## ACADEMIC TONE AND PROFESSIONALISM
-- This is a FORMAL ACADEMIC THESIS. Writing must be scholarly, professional, and authoritative.
-- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest". Never use first-person pronouns (I, we, my, our).
-- Use ACTIVE VOICE wherever possible: "The analysis reveals..." not "It is revealed by the analysis...".
-- NO contractions: write out ALL words fully ("do not", "will not", "cannot", "it is").
-- Write in a formal, objective register — no rhetorical questions, no colloquialisms, no conversational phrases.
-
-## SENTENCE RHYTHM (BURSTINESS)
-- Mix very short sentences (2–5 words) with long, complex ones (20–45 words). No predictable pattern.
-- Vary paragraph lengths drastically — alternate between 2-sentence paragraphs and 7–8 sentence paragraphs.
-- Use a mix of simple, compound, and complex sentence structures.
-- Avoid starting consecutive sentences with the same word.
-- No two adjacent paragraphs should have the same sentence-length profile.
-
-## LANGUAGE BANS
-You must NEVER use the following:
-- Em dashes (—)
-- "In today's rapidly evolving society" or any variation
-- "In today's digital age/world/era"
-- "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion"
-- "It is worth noting that", "It is important to note that"
-- "A myriad of", "The realm of", "A plethora of"
-- Rhetorical questions ("What does this mean?", "Why is this important?")
-- "This underscores", "This highlights", "This emphasizes"
-- "Delves into", "Navigates the complexities of"
-- "Paves the way for", "Sets the stage for"
-
-## IN-TEXT CITATIONS (MANDATORY — EVERY PARAGRAPH)
-- EVERY paragraph MUST contain at least one in-text citation.
-- Use Google Search Grounding to find REAL sources. NEVER fabricate a citation.
-- Format: (Author, Year) — e.g., (Smith, 2023).
-- For two authors: (Author and Author, Year).
-- For three+ authors: (Author et al., Year).
-- If no grounded source exists for a claim, write the claim without a citation.
-- Every (Author, Year) must correspond to an actual, searchable publication.
-
-## REAL CITATIONS ONLY — NO FABRICATION
-- EVERY in-text citation MUST correspond to a REAL source found via Google Search Grounding.
-- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
-- Only use author names and publication years from sources you have actually found.
-- DO NOT make up citations that sound plausible.
-
-## FORMATTING RULES
-- Plain text only. NO markdown headings (###, ##), NO HTML tags.
-- Do NOT write "(Word Count: X words)" or any word count footnote.
-- Use a single blank line between paragraphs, never more (except before tables/diagrams).
-- For tables, use natural markdown table format: | Header 1 | Header 2 |
-- For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
-- For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
-${TABLE_RULES}
-
-## VISUAL GUIDANCE
-If the user has provided screenshots, images, or reference files:
-- Analyse each uploaded image carefully — extract data, patterns, tables, and figures.
-- Reference specific findings from images in your writing.
-- Integrate visual information naturally into the academic narrative.
-
-## NEGATIVE EXAMPLE — DO NOT WRITE LIKE THIS
-"In today's rapidly evolving society, technology plays a crucial role in education. Furthermore, it is important to note that AI has significantly impacted learning outcomes. Moreover, this highlights the significance of technological integration in modern classrooms."
-Why this is bad: generic opener, stacked transitions, no specific claim, no citation, no voice.
-
-## POSITIVE EXAMPLE — WRITE LIKE THIS
-"Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores: a finding that challenges the assumption that AI tools primarily benefit advanced learners."
-Why this is good: specific data, grounded claim, meaningful citation, original insight, varied sentence rhythm.
+Do not use code fences or ASCII art for visuals.
 
 Write the complete content now.`;
 
@@ -329,7 +192,7 @@ export const generateChapterContent = async (promptData) => {
     const model = genAI.getGenerativeModel({
       model: MODEL,
       tools: [{ googleSearch: {} }],
-      generationConfig: { temperature: 0.4, topP: 0.85, maxOutputTokens: 64000 }
+      generationConfig: { temperature: 0.7, topP: 0.85, maxOutputTokens: 64000 }
     });
 
     let sourceModeInstruction = '';
@@ -395,153 +258,58 @@ ${sub.title}
 [/WRITE_SUBSECTION]`;
     }).join('\n\n');
 
-    const prompt = `You are a human PhD candidate writing a formal academic thesis chapter. Generate content that reads like a thoughtful scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+    const prompt = `You are a human PhD candidate writing a formal academic thesis chapter. Write at a professional academic level — clear, authoritative, and naturally scholarly.
 ${promptData.thesisContext ? `
 ## THESIS CONTEXT — PREVIOUS CHAPTERS
-This thesis has already written the following chapters. Use this context to maintain consistency in terminology, arguments, and references across chapters:
+Earlier chapters have already established the following. Maintain consistency in terminology, arguments, and references:
 ${promptData.thesisContext.previousChapters.map(ch => `### ${ch.title}\n${ch.summary}`).join('\n\n')}
 
-### CONSISTENCY RULES
-- Use the same terminology and variable names established in previous chapters.
-- When referencing findings or arguments from earlier chapters, use phrases like "as discussed in Chapter X" or "consistent with the findings presented earlier."
-- Do not redefine terms that were already defined in previous chapters.
-- Build upon arguments from previous chapters rather than repeating them.` : ''}
+- Use the same terminology and variable names from earlier chapters.
+- Reference earlier findings with phrases like "as discussed in Chapter X."
+- Do not redefine terms already defined.` : ''}
 THESIS TITLE: "${promptData.topic}"
 ${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
 FIELD: ${promptData.field || 'Not specified'}
 CHAPTER: ${promptData.chapter}
-METHODOLOGY: ${promptData.methodology || 'mixed methods'} — all content MUST align with this methodology
-${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
+METHODOLOGY: ${promptData.methodology || 'mixed methods'}${promptData.organization ? `
+CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${findingsInstruction}
 
-## SUBSECTIONS TO WRITE — WRITE ALL OF THEM IN ORDER
-Write the ENTIRE chapter below, one subsection at a time. This chapter has the following subsections to write. Write EVERY one of them completely:
+## SUBSECTIONS TO WRITE
+Write the entire chapter one subsection at a time, in the order listed below:
 
 ${subsOutline}
 
 ${promptData.guidelines ? `
 ## CHAPTER-SPECIFIC GUIDELINES
-The student has provided the following custom instructions specific to this chapter. These take priority over general rules where they conflict:
-
 ${promptData.guidelines}
 ` : ''}
 
-## VISUALS — YOU MUST INCLUDE THEM WHERE APPROPRIATE
-
-You MUST include proper tables, charts, and diagrams throughout the thesis. Use the following chapter-specific guidelines:
-
-**Chapter 2 (Literature Review):** Include at least one conceptual framework diagram showing independent, dependent, mediating, and moderating variables. Include comparison tables of literature. Use [FRAMEWORK: ...] for conceptual frameworks.
-
-**Chapter 3 (Methodology):** Include a research design flowchart. Use [FRAMEWORK: flowchart | ...] for methodologies.
-
-**Chapter 4 (Results/Analysis):** This chapter MUST have:
-- A demographic profile table of respondents
-- Descriptive statistics tables for each research question
-- Charts showing distributions — use [CHART: bar | title | Label1: value, Label2: value, ...] for categorical data
-- Use [CHART: pie | title | data] for percentage/proportion data
-- Use [CHART: line | title | data] for trend data
-- Tables at appropriate places showing frequencies, means, correlations
-
-**Chapter 5 (Discussion/Conclusion):** Include comparison tables contrasting findings with prior research.
-
-**FORMAT FOR TABLES:** Write natural markdown tables:
-| Variable | Frequency | Percentage |
-|----------|-----------|-----------|
-| Male | 45 | 45.0% |
-| Female | 55 | 55.0% |
-
-**FORMAT FOR CHARTS:** Use this simple inline format:
-[CHART: type | Title | Label1: value, Label2: value, Label3: value, ...]
-Types: bar, line, pie, horizontalBar
-
-**FORMAT FOR CONCEPTUAL FRAMEWORKS:** Use this format:
-[FRAMEWORK: Title of Framework
-  Independent: Variable1, Variable2
-  Dependent: Variable3
-  Mediating: Variable4
-  Moderating: Variable5
-  H1: Variable1 → Variable3
-  H2: Variable2 → Variable4
-]
-
-For hierarchical structures (org charts, governance, classifications), use:
-[FRAMEWORK: Title
-  Hierarchy: Parent → Child1, Child2
-  Hierarchy: Child1 → Grandchild
-]
-
-**GUIDELINES:**
-- Place each visual on its own line between paragraphs
-- Reference each visual in the text
-- All data in tables and charts must come from the research findings provided
-- **CRITICAL: NEVER draw text-based diagrams using ASCII characters.**
-- **CRITICAL: NEVER use code fences for visuals.**
-
----
-
-# CRITICAL RULES — FOLLOW EVERY SINGLE ONE
-
-## OUTPUT FORMAT — YOU MUST USE THIS EXACT FORMAT
-Write ALL subsections in order. For EACH subsection, start with the marker [WRITE_SUBSECTION: id] where id matches the ID shown in the subsections list above. Then write the subsection title on the next line, then the full content. End with [/WRITE_SUBSECTION]. Example:
+## OUTPUT FORMAT
+Wrap each subsection with markers matching the ID from the list above:
 
 [WRITE_SUBSECTION: chapter2_sub_1]
 2.0 Introduction
-This chapter reviews the literature on...
+Content here...
 [/WRITE_SUBSECTION]
 [WRITE_SUBSECTION: chapter2_sub_2]
 2.1 Theoretical Framework
-The theoretical foundation for this study...
+Content here...
 [/WRITE_SUBSECTION]
 
-YOU MUST write ALL subsections. Do NOT skip any. Do NOT reorder them.
+Write ALL subsections in order. Do not skip any.
 
-## HUMAN-LIKENESS — WRITE AS A HUMAN, NOT AN AI
-- This is a FORMAL ACADEMIC THESIS. Writing must be scholarly, professional, and authoritative.
-- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
-- NO contractions: write out ALL words fully ("do not", "will not", "cannot", "it is").
-- Use ACTIVE VOICE wherever possible.
+## VISUALS (optional reference)
+If you include a table, chart, or framework diagram, the system will automatically render it as a professional visual. These formats are available if you choose to use them:
 
-## SENTENCE RHYTHM (BURSTINESS)
-- Mix very short sentences (2–5 words) with long, complex ones (20–45 words).
-- Vary paragraph lengths — alternate between 2-sentence and 7–8 sentence paragraphs.
-- Vary sentence structures: simple, compound, complex.
-- Avoid starting consecutive sentences with the same word.
-- No two adjacent paragraphs should have the same sentence-length profile.
+- **Tables:** standard markdown table syntax
+- **Charts:** [CHART: type | Title | Label1: value, Label2: value, ...] (types: bar, line, pie, horizontalBar)
+- **Frameworks:** [FRAMEWORK: Title\n  Independent: ...\n  Dependent: ...\n  H1: ...\n]
+- **Hierarchies:** [FRAMEWORK: Title\n  Hierarchy: Parent → Child\n]
 
-## LANGUAGE BANS — NEVER USE THESE
-- Em dashes (—)
-- "In today's rapidly evolving society" or any variation
-- "In today's digital age/world/era"
-- "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion"
-- "It is worth noting that", "It is important to note that"
-- "A myriad of", "The realm of", "A plethora of"
-- Rhetorical questions
-- "This underscores", "This highlights", "This emphasizes"
-- "Delves into", "Navigates the complexities of"
-- "Paves the way for", "Sets the stage for"
+Do not use code fences or ASCII art for visuals.
 
-## IN-TEXT CITATIONS — EVERY PARAGRAPH
-- EVERY paragraph MUST contain at least one in-text citation.
-- Use Google Search Grounding to find REAL sources. NEVER fabricate a citation.
-- Format: (Author, Year) — e.g., (Smith, 2023).
-- For two authors: (Author and Author, Year).
-- For three+ authors: (Author et al., Year).
-- If no grounded source exists for a claim, write the claim without a citation.
-
-## REAL CITATIONS ONLY — NO FABRICATION
-- EVERY in-text citation MUST correspond to a REAL source found via Google Search Grounding.
-- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
-- Only use author names and publication years from sources you have actually found.
-
-## FORMATTING RULES
-- Plain text only. NO markdown headings (###, ##), NO HTML tags.
-- Use a single blank line between paragraphs, never more (except before tables/diagrams).
-- For tables, use natural markdown table format.
-- For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
-- For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
-${TABLE_RULES}
-
-Write the COMPLETE chapter now. Include ALL subsections listed above. Use the [WRITE_SUBSECTION: id] marker format for each one.`;
+Write the complete chapter now.`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();

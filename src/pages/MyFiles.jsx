@@ -368,7 +368,7 @@ const MyFiles = () => {
                   </div>
                   {expandedChapter === ch.id && (
                     <div style={{ padding: '16px', backgroundColor: colors.background }}>
-                      {ch.subsections.length > 0 && <div><h4 style={{ fontWeight: '600', color: colors.text }}>Subsections:</h4>{ch.subsections.map((s, i) => <div key={i} style={{ color: colors.textSecondary }}>• {s}</div>)}</div>}
+                      {ch.subsections.length > 0 && <div><h4 style={{ fontWeight: '600', color: colors.text }}>Subsections:</h4>{ch.subsections.map((s, i) => <div key={i} style={{ color: colors.textSecondary }}>• {s.title}</div>)}</div>}
                     </div>
                   )}
                 </div>

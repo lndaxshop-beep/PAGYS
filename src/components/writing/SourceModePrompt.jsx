@@ -87,7 +87,7 @@ const SourceModePrompt = ({ isOpen, onConfirm, onDismiss }) => {
                   fontSize: '12px', lineHeight: '1.6', color: colors.textSecondary,
                   margin: 0,
                 }}>
-                  AI cites ONLY from the papers you have uploaded in MyFiles. 
+                  We cite ONLY from the papers you have uploaded in MyFiles. 
                   References are accurate and traceable to real sources you provided.
                   Add as many sources as possible for more accurate and genuine results.
                 </p>
@@ -131,7 +131,7 @@ const SourceModePrompt = ({ isOpen, onConfirm, onDismiss }) => {
                   fontSize: '12px', lineHeight: '1.6', color: colors.textSecondary,
                   margin: 0,
                 }}>
-                  AI uses its own knowledge and web search to find and cite sources. 
+                  We use AI-powered search to find and cite sources. 
                   Some references may not be traceable to real publications. 
                   Review the reference list carefully before submission.
                 </p>

@@ -20,7 +20,7 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import { useDashboardForm } from '../hooks/useDashboardForm';
 import { PageSkeleton } from '../components/Skeleton';
 import { useCurrency } from '../hooks/useCurrency';
-import { PRICES_GHS, getUserCountry } from '../constants/pricing';
+import { PRICES_GHS, getUserCountry, getProjectPrice } from '../constants/pricing';
 import OnboardingWizard from '../components/OnboardingWizard';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import SourceSetupModal from '../components/SourceSetupModal';
@@ -197,7 +197,7 @@ const Dashboard = () => {
 
   const handlePaymentConfirm = async () => {
     if (!paymentProject) return;
-    const success = await processPayment(paymentProject.id, paymentTier);
+    const success = await processPayment(paymentProject.id, paymentTier, paymentProject.level);
     if (success) {
       if (!paymentIsUpgrade) {
         sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
@@ -217,7 +217,7 @@ const Dashboard = () => {
       const priceKey = paymentIsUpgrade ? 'upgrade' : (paymentTier === 'premium' ? 'premium' : 'regular');
       const receiptData = {
         type: paymentIsUpgrade ? 'upgrade' : 'project_creation',
-        amount: PRICES_GHS[priceKey],
+        amount: getProjectPrice(priceKey, paymentProject.level),
         currency: 'GHS',
         reference: paymentProject.lastPaymentReference || `PAY_${Date.now()}`,
         email: user?.email,
@@ -275,7 +275,7 @@ const Dashboard = () => {
     if (paymentIsUpgrade) {
       await upgradeToPremium(paymentProject.id);
     } else {
-      const result = await processPayment(paymentProject.id, paymentTier);
+      const result = await processPayment(paymentProject.id, paymentTier, paymentProject.level);
       if (result && result.status === 'success') {
         sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
         try {
@@ -424,7 +424,7 @@ const Dashboard = () => {
         <PaymentModal
           project={paymentProject}
           tier={paymentTier}
-          amount={paymentIsUpgrade ? PRICES_GHS.upgrade : (paymentTier === 'premium' ? PRICES_GHS.premium : PRICES_GHS.regular)}
+          amount={paymentIsUpgrade ? PRICES_GHS.upgrade : getProjectPrice(paymentTier, paymentProject?.level)}
           isUpgrade={paymentIsUpgrade}
           processingPayment={processingPayment}
           onConfirm={paymentIsUpgrade ? handleUpgradeConfirm : handlePaymentConfirm}

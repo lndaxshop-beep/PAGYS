@@ -40,6 +40,17 @@ export const PRICES_GHS = {
   wordCountEdit: 5,
 };
 
+export const LEVEL_PRICES = {
+  undergraduate: { regular: 50, premium: 70 },
+  masters: { regular: 80, premium: 100 },
+  phd: { regular: 100, premium: 120 },
+};
+
+export const getProjectPrice = (tier, level) => {
+  if (!level || level === 'undergraduate') return PRICES_GHS[tier];
+  return LEVEL_PRICES[level.toLowerCase()]?.[tier] || PRICES_GHS[tier];
+};
+
 export const getUserCountry = (user) => {
   const raw = user?.country || '';
   if (raw) return COUNTRY_NAME_TO_ISO[raw] || raw;

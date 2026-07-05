@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCurrency } from '../../hooks/useCurrency';
-import { PRICES_GHS } from '../../constants/pricing';
+import { PRICES_GHS, getProjectPrice } from '../../constants/pricing';
 
 const NewProjectForm = ({
   form, onChange, useOrganization, setUseOrganization,
@@ -108,7 +108,7 @@ const NewProjectForm = ({
                 onMouseLeave={(e) => { if (selectedTier !== 'regular') e.currentTarget.style.borderColor = colors.border; }}
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
-                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(PRICES_GHS.regular)}</div>
+                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(getProjectPrice('regular', form.level))}</div>
                 <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4', listStyle: 'decimal' }}>
                   <li style={{ marginBottom: '8px' }}>Remove AI (5 free uses per project)</li>
                   <li style={{ marginBottom: '8px' }}>Feedback (6 uses per chapter)</li>
@@ -131,7 +131,7 @@ const NewProjectForm = ({
                 onMouseLeave={(e) => { if (selectedTier !== 'premium') e.currentTarget.style.borderColor = colors.border; }}
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
-                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(PRICES_GHS.premium)}</div>
+                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(getProjectPrice('premium', form.level))}</div>
                 <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4', listStyle: 'decimal' }}>
                   <li style={{ marginBottom: '8px' }}>Remove AI (10 free uses per project)</li>
                   <li style={{ marginBottom: '8px' }}>Feedback (12 uses per chapter)</li>

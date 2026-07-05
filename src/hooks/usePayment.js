@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { formatPrice, getUserCountry, PRICES_GHS, getCurrency } from '../constants/pricing';
+import { formatPrice, getUserCountry, PRICES_GHS, getCurrency, getProjectPrice } from '../constants/pricing';
 import { useAuth } from '../contexts/AuthContext';
 
 const PROXY_URL = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
@@ -219,13 +219,13 @@ const usePayment = (onNotify) => {
     intervalRefs.current = [];
   }, []);
 
-  const processPayment = useCallback(async (projectId, tier) => {
+  const processPayment = useCallback(async (projectId, tier, level) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
         const country = getUserCountry(user);
         const currency = getCurrency(country);
-        const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
+        const ghsPrice = getProjectPrice(tier, level);
         const localAmount = Math.round(ghsPrice * currency.rate);
         const mockRef = `mock_${Date.now()}`;
 
@@ -247,7 +247,7 @@ const usePayment = (onNotify) => {
 
       const country = getUserCountry(user);
       const currency = getCurrency(country);
-      const ghsPrice = PRICES_GHS[tier] || PRICES_GHS.regular;
+      const ghsPrice = getProjectPrice(tier, level);
       const localAmount = Math.round(ghsPrice * currency.rate);
 
       const result = await openPaystackPopup(

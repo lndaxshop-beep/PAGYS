@@ -1,18 +1,35 @@
 export const calculateProjectProgress = (project, chapters, content) => {
   if (!chapters?.length) return 0;
-  let totalActive = 0, totalGenerated = 0;
+  let totalChapters = 0;
+  let completedChapters = 0;
+
   chapters.forEach(ch => {
-    if (ch.subsections) {
-      const active = ch.subsections.filter(s => s.type !== 'references');
-      totalActive += active.length;
-      active.forEach(sub => {
-        const subContent = content[ch.id]?.[sub.id];
-        const hasContent = subContent && typeof subContent === 'string' && subContent.trim().length > 0;
-        if (sub.generated || hasContent) totalGenerated++;
-      });
+    if (ch.deleted) return;
+    totalChapters++;
+    const chapterContent = content[ch.id];
+    if (!chapterContent) return;
+
+    const hasFullChapter = chapterContent.fullChapter &&
+      typeof chapterContent.fullChapter === 'string' &&
+      chapterContent.fullChapter.trim().length > 0;
+
+    if (hasFullChapter) {
+      completedChapters++;
+      return;
+    }
+
+    const activeSubs = ch.subsections?.filter(s => s.type !== 'references' && !s.deleted) || [];
+    if (activeSubs.length === 0) return;
+    const generatedCount = activeSubs.filter(sub => {
+      const subContent = chapterContent[sub.id];
+      return subContent && typeof subContent === 'string' && subContent.trim().length > 0;
+    }).length;
+    if (generatedCount === activeSubs.length) {
+      completedChapters++;
     }
   });
-  return totalActive > 0 ? Math.round((totalGenerated / totalActive) * 100) : 0;
+
+  return totalChapters > 0 ? Math.round((completedChapters / totalChapters) * 100) : 0;
 };
 
 export const getDisplayName = (user) => {

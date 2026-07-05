@@ -67,14 +67,21 @@ const MyFiles = () => {
   }, [selectedProject]);
   useEffect(() => { try { localStorage.setItem(`defenceRegenUsed_${selectedProject}`, JSON.stringify(defenceRegenUsed)); } catch {} }, [defenceRegenUsed, selectedProject]);
 
-   const loadProjects = async () => {
+  const loadProjects = async () => {
     try {
       const projectsList = await getProjects(user?.uid);
       setProjects(projectsList);
       if (projectsList.length > 0) {
-        setSelectedProject(projectsList[0].id);
-        setProjectData(projectsList[0]);
-        loadChaptersForProject(projectsList[0].id);
+        let target;
+        try {
+          const saved = localStorage.getItem(`lastMyFilesProject_${user?.uid}`);
+          if (saved && projectsList.find(p => p.id === saved)) target = saved;
+        } catch {}
+        if (!target) target = projectsList[0].id;
+        const p = projectsList.find(pr => pr.id === target);
+        setSelectedProject(target);
+        setProjectData(p);
+        loadChaptersForProject(target);
       }
     } catch (e) { console.error('Error loading projects:', e); }
   };
@@ -178,7 +185,7 @@ const MyFiles = () => {
     } catch (e) { console.error('Failed to load defence questions:', e); notify('Failed to load defence questions.', 'error'); } finally { setLoadingDefence(false); }
   };
 
-  const handleProjectChange = (pid) => { const p = projects.find(pr => pr.id === pid); setSelectedProject(pid); setProjectData(p); loadChaptersForProject(pid); setActiveTab('chapters'); setAbbreviations([]); setDefenceQuestions(null); setGeneratedInstruments([]); };
+  const handleProjectChange = (pid) => { const p = projects.find(pr => pr.id === pid); setSelectedProject(pid); setProjectData(p); loadChaptersForProject(pid); setActiveTab('chapters'); setAbbreviations([]); setDefenceQuestions(null); setGeneratedInstruments([]); try { localStorage.setItem(`lastMyFilesProject_${user?.uid}`, pid); } catch {} };
   const handleContentUpdated = (chapterId, updatedContent) => {
     setRawContent(prev => ({ ...prev, [chapterId]: updatedContent }));
     loadChaptersForProject(selectedProject);

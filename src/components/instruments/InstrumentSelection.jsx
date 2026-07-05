@@ -1,7 +1,7 @@
 import React from 'react';
 import { INSTRUMENT_TYPES } from '../../utils/instrumentHelpers';
 
-const InstrumentSelection = ({ selectedInstruments, project, autoSelect, onToggle, onSelectAll, onAutoSelectChange, onGenerate, colors, isDarkMode }) => (
+const InstrumentSelection = ({ selectedInstruments, project, autoSelect, onToggle, onSelectAll, onAutoSelectChange, colors, isDarkMode }) => (
   <div style={{ marginBottom: '24px' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
       <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text }}>Select Instruments</h3>
@@ -36,9 +36,6 @@ const InstrumentSelection = ({ selectedInstruments, project, autoSelect, onToggl
         );
       })}
     </div>
-    <button onClick={onGenerate} disabled={selectedInstruments.length === 0} style={{ width: '100%', marginTop: '24px', backgroundColor: selectedInstruments.length > 0 ? colors.primary : colors.border, color: selectedInstruments.length > 0 ? 'white' : colors.textSecondary, padding: '14px', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '16px', cursor: selectedInstruments.length > 0 ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-      Generate {selectedInstruments.length} Instrument{selectedInstruments.length !== 1 ? 's' : ''}
-    </button>
   </div>
 );
 

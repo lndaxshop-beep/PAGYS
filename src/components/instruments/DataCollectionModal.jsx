@@ -57,7 +57,6 @@ const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
             onToggle={(id) => { if (id) { toggleInstrument(id); } else { setAutoSelect(false); setSelectedInstruments([]); }}}
             onSelectAll={selectAllRecommended}
             onAutoSelectChange={setAutoSelect}
-            onGenerate={handleGenerate}
             colors={colors}
             isDarkMode={isDarkMode}
           />
@@ -137,6 +136,29 @@ const DataCollectionModal = ({ project, onClose, onDownload, onNotify }) => {
             </p>
           </>
         )}
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
+          <button onClick={handleClose} style={{ backgroundColor: 'transparent', color: colors.text, padding: '12px 24px', border: `1px solid ${colors.border}`, borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>
+            Cancel
+          </button>
+          <button
+            onClick={hasGeneratedContent ? handleClose : handleGenerate}
+            disabled={!hasGeneratedContent && selectedInstruments.length === 0}
+            style={{
+              backgroundColor: hasGeneratedContent || selectedInstruments.length > 0 ? colors.primary : colors.border,
+              color: hasGeneratedContent || selectedInstruments.length > 0 ? 'white' : colors.textSecondary,
+              padding: '12px 24px',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '14px',
+              cursor: hasGeneratedContent || selectedInstruments.length > 0 ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s'
+            }}
+          >
+            {hasGeneratedContent ? 'Apply' : `Generate ${selectedInstruments.length} Instrument${selectedInstruments.length !== 1 ? 's' : ''}`}
+          </button>
+        </div>
       </div>
 
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>

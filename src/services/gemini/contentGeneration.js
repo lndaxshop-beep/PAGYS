@@ -905,10 +905,7 @@ export const humaniseContent = async (text, promptData = null, humaniseLevel = 1
 
 export const generateReferences = async (citations, style, userSources = null, sourceMode = 'ai-only') => {
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: MODEL,
-      tools: [{ googleSearch: {} }]
-    });
+    const model = genAI.getGenerativeModel({ model: MODEL });
     const styleGuide = style === 'apa'
       ? 'APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.'
       : style === 'mla'
@@ -929,11 +926,11 @@ ${JSON.stringify(userSources.map(s => ({
  
 ### USER SOURCE RULES
 - If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
-- Use Google Search Grounding to find the actual publication for complete details (DOI, volume, pages), but fall back to user-provided metadata when search fails.
+- Format using the standard publication details from your training data, falling back to user-provided metadata when needed.
 - When formatting from user metadata, produce a complete reference following the style guide: Author, A. A. (Year). Title. Retrieved from thesis sources.`;
     }
 
-    const prompt = `You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
+    const prompt = `You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list.
 
 IN-TEXT CITATIONS (extracted from thesis content):
 ${citations.map(c => `- ${c}`).join('\n')}
@@ -952,15 +949,13 @@ ${userSourcesSection}
 
 ### PRODUCE A REFERENCE FOR EVERY CITATION
 - You MUST produce a formatted reference entry for EVERY citation in the list above. Do not skip any.
-- Search Google for EACH citation to find the REAL publication.
-- If Google Search Grounding finds the real source, format it with the actual title, journal, volume, pages, and DOI/URL.
-- If you CANNOT find the real source via grounding, use the citation text (author, year) and any available user-supplied metadata to construct the best possible reference following the style guide. Do not note that it was unverifiable.
+- Use your training knowledge of academic publications to format each reference with the appropriate title, journal, volume, pages, and DOI/URL.
+- If user-provided metadata is available for a citation, use it to construct the reference.
 - CROSS-CHECK: Ensure author names and year match the in-text citation exactly.
 
 ### NO NEW CITATIONS
 - ONLY produce references for citations in the list above.
 - Do NOT add, invent, or generate references for citations that are not in the provided list.
-- If Google Search Grounding suggests additional related sources, ignore them.
 
 ### FORMATTING
 - Use the EXACT author names and years from the citations.

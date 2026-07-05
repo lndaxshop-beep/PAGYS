@@ -498,7 +498,7 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
 - Rewrite the ENTIRE text incorporating all fixes above.
 - Preserve ALL: tables, diagrams, [CHART:{...}] tags, data, numbers, statistics.
 - Preserve ALL subsection headings exactly as they appear.
-- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`,o=await n.generateContent(s);return R(o.response.text())}catch(n){return console.error("Error in self-review:",n),e}},G=async(e,t,n,r,s=null,o="ai-only")=>{try{const l=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}]});let u="",d=[];if(t.files?.length){const m=t.files.filter(f=>f.type==="image"&&f.content),i=t.files.filter(f=>f.type!=="image");d=m.map(f=>{const y=f.content.match(/^data:(image\/\w+);base64,(.+)$/);return y?{inlineData:{mimeType:y[1],data:y[2]}}:null}).filter(Boolean);const T=t.files.map(f=>f.name).join(", ");u=`
+- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`,o=await n.generateContent(s);return R(o.response.text())}catch(n){return console.error("Error in self-review:",n),e}},Y=async(e,t,n,r,s=null,o="ai-only")=>{try{const l=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}]});let u="",d=[];if(t.files?.length){const m=t.files.filter(f=>f.type==="image"&&f.content),i=t.files.filter(f=>f.type!=="image");d=m.map(f=>{const y=f.content.match(/^data:(image\/\w+);base64,(.+)$/);return y?{inlineData:{mimeType:y[1],data:y[2]}}:null}).filter(Boolean);const T=t.files.map(f=>f.name).join(", ");u=`
 Uploaded ${t.files.length} file(s): ${T}.`,i.length>0&&i.forEach(f=>{f.extractedText&&(u+=`
 Content from ${f.name}: ${f.extractedText.substring(0,3e3)}`)})}let a="";o==="user-only"&&s?.length>0?a=`
 ## USER-PROVIDED SOURCES (MANDATORY)
@@ -665,7 +665,7 @@ ${u}${a}
 - Keep ALL subsection headings exactly as they appear.
 - No markdown headings, no HTML tags.
 
-Return ONLY the rewritten text. No explanations.`},Y=async(e,t=null,n=1)=>{try{const r={1:.9,2:1,3:1.1},s=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}],generationConfig:{temperature:r[n]||.9,topP:.95}}),o=O(e,t,n),l=await s.generateContent(o);let u=R(l.response.text());return!u||u.trim().length<50?e:u}catch(r){throw console.error("Error humanising:",r),r}},P=async(e,t,n=null,r="ai-only")=>{try{const s=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}]}),o=t==="apa"?"APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.":t==="mla"?"MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.":"Chicago: Author Last, First. Year. Title of Work. Publisher.";let l="";n?.length>0&&(l=`
+Return ONLY the rewritten text. No explanations.`},P=async(e,t=null,n=1)=>{try{const r={1:.9,2:1,3:1.1},s=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}],generationConfig:{temperature:r[n]||.9,topP:.95}}),o=O(e,t,n),l=await s.generateContent(o);let u=R(l.response.text());return!u||u.trim().length<50?e:u}catch(r){throw console.error("Error humanising:",r),r}},G=async(e,t,n=null,r="ai-only")=>{try{const s=p.getGenerativeModel({model:E}),o=t==="apa"?"APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.":t==="mla"?"MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.":"Chicago: Author Last, First. Year. Title of Work. Publisher.";let l="";n?.length>0&&(l=`
 ## USER-PROVIDED SOURCES
 The student has uploaded the following papers. These are REAL sources with verified metadata. Use them to create reference entries when the in-text citations match.
  
@@ -673,8 +673,8 @@ ${JSON.stringify(n.map(a=>({title:a.title,authors:a.authors,year:a.year,methodol
  
 ### USER SOURCE RULES
 - If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
-- Use Google Search Grounding to find the actual publication for complete details (DOI, volume, pages), but fall back to user-provided metadata when search fails.
-- When formatting from user metadata, produce a complete reference following the style guide: Author, A. A. (Year). Title. Retrieved from thesis sources.`);const u=`You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
+- Format using the standard publication details from your training data, falling back to user-provided metadata when needed.
+- When formatting from user metadata, produce a complete reference following the style guide: Author, A. A. (Year). Title. Retrieved from thesis sources.`);const u=`You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list.
 
 IN-TEXT CITATIONS (extracted from thesis content):
 ${e.map(a=>`- ${a}`).join(`
@@ -694,15 +694,13 @@ ${l}
 
 ### PRODUCE A REFERENCE FOR EVERY CITATION
 - You MUST produce a formatted reference entry for EVERY citation in the list above. Do not skip any.
-- Search Google for EACH citation to find the REAL publication.
-- If Google Search Grounding finds the real source, format it with the actual title, journal, volume, pages, and DOI/URL.
-- If you CANNOT find the real source via grounding, use the citation text (author, year) and any available user-supplied metadata to construct the best possible reference following the style guide. Do not note that it was unverifiable.
+- Use your training knowledge of academic publications to format each reference with the appropriate title, journal, volume, pages, and DOI/URL.
+- If user-provided metadata is available for a citation, use it to construct the reference.
 - CROSS-CHECK: Ensure author names and year match the in-text citation exactly.
 
 ### NO NEW CITATIONS
 - ONLY produce references for citations in the list above.
 - Do NOT add, invent, or generate references for citations that are not in the provided list.
-- If Google Search Grounding suggests additional related sources, ignore them.
 
 ### FORMATTING
 - Use the EXACT author names and years from the citations.
@@ -835,4 +833,4 @@ Write a concise academic abstract (200-350 words) that covers:
 - Key findings and results
 - Conclusions and implications
 
-Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;return(await n.generateContent(o)).response.text().trim()||null}catch(n){return console.error("Error generating abstract:",n),null}};export{re as analyzeTranscriptText,G as applyFeedbackToContent,K as extractAbbreviations,ee as extractPaperMetadata,J as formatReferences,j as generateAbstract,F as generateAcademicContent,ae as generateCaseStudyProtocol,k as generateChapterContent,X as generateChartData,V as generateConceptualFramework,B as generateDataTable,q as generateDefenceQuestions,se as generateDocumentAnalysisTemplate,ie as generateFocusGroupProtocol,oe as generateInterviewGuide,te as generateLiteratureMatrix,ce as generateObservationChecklist,le as generateQuestionnaire,P as generateReferences,W as generateResearchDesignFlowchart,he as generateSampleData,M as generateSubtopics,D as generateTheoreticalFramework,Q as getWordCountPreset,Y as humaniseContent,U as recommendLiteratureReviewType,H as selfReviewContent};
+Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;return(await n.generateContent(o)).response.text().trim()||null}catch(n){return console.error("Error generating abstract:",n),null}};export{re as analyzeTranscriptText,Y as applyFeedbackToContent,K as extractAbbreviations,ee as extractPaperMetadata,J as formatReferences,j as generateAbstract,F as generateAcademicContent,ae as generateCaseStudyProtocol,k as generateChapterContent,X as generateChartData,V as generateConceptualFramework,B as generateDataTable,q as generateDefenceQuestions,se as generateDocumentAnalysisTemplate,ie as generateFocusGroupProtocol,oe as generateInterviewGuide,te as generateLiteratureMatrix,ce as generateObservationChecklist,le as generateQuestionnaire,G as generateReferences,W as generateResearchDesignFlowchart,he as generateSampleData,M as generateSubtopics,D as generateTheoreticalFramework,Q as getWordCountPreset,P as humaniseContent,U as recommendLiteratureReviewType,H as selfReviewContent};

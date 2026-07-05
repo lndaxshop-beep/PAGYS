@@ -32,6 +32,8 @@ export default defineConfig({
       '/api': {
         target: 'https://pagyss.com',
         changeOrigin: true,
+        timeout: 120000,
+        proxyTimeout: 120000,
       },
     },
   },

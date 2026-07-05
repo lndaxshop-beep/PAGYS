@@ -95,7 +95,6 @@ const TermsOfService = () => {
           <Section title="12. Contact" colors={colors}>
             <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
               <p><strong>Email:</strong> {SUPPORT_EMAIL}</p>
-              <p><strong>Business:</strong> A&P Firms</p>
             </div>
           </Section>
         </div>

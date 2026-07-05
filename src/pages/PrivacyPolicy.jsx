@@ -88,9 +88,6 @@ const PrivacyPolicy = () => {
           <Section title="9. Contact Us" colors={colors}>
             <div style={{ backgroundColor: isDarkMode ? '#2d2d2d' : '#f9fafb', padding: '20px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
               <p><strong>Email:</strong> {SUPPORT_EMAIL}</p>
-              <p><strong>Business:</strong> A&P Firms</p>
-              <p><strong>Platform:</strong> PAGYSS</p>
-              <p><strong>Operating in:</strong> Ghana</p>
             </div>
           </Section>
         </div>

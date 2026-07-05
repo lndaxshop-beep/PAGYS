@@ -123,6 +123,49 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (error) { setGeneratingVisual(false); throw error; }
   }, [project, uploadedFindings]);
 
+  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList, force = false) => {
+    const ch = chapters.find(c => c.id === chapterId);
+    if (!ch) return { error: true, message: 'Chapter not found.' };
+    const sub = ch.subsections.find(s => s.id === subId);
+    if (!sub) return { error: true, message: 'Subsection not found.' };
+    const cacheKey = `${chapterId}:${subId}:${ch.guidelines || ''}`;
+    const cached = contentCache.current.get(cacheKey);
+    if (cached) return cached;
+    const ordinal = ch.ordinal !== undefined ? ch.ordinal : -1;
+    const numberWords = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN'];
+    const chapterNumber = ordinal > 0 && ordinal < numberWords.length ? numberWords[ordinal] : '';
+    const childrenTopics = (sub.children || []).map(c => c.title).filter(Boolean);
+    const thesisContext = buildThesisContext(chapterId, chapters, generatedSubsections);
+    const { generateAcademicContent } = await import('../services/geminiService');
+    const result = await generateAcademicContent({
+      chapter: ch.title || ch.id, chapterId, chapterNumber, subsection: subTitle,
+      topic: project.title, researchTopic: project.topic, field: project.field,
+      level: project.level, methodology: project.methodology,
+      organization: sub.customValue || project?.organizationName || null,
+      hideOrganization: project?.hideOrganization || false,
+      findings: chapterId === 'chapter4' ? uploadedFindings : null,
+      literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
+      userSources, sourceMode,
+      guidelines: ch.guidelines || '',
+      childrenTopics,
+      thesisContext,
+    });
+    let generatedContent = typeof result === 'object' ? result.text : result;
+    const sources = typeof result === 'object' ? (result.sources || []) : [];
+    if (sources.length > 0) {
+      const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
+      const combined = [...existingSources, ...sources];
+      const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
+      localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
+    }
+    const { verifyCitations } = await import('../services/gemini/citationVerifier');
+    const storedSources = localStorage.getItem(`groundingSources_${chapterId}`);
+    const groundedSources = storedSources ? JSON.parse(storedSources) : [];
+    const finalCitations = verifyCitations(generatedContent, groundedSources);
+    contentCache.current.set(cacheKey, { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId });
+    return { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId };
+  }, [chapters, project, generatedSubsections, literatureReviewType, userSources, sourceMode]);
+
   const generateChapterContent = useCallback(async (chapterId) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return { error: true, message: 'Chapter not found.' };
@@ -329,6 +372,7 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     handleGenerateChart,
     handleGenerateChapter,
     generateChapterContent,
+    generateSubsectionContent,
     handleGenerateReferences,
     autoGenerateReferences,
     handleApplyFeedback,

@@ -25,11 +25,13 @@ export const getProjects = async (userId) => {
   } catch (e) { logError('getProjects', e); throw e; }
 };
 
-export const getProject = async (projectId) => {
+export const getProject = async (projectId, userId) => {
   try {
+    if (!userId) throw new Error('User not authenticated');
     const snap = await getDoc(doc(db, 'projects', projectId.toString()));
-    if (snap.exists()) return { id: snap.id, ...snap.data() };
-    return null;
+    if (!snap.exists()) return null;
+    if (snap.data().userId !== userId) throw new Error('Access denied');
+    return { id: snap.id, ...snap.data() };
   } catch (e) { logError('getProject', e); throw e; }
 };
 
@@ -39,8 +41,11 @@ export const updateProject = async (projectId, data) => {
   } catch (e) { logError('updateProject', e); throw e; }
 };
 
-export const deleteProject = async (projectId) => {
+export const deleteProject = async (projectId, userId) => {
   try {
+    if (!userId) throw new Error('User not authenticated');
+    const snap = await getDoc(doc(db, 'projects', projectId.toString()));
+    if (!snap.exists() || snap.data().userId !== userId) throw new Error('Access denied');
     await deleteDoc(doc(db, 'projects', projectId.toString()));
   } catch (e) { logError('deleteProject', e); throw e; }
 };
@@ -125,8 +130,11 @@ export const getPayments = async (userId) => {
   } catch (e) { logError('getPayments', e); throw e; }
 };
 
-export const permanentlyDeleteProject = async (projectId) => {
+export const permanentlyDeleteProject = async (projectId, userId) => {
   try {
+    if (!userId) throw new Error('User not authenticated');
+    const snap = await getDoc(doc(db, 'deletedProjects', projectId.toString()));
+    if (!snap.exists() || snap.data().userId !== userId) throw new Error('Access denied');
     await deleteDoc(doc(db, 'deletedProjects', projectId.toString()));
   } catch (e) { logError('permanentlyDeleteProject', e); throw e; }
 };

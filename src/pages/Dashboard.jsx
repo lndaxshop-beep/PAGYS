@@ -113,7 +113,7 @@ const Dashboard = () => {
       try {
         const project = JSON.parse(sessionStorage.getItem(key));
         const { getProject } = await import('../services/firestoreService');
-        const existing = await getProject(projectId);
+        const existing = await getProject(projectId, uid);
         if (existing) { sessionStorage.removeItem(key); continue; }
         project.userId = uid;
         await saveProject(project, uid);

@@ -34,7 +34,7 @@ const ContentRenderer = ({ content, colors, onEditVisual }) => {
         if (block.type === 'diagram') return <DiagramRenderer key={`d_${i}_${block.title}`} diagramData={block.data} title={block.title} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
         if (block.type === 'chart') return <ChartRenderer key={`c_${i}_${block.title}`} chartType={block.chartType} data={{ labels: block.labels, values: block.values }} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
         if (block.type === 'table') return <TableRenderer key={`t_${i}_${block.title}`} headers={block.headers} rows={block.rows} title={block.title} caption={block.caption} onEdit={onEditVisual ? (d) => onEditVisual(i, d) : undefined} />;
-        return <div key={i} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.html) }} style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify', marginBottom: '16px', color: colors?.text || 'inherit' }} />;
+        return <div key={i} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.html, { ALLOWED_TAGS: ['p', 'h1', 'h2', 'h3', 'li', 'strong', 'em', 'br', 'ul', 'ol'], ALLOWED_ATTR: [] }) }} style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.6', textAlign: 'justify', marginBottom: '16px', color: colors?.text || 'inherit' }} />;
       })}
     </div>
   );

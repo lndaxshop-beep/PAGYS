@@ -120,7 +120,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     if (!confirmed) return;
     const project = projects.find(p => p.id === id);
     try {
-      await deleteProject(id);
+      await deleteProject(id, userId);
       await saveDeletedProject({ ...project, deletedAt: new Date().toISOString() }, userId);
       invalidateProgressCache(id);
       loadProjects();
@@ -137,7 +137,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     if (!project) { notify('Project not found.', 'error'); return; }
     try {
       await saveProject(project, userId);
-      await permanentlyDeleteProject(id);
+      await permanentlyDeleteProject(id, userId);
       invalidateProgressCache(id);
       loadProjects();
       loadDeletedProjects();
@@ -157,7 +157,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     });
     if (!confirmed) return;
     try {
-      await permanentlyDeleteProject(id);
+      await permanentlyDeleteProject(id, userId);
       invalidateProgressCache(id);
       loadDeletedProjects();
       notify('Project permanently deleted', 'success');
@@ -177,7 +177,7 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     if (!confirmed) return;
     try {
       for (const project of deletedProjects) {
-        await permanentlyDeleteProject(project.id);
+        await permanentlyDeleteProject(project.id, userId);
         invalidateProgressCache(project.id);
       }
       loadDeletedProjects();

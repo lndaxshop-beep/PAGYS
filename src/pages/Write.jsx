@@ -29,6 +29,7 @@ import DiffModal from '../components/DiffModal';
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject } from '../services/firestoreService';
 
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
 import useSourceLibrary from '../hooks/useSourceLibrary';
 import VersionBrowser from '../components/writing/VersionBrowser';
@@ -42,6 +43,7 @@ const Write = () => {
   const navigate = useNavigate();
   const { colors, isDarkMode } = useTheme();
   const { fmt } = useCurrency();
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
@@ -157,7 +159,7 @@ const Write = () => {
 
       try {
         const [currentProject, savedChapters, savedContent, savedCitations, vd] = await Promise.all([
-          getProject(projectId),
+          getProject(projectId, user?.uid),
           getChapters(projectId),
           getGeneratedContent(projectId),
           getCitations(projectId),

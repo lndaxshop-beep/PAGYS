@@ -117,7 +117,7 @@ function AppContent() {
           </Routes>
         </div>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-        <AppFeedbackButton />
+        {!location.pathname.startsWith('/write/') && location.pathname !== '/myfiles' && <AppFeedbackButton />}
       </div>
     </ErrorBoundary>
     )}

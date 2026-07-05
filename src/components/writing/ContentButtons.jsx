@@ -2,11 +2,9 @@ import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const ContentButtons = ({
-  isViewingReferences, activeSubsections,
-  generatingChapter, chapterComplete, overallProgress, generatedActive, totalActive,
-  referencesSub, referencesGenerated,
+  isViewingReferences,
+  generatingChapter, chapterComplete,
   onGenerateChapter, onComplete, getButtonText,
-  allGenerated,
 }) => {
   const { colors } = useTheme();
 
@@ -24,8 +22,8 @@ const ContentButtons = ({
       <div className="content-buttons-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div className="content-buttons-left" style={{ display: 'flex', gap: '12px' }}>
           {!isViewingReferences ? (
-            <button data-tour="write-btn" onClick={onGenerateChapter} disabled={generatingChapter || allGenerated} style={btnStyle(generatingChapter || allGenerated)}>
-              {generatingChapter ? 'Writing Chapter...' : allGenerated ? 'Chapter Written ✓' : 'Write Chapter'}
+            <button data-tour="write-btn" onClick={onGenerateChapter} disabled={generatingChapter || chapterComplete} style={btnStyle(generatingChapter || chapterComplete)}>
+              {generatingChapter ? 'Writing Chapter...' : chapterComplete ? 'Chapter Written ✓' : 'Write Chapter'}
             </button>
           ) : (
             <div style={{ color: colors.textSecondary, padding: '10px 0' }}>References are auto-generated from in-text citations.</div>
@@ -34,10 +32,7 @@ const ContentButtons = ({
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-        <span style={{ color: colors.textSecondary, fontWeight: '500' }}>
-          Progress: {overallProgress.percentage}% • {generatedActive} of {totalActive} subsections written
-          {referencesSub && ` • References: ${referencesGenerated ? '✓' : 'pending'}`}
-        </span>
+        <div />
         <button data-tour="complete-btn" onClick={onComplete} disabled={!chapterComplete} style={{
           backgroundColor: chapterComplete ? '#059669' : colors.border,
           color: chapterComplete ? 'white' : colors.textSecondary,

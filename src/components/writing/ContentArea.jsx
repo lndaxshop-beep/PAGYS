@@ -3,18 +3,18 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual,
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual,
   chapterSubsections, subsectionsContent, isPremium, onFeedback
 }) => {
   const { colors } = useTheme();
   const previewRef = useRef(null);
 
   const fullChapterText = chapterSubsections && subsectionsContent
-    ? chapterSubsections
+    ? (subsectionsContent.fullChapter || chapterSubsections
         .filter(s => s.type !== 'references')
         .map(s => subsectionsContent[s.id] || '')
         .filter(Boolean)
-        .join('\n\n')
+        .join('\n\n'))
     : content;
 
   useEffect(() => {
@@ -62,7 +62,7 @@ const ContentArea = ({
     return () => timers.forEach(t => clearTimeout(t));
   }, [isPreviewMode, highlightRanges]);
 
-  const isReferences = currentSubsection?.type === 'references' || showReferenceInTextarea;
+  const isReferences = showReferenceInTextarea;
 
   return (
     <>
@@ -130,7 +130,7 @@ const ContentArea = ({
         ) : (
           <div>
             <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>
-              Edit Content — {currentSubsection?.title || 'Full Chapter'}
+              Edit Content — Full Chapter
             </h3>
             <textarea
               value={fullChapterText}

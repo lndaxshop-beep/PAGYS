@@ -63,7 +63,7 @@ const combineChapterContent = (subsections, contentMap) => {
     .join('\n\n');
 };
 
-const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', feedbackLimit = 6) => {
+const useWriteContent = (project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', feedbackLimit = 6) => {
   const [generating, setGenerating] = useState(false);
   const [generatingChapter, setGeneratingChapter] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);

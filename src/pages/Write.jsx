@@ -16,9 +16,9 @@ import useWriteContent from '../hooks/useWriteContent';
 import useWriteNavigation from '../hooks/useWriteNavigation';
 import { useWriteModals } from '../hooks/useWriteModals';
 import { useWriteVisuals } from '../hooks/useWriteVisuals';
-import { calculateOverallProgress, parseContentBlocks } from '../utils/writeHelpers.jsx';
+import { parseContentBlocks } from '../utils/writeHelpers.jsx';
 import WriteHeader from '../components/writing/WriteHeader';
-import CurrentSubsectionBanner from '../components/writing/CurrentSubsectionBanner';
+
 import ContentArea from '../components/writing/ContentArea';
 import ContentButtons from '../components/writing/ContentButtons';
 import ChapterStructureModal from '../components/writing/ChapterStructureModal';
@@ -56,7 +56,6 @@ const Write = () => {
   const [resetModalType, setResetModalType] = useState(null);
   const [processingReset, setProcessingReset] = useState(false);
   const [currentContent, setCurrentContent] = useState('');
-  const [currentSubsectionIndex, setCurrentSubsectionIndex] = useState(0);
   const [generatedSubsections, setGeneratedSubsections] = useState({});
   const [chapterCitations, setChapterCitations] = useState({});
   const [uploadedFindings, setUploadedFindings] = useState(null);
@@ -113,13 +112,11 @@ const Write = () => {
 
   const currentChapter = chapters.find(c => c.id === activeChapter);
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
-  const currentSubsection = isViewingReferences ? { id: 'references', title: 'References', type: 'references', generated: true } : activeSubsections[currentSubsectionIndex];
-
   const feedbackBase = project?.tier === 'premium' ? 12 : 6;
 
-  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
+  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
@@ -252,8 +249,6 @@ const Write = () => {
         if (result?.skipped) continue;
         setChapterCitations(prev => ({ ...prev, [regeneratingChapter]: [...new Set([...(prev[regeneratingChapter] || []), ...result.citations])] }));
         setGeneratedSubsections(prev => ({ ...prev, [regeneratingChapter]: { ...prev[regeneratingChapter], [result.subsectionId]: result.content } }));
-        const derivedCurrentSub = activeSubsections.find(s => s.id === currentSubsection?.id);
-        if (derivedCurrentSub?.id === result.subsectionId) setCurrentContent(result.content);
       }
       setRegeneratingChapter(null);
       toastSuccess('Content regenerated with new word count!');
@@ -324,15 +319,14 @@ const Write = () => {
     else if (result.action === 'showWordCount') { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount(chapterId); }
     else if (result.action === 'openChapter') {
       setActiveChapter(chapterId); setIsViewingReferences(false); setIsPreviewMode(true);
-      const idx = result.firstIndex; setCurrentSubsectionIndex(idx >= 0 ? idx : 0);
-      setCurrentContent(result.content); setShowReferenceInTextarea(false);
+      setCurrentContent(''); setShowReferenceInTextarea(false);
       if (result.needsSubtopics) handleWrappedGenerateSubtopics(chapterId);
     }
   };
 
   const wrappedHandleChapterStructureSubmit = async (referenceData) => {
     const setUploadedFiles = modals.setUploadedStructureFile;
-    const result = await handleChapterStructureSubmit(referenceData, modals.pendingChapterForStructure, instrumentsCompleted, modals.setShowUploadFindings, modals.setShowWordCountModal, modals.setPendingChapterAfterWordCount, modals.setPendingChapterForStructure, modals.setShowChapterStructureModal, setUploadedFiles, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent);
+    const result = await handleChapterStructureSubmit(referenceData, modals.pendingChapterForStructure, instrumentsCompleted, modals.setShowUploadFindings, modals.setShowWordCountModal, modals.setPendingChapterAfterWordCount, modals.setPendingChapterForStructure, modals.setShowChapterStructureModal, setUploadedFiles, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentContent);
     if (result?.action === 'error') toastError(result.message);
   };
 
@@ -362,8 +356,7 @@ const Write = () => {
       const chapter = chapters.find(c => c.id === chapterId);
       if (chapter) {
         setActiveChapter(chapterId); setIsViewingReferences(false); setIsPreviewMode(true);
-        const idx = chapter.subsections.findIndex(s => s.type !== 'references');
-        setCurrentSubsectionIndex(idx >= 0 ? idx : 0); setCurrentContent(''); setShowReferenceInTextarea(false);
+        setCurrentContent(''); setShowReferenceInTextarea(false);
       }
     }
     modals.setPendingChapterAfterWordCount(null);
@@ -381,7 +374,7 @@ const Write = () => {
         confirmText: 'Continue',
         onConfirm: () => {
           setActiveChapter(result.nextChapterId); setIsViewingReferences(false); setIsPreviewMode(true);
-          setCurrentSubsectionIndex(0); setCurrentContent(''); setShowReferenceInTextarea(false);
+          setCurrentContent(''); setShowReferenceInTextarea(false);
           setConfirmModal(null);
         },
         onCancel: () => setConfirmModal(null),
@@ -432,9 +425,6 @@ const Write = () => {
   };
 
   const wrappedGenerateReferences = async () => {
-    if (currentSubsection && currentSubsection.type !== 'references') {
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: currentContent } }));
-    }
     setGeneratingReferences(true);
     try {
       const result = await handleGenerateReferences(currentChapter, currentContent);
@@ -450,33 +440,18 @@ const Write = () => {
   };
 
   const wrappedHandleSubsectionClick = (subsectionId) => {
-    const activeSubs = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
-    let sub = currentChapter?.subsections.find(s => s.id === subsectionId);
-    let parentSub = null;
-    if (!sub) {
-      for (const s of (currentChapter?.subsections || [])) {
-        const child = (s.children || []).find(c => c.id === subsectionId);
-        if (child) { sub = child; parentSub = s; break; }
-      }
-    }
+    const sub = currentChapter?.subsections.find(s => s.id === subsectionId);
     if (!sub) return;
     if (sub?.type === 'references') {
-      const allOthersGenerated = activeSubs.length > 0 && activeSubs.every(s => s.generated);
+      const allOthersGenerated = activeSubsections.length > 0 && activeSubsections.every(s => s.generated);
       if (!allOthersGenerated) { toastError('Please write all other subsections first.'); return; }
       const existingRefs = generatedSubsections[activeChapter]?.references;
       if (existingRefs && existingRefs.length > 0) {
         setCurrentContent(existingRefs); setShowReferenceInTextarea(true);
-        setIsViewingReferences(true); setIsPreviewMode(true); setCurrentSubsection(sub);
+        setIsViewingReferences(true); setIsPreviewMode(true);
         return;
       }
       wrappedGenerateReferences(); return;
-    }
-    const targetId = parentSub ? parentSub.id : sub.id;
-    const index = activeSubs.findIndex(s => s.id === targetId);
-    if (index !== -1) {
-      setCurrentSubsectionIndex(index); setIsViewingReferences(false); setIsPreviewMode(true);
-      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubs[index].id] || '');
-      setShowReferenceInTextarea(false);
     }
   };
 
@@ -493,7 +468,7 @@ const Write = () => {
       const applyChanges = () => {
         captureVersion(activeChapter, modals.currentFeedbackSubsection.id, currentContentText, 'Feedback Applied');
         setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
-        if (currentSubsection?.id === modals.currentFeedbackSubsection.id) setCurrentContent(modifiedContent);
+        setCurrentContent(modifiedContent);
         setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
       autoGenerateReferences(activeChapter, true).then(refResult => {
           if (refResult && refResult.content) {
@@ -544,14 +519,12 @@ const Write = () => {
     await generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
-      const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.type !== 'references') || 0;
-      setCurrentSubsectionIndex(idx); setCurrentContent(''); }
+      setCurrentContent(''); }
   };
   const handleGenerateWithAI = async (findingsData) => { setUploadedFindings(findingsData); modals.setShowUploadFindings(false); await generateSubtopicsForChapter('chapter4');
     if (!chapterWordCountSet['chapter4']) { modals.setShowWordCountModal(true); modals.setPendingChapterAfterWordCount('chapter4'); }
     else { setActiveChapter('chapter4'); setIsViewingReferences(false); setIsPreviewMode(true);
-      const idx = chapters.find(c => c.id === 'chapter4')?.subsections.findIndex(s => s.type !== 'references') || 0;
-      setCurrentSubsectionIndex(idx); setCurrentContent(''); }
+      setCurrentContent(''); }
   };
 
   const handleInstrumentsDownload = (downloadedTypes) => {
@@ -601,20 +574,13 @@ const Write = () => {
     setGeneratedSubsections(prev => ({
       ...prev, [chapterId]: { ...prev[chapterId], [subsectionId]: content }
     }));
-    if (currentSubsection?.id === subsectionId) setCurrentContent(content);
+    setCurrentContent(content);
     setVersionBrowserSubsection(null);
   };
 
   const handleHelpClose = () => setShowHelpModal(false);
 
-  const overallProgress = calculateOverallProgress(chapters, generatedSubsections);
-  const totalActive = activeSubsections.length;
-  const generatedActive = activeSubsections.filter(s => s.generated).length;
   const chapterComplete = isChapterComplete();
-  const referencesSub = currentChapter?.subsections.find(s => s.type === 'references');
-  const refContent = generatedSubsections[activeChapter]?.references || generatedSubsections[activeChapter]?.['References'] || '';
-  const referencesGenerated = referencesSub?.generated || (refContent && refContent.length > 0);
-
   const getButtonText = () => {
     const lastIdx = chapters.length - 1;
     const curIdx = chapters.findIndex(c => c.id === activeChapter);
@@ -624,12 +590,11 @@ const Write = () => {
   const feedbackLeft = feedbackBase - (feedbackUsed[activeChapter] || 0);
 
   const handleSaveEdit = () => {
-    if (currentSubsection) {
-      const key = currentSubsection.id || 'references';
-      captureVersion(activeChapter, key, generatedSubsections[activeChapter]?.[key], 'Manual Edit');
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [key]: currentContent } }));
+    if (currentContent) {
+      captureVersion(activeChapter, 'fullChapter', generatedSubsections[activeChapter]?.fullChapter, 'Manual Edit');
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], fullChapter: currentContent } }));
+      setIsPreviewMode(true);
     }
-    setIsPreviewMode(true);
   };
 
   const currentWordCount = currentContent ? currentContent.split(/\s+/).filter(Boolean).length : 0;
@@ -653,7 +618,7 @@ const Write = () => {
         width: '400px', minWidth: '400px', height: '100vh', overflowY: 'auto', backgroundColor: colors.surface,
         transition: 'transform 0.3s ease',
       }}>
-        <LeftPane chapters={chapters} activeChapter={activeChapter} onChapterClick={wrappedHandleChapterClick} progress={overallProgress}
+        <LeftPane chapters={chapters} activeChapter={activeChapter} onChapterClick={wrappedHandleChapterClick}
           onDeleteSubsection={handleDeleteWithUndo} onRestoreSubsection={handleRestoreSubsection} onCustomizeSubsection={handleCustomizeSubsection} onRenameSubsection={handleRenameSubsection}
           onAddSubsection={handleAddSubsection} onSubsectionClick={wrappedHandleSubsectionClick} generatingSubtopics={generatingSubtopics}
           generatedSubsections={generatedSubsections} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleWrappedDrop}
@@ -702,15 +667,12 @@ const Write = () => {
             </div>
           ) : (
             <>
-              <CurrentSubsectionBanner subsection={currentSubsection} currentIndex={currentSubsectionIndex} totalCount={activeSubsections.length} isViewingReferences={isViewingReferences} />
-
                <ContentArea
                   content={currentContent}
                   isPreviewMode={isPreviewMode}
                   onTogglePreview={setIsPreviewMode}
                   onSaveEdit={handleSaveEdit}
                   onChange={setCurrentContent}
-                  currentSubsection={currentSubsection}
                   showReferenceInTextarea={showReferenceInTextarea}
                   generatingReferences={generatingReferences}
                   highlightRanges={highlightRanges}
@@ -721,7 +683,7 @@ const Write = () => {
                   onEditVisual={(blockIndex, newData) => {
                    const blocks = parseContentBlocks(currentContent);
                    const block = blocks[blockIndex];
-                   if (!block || !currentSubsection) return;
+                   if (!block) return;
                    let newContent = currentContent;
                    if (block.type === 'chart' && block.originalText) {
                      const pairs = (newData.labels || []).map((l, i) => `${l}: ${(newData.values || [])[i] || 0}`).join(', ');
@@ -754,25 +716,18 @@ const Write = () => {
                    }
                    if (newContent !== currentContent) {
                      setCurrentContent(newContent);
-                     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [currentSubsection.id]: newContent } }));
+                     setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], fullChapter: newContent } }));
                    }
                  }}
                />
 
                <ContentButtons
                  isViewingReferences={isViewingReferences}
-                 activeSubsections={activeSubsections}
                  generatingChapter={generatingChapter}
                  chapterComplete={chapterComplete}
-                 overallProgress={overallProgress}
-                 generatedActive={generatedActive}
-                 totalActive={totalActive}
-                 referencesSub={referencesSub}
-                 referencesGenerated={referencesGenerated}
                  onGenerateChapter={wrappedGenerateChapter}
                  onComplete={wrappedHandleCompleteChapter}
                  getButtonText={getButtonText}
-                allGenerated={generatedActive === totalActive && totalActive > 0}
                 />
                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
                   <button onClick={async () => {

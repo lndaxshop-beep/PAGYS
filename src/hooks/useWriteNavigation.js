@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { renumberSubsections, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
-const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, literatureReviewType) => {
+const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, literatureReviewType) => {
   const handleChapterClick = useCallback(async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (chapter && chapter.unlocked) {
@@ -12,15 +12,14 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
       return {
         action: 'openChapter',
         chapterId,
-        firstIndex: chapter.subsections.findIndex(s => s.type !== 'references'),
-        content: chapter.generated ? (generatedSubsections[chapterId]?.[chapter.subsections.find(s => s.type !== 'references')?.id] || '') : '',
+        content: '',
         needsSubtopics: !chapter.generated || chapter.subsections.length === 0
       };
     }
     return { action: 'locked', chapterId };
   }, [chapters, chapterWordCountSet, generatedSubsections, literatureReviewType]);
 
-  const handleChapterStructureSubmit = useCallback(async (referenceData, pendingChapterForStructure, instrumentsCompleted, setShowUploadFindings, setShowWordCountModal, setPendingChapterAfterWordCount, setPendingChapterForStructure, setShowChapterStructureModal, setUploadedStructureFile, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentSubsectionIndex, setCurrentContent) => {
+  const handleChapterStructureSubmit = useCallback(async (referenceData, pendingChapterForStructure, instrumentsCompleted, setShowUploadFindings, setShowWordCountModal, setPendingChapterAfterWordCount, setPendingChapterForStructure, setShowChapterStructureModal, setUploadedStructureFile, setActiveChapter, setIsViewingReferences, setIsPreviewMode, setCurrentContent) => {
     setShowChapterStructureModal(false);
     setUploadedStructureFile(null);
     const chapterId = pendingChapterForStructure;
@@ -45,11 +44,9 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     }
     if (!chapterWordCountSet[chapterId]) { setShowWordCountModal(true); setPendingChapterAfterWordCount(chapterId); }
     else {
-      const ch = chapters.find(c => c.id === chapterId);
       setActiveChapter(chapterId);
       setIsViewingReferences(false);
       setIsPreviewMode(true);
-      setCurrentSubsectionIndex(ch?.subsections.findIndex(s => s.type !== 'references') || 0);
       setCurrentContent('');
     }
     setPendingChapterForStructure(null);
@@ -90,15 +87,6 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     }));
   }, [activeChapter, setChapters]);
 
-  const handlePrevSubsection = useCallback(() => {
-    return { action: 'prev', index: currentSubsectionIndex - 1 };
-  }, [currentSubsectionIndex]);
-
-  const handleNextSubsection = useCallback((activeSubsections) => {
-    if (currentSubsectionIndex < activeSubsections.length - 1) return { action: 'next', index: currentSubsectionIndex + 1 };
-    return null;
-  }, [currentSubsectionIndex]);
-
   const isChapterComplete = useCallback(() => {
     const currentChapter = chapters.find(c => c.id === activeChapter);
     if (!currentChapter) return false;
@@ -125,19 +113,6 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     return { action: 'none' };
   }, [chapters, activeChapter, setChapters, isChapterComplete]);
 
-  const calculateOverallProgress = useCallback(() => {
-    if (!chapters.length) return { percentage: 0, currentStep: 1, totalSteps: 1 };
-    let totalActive = 0, totalGenerated = 0;
-    chapters.forEach(ch => {
-      const active = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-      totalActive += active.length;
-      totalGenerated += active.filter(s => s.generated).length;
-    });
-    const percentage = totalActive > 0 ? Math.round((totalGenerated / totalActive) * 100) : 0;
-    const currentStep = Math.min(totalGenerated + 1, totalActive || 1);
-    return { percentage, currentStep, totalSteps: totalActive || 1 };
-  }, [chapters]);
-
   return {
     handleChapterClick,
     handleChapterStructureSubmit,
@@ -145,11 +120,8 @@ const useWriteNavigation = (project, projectId, navigate, chapters, setChapters,
     handleCustomizeSubsection,
     handleRenameSubsection,
     handleAddSubsection,
-    handlePrevSubsection,
-    handleNextSubsection,
     isChapterComplete,
     handleCompleteChapter,
-    calculateOverallProgress
   };
 };
 

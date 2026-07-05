@@ -108,8 +108,8 @@ const usePayment = (onNotify) => {
       const idToken = await getIdToken();
       const res = await fetch(`${PROXY_URL}/api/verify-payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference, projectId, tier, userId: user?.uid, idToken }),
+        headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
+        body: JSON.stringify({ reference, projectId, tier }),
       });
       const data = await res.json();
       if (!res.ok || !data.verified) {
@@ -257,9 +257,10 @@ const usePayment = (onNotify) => {
       );
 
       if (result.useRedirect) {
+        const idToken = await getIdToken();
         const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
           body: JSON.stringify({
             email: user?.email || 'customer@example.com',
             amount: ghsPrice,
@@ -297,7 +298,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, user, openPaystackPopup, cleanupIntervals]);
+  }, [onNotify, verifyPayment, user, getIdToken, openPaystackPopup, cleanupIntervals]);
 
   const upgradeToPremium = useCallback(async (projectId) => {
     setProcessing(true);
@@ -337,9 +338,10 @@ const usePayment = (onNotify) => {
       );
 
       if (result.useRedirect) {
+        const idToken = await getIdToken();
         const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
           body: JSON.stringify({
             email: user?.email || 'customer@example.com',
             amount: ghsPrice,
@@ -377,7 +379,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, user, openPaystackPopup, cleanupIntervals]);
+  }, [onNotify, verifyPayment, user, getIdToken, openPaystackPopup, cleanupIntervals]);
 
   const processSmallPayment = useCallback(async (projectId, ghsAmount, metadata, onSuccess) => {
     setProcessing(true);
@@ -416,9 +418,10 @@ const usePayment = (onNotify) => {
       );
 
       if (result.useRedirect) {
+        const idToken = await getIdToken();
         const res = await fetch(`${PROXY_URL}/api/initialize-payment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
           body: JSON.stringify({
             email: user?.email || 'customer@example.com',
             amount: ghsAmount,
@@ -460,7 +463,7 @@ const usePayment = (onNotify) => {
     } finally {
       setProcessing(false);
     }
-  }, [onNotify, verifyPayment, user, openPaystackPopup, cleanupIntervals]);
+  }, [onNotify, verifyPayment, user, getIdToken, openPaystackPopup, cleanupIntervals]);
 
   return {
     processing,

@@ -67,6 +67,9 @@ try {
 
 app.use(helmet());
 app.use(cors({ origin: ALLOWED_ORIGINS }));
+
+// Raw body capture for Paystack webhook signature verification (must be before express.json)
+app.use('/api/paystack-webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 
 const requireAuth = async (req, res, next) => {
@@ -145,7 +148,7 @@ app.post('/api/generate', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/initialize-payment', async (req, res) => {
+app.post('/api/initialize-payment', requireAuth, async (req, res) => {
   try {
     const { email, amount, currency, metadata } = req.body;
     if (!email || !amount) return res.status(400).json({ error: 'Missing email or amount' });
@@ -198,7 +201,12 @@ app.post('/api/paystack-webhook', async (req, res) => {
       return res.status(401).json({ error: 'Missing signature' });
     }
 
-    const rawBody = JSON.stringify(req.body);
+    // req.body is a raw Buffer from express.raw middleware
+    const rawBody = req.body;
+    if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
+      return res.status(400).json({ error: 'Invalid body' });
+    }
+
     const expectedSignature = crypto
       .createHmac('sha512', PAYSTACK_SECRET_KEY)
       .update(rawBody)
@@ -211,7 +219,7 @@ app.post('/api/paystack-webhook', async (req, res) => {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    const event = req.body;
+    const event = JSON.parse(rawBody.toString());
 
     if (event.event === 'charge.success') {
       const data = event.data;
@@ -260,28 +268,20 @@ app.post('/api/paystack-webhook', async (req, res) => {
     res.json({ received: true });
   } catch (err) {
     console.error('Webhook error:', err.message);
-    res.status(200).json({ received: true });
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 
-app.post('/api/verify-payment', async (req, res) => {
+app.post('/api/verify-payment', requireAuth, async (req, res) => {
   try {
-    const { reference, projectId, tier, userId, idToken } = req.body;
+    const { reference, projectId, tier } = req.body;
     if (!reference) return res.status(400).json({ error: 'Missing payment reference' });
 
     if (!paystackConfigured) {
       return res.status(500).json({ error: 'Payment gateway not configured' });
     }
 
-    let verifiedUserId = userId;
-    if (idToken && admin.apps.length > 0) {
-      try {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        verifiedUserId = decodedToken.uid;
-      } catch (authErr) {
-        console.warn('Firebase ID token verification failed:', authErr.message);
-      }
-    }
+    const verifiedUserId = req.user.uid;
 
     const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
       method: 'GET',
@@ -355,12 +355,39 @@ app.get('/api/health', (req, res) => {
 const distPath = path.resolve(__dirname, '..', 'dist');
 app.use(express.static(distPath, { maxAge: 0 }));
 
+const emailRateLimits = new Map();
+const EMAIL_ALLOWED_DOMAINS = ['pagyss.com'];
+const EMAIL_RATE_LIMIT = 5;
+const EMAIL_RATE_WINDOW_MS = 60 * 60 * 1000;
+
 app.post('/api/send-email', requireAuth, async (req, res) => {
   try {
     const { to, subject, text, html } = req.body;
     if (!to || !subject || !text) {
       return res.status(400).json({ error: 'Missing required fields: to, subject, text' });
     }
+
+    const recipientDomain = to.split('@')[1]?.toLowerCase();
+    if (!recipientDomain || !EMAIL_ALLOWED_DOMAINS.some(d => recipientDomain === d || recipientDomain.endsWith('.' + d))) {
+      return res.status(403).json({ error: 'Recipient not allowed' });
+    }
+
+    const uid = req.user.uid;
+    const now = Date.now();
+    const userLimit = emailRateLimits.get(uid);
+    if (userLimit) {
+      if (now - userLimit.windowStart < EMAIL_RATE_WINDOW_MS) {
+        if (userLimit.count >= EMAIL_RATE_LIMIT) {
+          return res.status(429).json({ error: 'Email rate limit exceeded. Try again later.' });
+        }
+        userLimit.count++;
+      } else {
+        emailRateLimits.set(uid, { windowStart: now, count: 1 });
+      }
+    } else {
+      emailRateLimits.set(uid, { windowStart: now, count: 1 });
+    }
+
     const info = await transporter.sendMail({
       from: SMTP_USER,
       to,
@@ -368,8 +395,7 @@ app.post('/api/send-email', requireAuth, async (req, res) => {
       text,
       html: html || undefined,
     });
-    console.log('Email sent:', info.messageId);
-    res.json({ success: true });
+    res.json({ success: true, messageId: info.messageId });
   } catch (err) {
     console.error('Email send error:', err.message);
     res.status(500).json({ error: err.message });

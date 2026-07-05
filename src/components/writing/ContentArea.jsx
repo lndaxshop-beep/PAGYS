@@ -68,7 +68,14 @@ const ContentArea = ({
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', alignItems: 'center' }}>
         <button
-          onClick={() => isPreviewMode ? onTogglePreview(false) : onSaveEdit()}
+          onClick={() => {
+            if (isPreviewMode) {
+              onChange(fullChapterText);
+              onTogglePreview(false);
+            } else {
+              onSaveEdit();
+            }
+          }}
           style={{
             backgroundColor: isPreviewMode ? '#d97706' : '#059669',
             color: 'white', padding: '8px 16px', border: 'none', borderRadius: '6px',
@@ -76,7 +83,7 @@ const ContentArea = ({
             display: 'flex', alignItems: 'center', gap: '6px'
           }}
         >
-          {isPreviewMode ? '✏️ Edit' : '👁️ Save & Preview'}
+          {isPreviewMode ? '✏️ Edit' : '💾 Save & Preview'}
         </button>
       </div>
 
@@ -133,7 +140,7 @@ const ContentArea = ({
               Edit Content — Full Chapter
             </h3>
             <textarea
-              value={fullChapterText}
+              value={content || fullChapterText}
               onChange={(e) => onChange(e.target.value)}
               placeholder="Edit your content here..."
               style={{

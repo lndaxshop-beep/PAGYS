@@ -728,18 +728,26 @@ const Write = () => {
                  onGenerateChapter={wrappedGenerateChapter}
                  onComplete={wrappedHandleCompleteChapter}
                  getButtonText={getButtonText}
-                />
-               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
-                  <button onClick={async () => {
+                 hasContent={!!currentContent || Object.keys(generatedSubsections[activeChapter] || {}).length > 0}
+                 feedbackLeft={feedbackLeft}
+                 feedbackBase={feedbackBase}
+                 onFeedback={() => {
+                   const targetSub = currentChapter?.subsections.find(s => s.type !== 'references' && !s.deleted);
+                   if (targetSub) modals.openFeedbackModal(targetSub);
+                 }}
+                 onResetFeedback={() => setResetModalType('feedback')}
+                 onOpenVersions={() => {
+                   const targetSub = currentChapter?.subsections.find(s => s.type !== 'references' && !s.deleted);
+                   if (targetSub) setVersionBrowserSubsection(targetSub);
+                 }}
+                 onCheckSources={async () => {
                    if (!currentContent) return;
                    const { checkPlagiarism } = await import('../utils/plagiarismChecker.js');
                    const result = checkPlagiarism(currentContent, sourceLibrary?.sources || []);
                    setPlagiarismResult(result);
                    setShowPlagiarismModal(true);
-                 }} style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '6px', backgroundColor: '#7c3aed', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
-                   📋 Check Sources
-                 </button>
-               </div>
+                 }}
+                />
              </>
           )}
         </div>

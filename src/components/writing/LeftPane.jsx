@@ -240,25 +240,30 @@ const LeftPane = ({
                   )}
 
                   <AddSubsection onAdd={(title) => onAddSubsection(title, chapter.id)} />
-                  {onGenerateChapter && activeSubsections.some(s => !subsectionsExist(s, chapter, generatedSubsections) && s.type !== 'references') && (
-                    <button
-                      onClick={() => onGenerateChapter(chapter.id)}
-                      disabled={generatingChapter}
-                      style={{
-                        marginTop: '12px', width: '100%', padding: '8px', fontSize: '12px',
-                        backgroundColor: generatingChapter ? colors.border : (isDarkMode ? '#2d2d2d' : '#f0f0ff'),
-                        color: generatingChapter ? colors.textSecondary : colors.primary,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: '6px', cursor: generatingChapter ? 'not-allowed' : 'pointer',
-                        fontWeight: '500', opacity: generatingChapter ? 0.5 : 1,
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { if (!generatingChapter) { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; } }}
-                      onMouseLeave={(e) => { if (!generatingChapter) { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; } }}
-                    >
-                      {generatingChapter ? '⏳ Writing Chapter...' : '✍️ Write Chapter'}
-                    </button>
-                  )}
+                  {onGenerateChapter && (() => {
+                    const nonRefSubs = activeSubsections.filter(s => s.type !== 'references');
+                    const chapterDone = nonRefSubs.length > 0 && nonRefSubs.every(s => subsectionsExist(s, chapter, generatedSubsections));
+                    const btnDisabled = generatingChapter || chapterDone;
+                    return (
+                      <button
+                        onClick={() => onGenerateChapter(chapter.id)}
+                        disabled={btnDisabled}
+                        style={{
+                          marginTop: '12px', width: '100%', padding: '8px', fontSize: '12px',
+                          backgroundColor: btnDisabled ? colors.border : (isDarkMode ? '#2d2d2d' : '#f0f0ff'),
+                          color: btnDisabled ? colors.textSecondary : colors.primary,
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: '6px', cursor: btnDisabled ? 'not-allowed' : 'pointer',
+                          fontWeight: '500', opacity: btnDisabled ? 0.5 : 1,
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { if (!btnDisabled) { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; } }}
+                        onMouseLeave={(e) => { if (!btnDisabled) { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; } }}
+                      >
+                        {generatingChapter ? '⏳ Writing Chapter...' : chapterDone ? '✅ Chapter Written' : '✍️ Write Chapter'}
+                      </button>
+                    );
+                  })()}
                   {isPremium && <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />}
                   <DeletedSubsections
                     chapterId={chapter.id}

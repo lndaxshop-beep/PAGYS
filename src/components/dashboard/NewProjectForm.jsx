@@ -109,13 +109,13 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(PRICES_GHS.regular)}</div>
-                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4' }}>
+                <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4', listStyle: 'decimal' }}>
                   <li style={{ marginBottom: '8px' }}>Remove AI (5 free uses per project)</li>
                   <li style={{ marginBottom: '8px' }}>Feedback (6 uses per chapter)</li>
                   <li style={{ marginBottom: '8px' }}>Full thesis generation</li>
                   <li style={{ marginBottom: '8px' }}>Professional tables & charts</li>
                   <li style={{ marginBottom: '8px' }}>DOCX / PDF / Markdown / LaTeX export</li>
-                </ul>
+                </ol>
               </div>
               <div
                 onClick={() => onTierChange('premium')}
@@ -132,14 +132,14 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(PRICES_GHS.premium)}</div>
-                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4' }}>
+                <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4', listStyle: 'decimal' }}>
                   <li style={{ marginBottom: '8px' }}>Remove AI (10 free uses per project)</li>
                   <li style={{ marginBottom: '8px' }}>Feedback (12 uses per chapter)</li>
                   <li style={{ marginBottom: '8px' }}>Write All Remaining at once</li>
                   <li style={{ marginBottom: '8px' }}>Search Literature & Add Sources</li>
                   <li style={{ marginBottom: '8px' }}>Custom chapter guidelines</li>
                   <li style={{ marginBottom: '8px' }}>And many more features... ⭐</li>
-                </ul>
+                </ol>
                 {selectedTier === 'premium' && (
                   <div style={{ marginTop: '8px', fontSize: '11px', color: '#d97706', fontWeight: '500' }}>
                     ⭐ Best value for full features

@@ -2,9 +2,8 @@ import { genAI, MODEL } from './config';
 import { extractJSON } from './utils';
 
 export const generateQuestionnaire = async (project) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const prompt = `You are an expert research methodology advisor. Generate a complete, research-specific questionnaire.
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const prompt = `You are an expert research methodology advisor. Generate a complete, research-specific questionnaire.
 
 PROJECT TITLE: "${project.title}"
 FIELD: ${project.field}
@@ -46,15 +45,13 @@ Rules:
 - Do NOT include generic questions unrelated to the specific research topic.
 
 Return ONLY valid JSON.`;
-    const result = await model.generateContent(prompt);
-    return extractJSON(result.response.text());
-  } catch (error) { console.error('Error generating questionnaire:', error); return null; }
+  const result = await model.generateContent(prompt);
+  return extractJSON(result.response.text());
 };
 
 export const generateInterviewGuide = async (project) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const prompt = `You are an expert qualitative researcher. Generate a semi-structured interview guide tailored to the specific research study.
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const prompt = `You are an expert qualitative researcher. Generate a semi-structured interview guide tailored to the specific research study.
 
 PROJECT TITLE: "${project.title}"
 FIELD: ${project.field}
@@ -104,15 +101,13 @@ Rules:
 - The depth and number of questions should be appropriate for the academic level and methodology.
 
 Return ONLY valid JSON.`;
-    const result = await model.generateContent(prompt);
-    return extractJSON(result.response.text());
-  } catch (error) { console.error('Error generating interview guide:', error); return null; }
+  const result = await model.generateContent(prompt);
+  return extractJSON(result.response.text());
 };
 
 export const generateFocusGroupProtocol = async (project) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const prompt = `You are an expert in qualitative focus group methodology. Generate a discussion protocol tailored to the specific research study.
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const prompt = `You are an expert in qualitative focus group methodology. Generate a discussion protocol tailored to the specific research study.
 
 PROJECT TITLE: "${project.title}"
 FIELD: ${project.field}
@@ -160,15 +155,13 @@ Rules:
 - The number and depth of topics should be appropriate for the academic level and research scope.
 
 Return ONLY valid JSON.`;
-    const result = await model.generateContent(prompt);
-    return extractJSON(result.response.text());
-  } catch (error) { console.error('Error generating focus group protocol:', error); return null; }
+  const result = await model.generateContent(prompt);
+  return extractJSON(result.response.text());
 };
 
 export const generateObservationChecklist = async (project) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const prompt = `You are an expert in observational research methodology. Generate a structured observation checklist tailored to the specific research study.
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const prompt = `You are an expert in observational research methodology. Generate a structured observation checklist tailored to the specific research study.
 
 PROJECT TITLE: "${project.title}"
 FIELD: ${project.field}
@@ -213,15 +206,13 @@ Rules:
 - The number and specificity of indicators should be appropriate for the academic level and research scope.
 
 Return ONLY valid JSON.`;
-    const result = await model.generateContent(prompt);
-    return extractJSON(result.response.text());
-  } catch (error) { console.error('Error generating observation checklist:', error); return null; }
+  const result = await model.generateContent(prompt);
+  return extractJSON(result.response.text());
 };
 
 export const generateDocumentAnalysisTemplate = async (project) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const prompt = `You are an expert in document analysis and content analysis methodology. Generate a document analysis template tailored to the specific research study.
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const prompt = `You are an expert in document analysis and content analysis methodology. Generate a document analysis template tailored to the specific research study.
 
 PROJECT TITLE: "${project.title}"
 FIELD: ${project.field}
@@ -265,15 +256,13 @@ Rules:
 - The number and depth of codes should be appropriate for the academic level and research scope.
 
 Return ONLY valid JSON.`;
-    const result = await model.generateContent(prompt);
-    return extractJSON(result.response.text());
-  } catch (error) { console.error('Error generating document analysis template:', error); return null; }
+  const result = await model.generateContent(prompt);
+  return extractJSON(result.response.text());
 };
 
 export const generateCaseStudyProtocol = async (project) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const prompt = `You are an expert in case study research methodology. Generate a comprehensive research protocol tailored to the specific study.
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const prompt = `You are an expert in case study research methodology. Generate a comprehensive research protocol tailored to the specific study.
 
 PROJECT TITLE: "${project.title}"
 FIELD: ${project.field}
@@ -319,9 +308,8 @@ Rules:
 - The depth and rigor should be appropriate for the academic level.
 
 Return ONLY valid JSON.`;
-    const result = await model.generateContent(prompt);
-    return extractJSON(result.response.text());
-  } catch (error) { console.error('Error generating case study protocol:', error); return null; }
+  const result = await model.generateContent(prompt);
+  return extractJSON(result.response.text());
 };
 
 export const recommendLiteratureReviewType = async (project) => {

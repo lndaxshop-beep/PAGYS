@@ -1,4 +1,4 @@
-import{genAI as a,MODEL as s}from"./config-ZRg6eLvn.js";import{a as n}from"./sourceExtractor-CdYfTMU0.js";const p=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are a research methodology expert. Generate realistic sample survey data for an academic study.
+import{genAI as s,MODEL as o}from"./config-ZRg6eLvn.js";import{a as n}from"./sourceExtractor-CdYfTMU0.js";const p=async e=>{try{const t=s.getGenerativeModel({model:o}),i=`You are a research methodology expert. Generate realistic sample survey data for an academic study.
 
 PROJECT TOPIC: "${e?.topic||e?.title||"A research study"}"
 FIELD: ${e?.field||"Social Sciences"}
@@ -31,13 +31,13 @@ Return ONLY valid JSON with this exact structure:
   "statisticalData": { "meanAge": number, "satisfactionRate": number, "adoptionRate": number, "responseRate": number }
 }
 
-Make all data contextually realistic for the specific topic and field. Data must be internally consistent (percentages add up, demographic totals match totalResponses).`,c=(await t.generateContent(o)).response.text(),r=n(c);return r&&r.totalResponses?r:d(e)}catch(t){return console.error("Error generating sample data:",t),d(e)}},g=async(e,t)=>{try{const o=a.getGenerativeModel({model:s}),i=e.substring(0,2e4),c=`You are a qualitative research analyst. Analyze the following interview/transcript data and extract structured findings.
+Make all data contextually realistic for the specific topic and field. Data must be internally consistent (percentages add up, demographic totals match totalResponses).`,c=(await t.generateContent(i)).response.text(),r=n(c);return r&&r.totalResponses?r:d(e)}catch(t){return console.error("Error generating sample data:",t),d(e)}},g=async(e,t)=>{try{const i=s.getGenerativeModel({model:o}),a=e.substring(0,2e4),c=`You are a qualitative research analyst. Analyze the following interview/transcript data and extract structured findings.
 
 PROJECT TOPIC: "${t?.topic||t?.title||"Research Study"}"
 FIELD: ${t?.field||"Social Sciences"}
 
 TEXT TO ANALYZE:
-${i}
+${a}
 
 Extract:
 1. Total number of respondents/interviews
@@ -56,7 +56,7 @@ Return ONLY valid JSON:
     { "question": "Key Theme: Theme Name", "answers": { "Mentioned": count, "Not mentioned": number } }
   ],
   "keyFindings": ["string"]
-}`,u=(await o.generateContent(c)).response.text(),l=n(u);return l&&l.totalResponses?l:{totalResponses:0,themes:[],demographicData:{},responses:[],keyFindings:["Unable to analyze the provided text. Please check the format and try again."]}}catch(o){return console.error("Error analyzing transcript:",o),{totalResponses:0,themes:[],demographicData:{},responses:[],keyFindings:["Analysis failed. Please try again."]}}},d=e=>{const t=e?.field?.toLowerCase()||"",o=t.includes("education"),i=t.includes("business")||t.includes("management");return o?{totalResponses:48,demographicData:{ageRanges:{"18-25":8,"26-35":20,"36-45":12,"46-55":6,"55+":2},gender:{Male:18,Female:30},education:{"High School":5,"Bachelor's Degree":22,"Master's Degree":16,PhD:5}},responses:[{question:"How would you rate the current teaching methods?",answers:{"Very Poor":3,Poor:6,Average:14,Good:18,Excellent:7}},{question:"Which teaching resources do you use most?",answers:{Textbooks:38,"Digital Tools":32,"Lab Equipment":15,"Online Platforms":28,Charts:10}},{question:"How has technology impacted learning outcomes?",answers:{"Significantly Improved":20,Improved:16,"No Change":8,Declined:3,"Significantly Declined":1}}],keyFindings:["52% of educators rated current teaching methods as good or excellent","Digital tools and online platforms are widely adopted alongside traditional textbooks","Technology integration has positively impacted learning outcomes for 75% of respondents","Experienced educators show higher satisfaction with existing resources","Budget constraints remain the primary barrier to accessing advanced teaching resources"],statisticalData:{meanAge:34.6,satisfactionRate:3.8,adoptionRate:.75,responseRate:.88}}:i?{totalResponses:55,demographicData:{ageRanges:{"18-25":12,"26-35":24,"36-45":13,"46-55":4,"55+":2},gender:{Male:30,Female:25},education:{"High School":6,"Bachelor's Degree":28,"Master's Degree":18,PhD:3}},responses:[{question:"What factors influence your business decisions most?",answers:{Cost:42,Quality:38,"Customer Demand":45,"Market Trends":30,Regulations:18}},{question:"How frequently does your organization adopt new technology?",answers:{"Very Frequently":10,Frequently:20,Occasionally:15,Rarely:7,Never:3}},{question:"Rate the effectiveness of current management strategies",answers:{"Very Effective":8,Effective:22,Neutral:15,Ineffective:7,"Very Ineffective":3}}],keyFindings:["Customer demand and cost are the primary drivers of business decisions","55% of organizations adopt new technology frequently or very frequently","Management strategies are rated effective by 55% of respondents","Smaller organizations show greater agility in technology adoption","Market trends have growing influence on strategic planning"],statisticalData:{meanAge:33.2,satisfactionRate:3.6,adoptionRate:.55,responseRate:.9}}:{totalResponses:52,demographicData:{ageRanges:{"18-25":15,"26-35":22,"36-45":10,"46-55":4,"55+":1},gender:{Male:28,Female:24},education:{"High School":8,"Bachelor's Degree":25,"Master's Degree":15,PhD:4}},responses:[{question:"How frequently do you use technology in your daily work?",answers:{Never:1,Rarely:4,Sometimes:10,Often:22,"Very Often":15}},{question:"What technology tools do you currently use?",answers:{Smartphones:48,"Laptops/Computers":45,Tablets:18,"Software Applications":35,"Cloud Services":28}},{question:"How has technology impacted your work efficiency?",answers:{"Significantly Improved":25,Improved:18,"No Change":6,Declined:2,"Significantly Declined":1}}],keyFindings:["85% of respondents use technology frequently in their work","Smartphones and laptops are the most commonly used tools","Technology has improved efficiency for 83% of users","Younger respondents (18-35) show higher adoption rates","Cloud services adoption is growing but remains lower than traditional tools"],statisticalData:{meanAge:32.4,satisfactionRate:4.2,adoptionRate:.85,responseRate:.92}}},y=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert research methodology advisor. Generate a complete, research-specific questionnaire.
+}`,u=(await i.generateContent(c)).response.text(),l=n(u);return l&&l.totalResponses?l:{totalResponses:0,themes:[],demographicData:{},responses:[],keyFindings:["Unable to analyze the provided text. Please check the format and try again."]}}catch(i){return console.error("Error analyzing transcript:",i),{totalResponses:0,themes:[],demographicData:{},responses:[],keyFindings:["Analysis failed. Please try again."]}}},d=e=>{const t=e?.field?.toLowerCase()||"",i=t.includes("education"),a=t.includes("business")||t.includes("management");return i?{totalResponses:48,demographicData:{ageRanges:{"18-25":8,"26-35":20,"36-45":12,"46-55":6,"55+":2},gender:{Male:18,Female:30},education:{"High School":5,"Bachelor's Degree":22,"Master's Degree":16,PhD:5}},responses:[{question:"How would you rate the current teaching methods?",answers:{"Very Poor":3,Poor:6,Average:14,Good:18,Excellent:7}},{question:"Which teaching resources do you use most?",answers:{Textbooks:38,"Digital Tools":32,"Lab Equipment":15,"Online Platforms":28,Charts:10}},{question:"How has technology impacted learning outcomes?",answers:{"Significantly Improved":20,Improved:16,"No Change":8,Declined:3,"Significantly Declined":1}}],keyFindings:["52% of educators rated current teaching methods as good or excellent","Digital tools and online platforms are widely adopted alongside traditional textbooks","Technology integration has positively impacted learning outcomes for 75% of respondents","Experienced educators show higher satisfaction with existing resources","Budget constraints remain the primary barrier to accessing advanced teaching resources"],statisticalData:{meanAge:34.6,satisfactionRate:3.8,adoptionRate:.75,responseRate:.88}}:a?{totalResponses:55,demographicData:{ageRanges:{"18-25":12,"26-35":24,"36-45":13,"46-55":4,"55+":2},gender:{Male:30,Female:25},education:{"High School":6,"Bachelor's Degree":28,"Master's Degree":18,PhD:3}},responses:[{question:"What factors influence your business decisions most?",answers:{Cost:42,Quality:38,"Customer Demand":45,"Market Trends":30,Regulations:18}},{question:"How frequently does your organization adopt new technology?",answers:{"Very Frequently":10,Frequently:20,Occasionally:15,Rarely:7,Never:3}},{question:"Rate the effectiveness of current management strategies",answers:{"Very Effective":8,Effective:22,Neutral:15,Ineffective:7,"Very Ineffective":3}}],keyFindings:["Customer demand and cost are the primary drivers of business decisions","55% of organizations adopt new technology frequently or very frequently","Management strategies are rated effective by 55% of respondents","Smaller organizations show greater agility in technology adoption","Market trends have growing influence on strategic planning"],statisticalData:{meanAge:33.2,satisfactionRate:3.6,adoptionRate:.55,responseRate:.9}}:{totalResponses:52,demographicData:{ageRanges:{"18-25":15,"26-35":22,"36-45":10,"46-55":4,"55+":1},gender:{Male:28,Female:24},education:{"High School":8,"Bachelor's Degree":25,"Master's Degree":15,PhD:4}},responses:[{question:"How frequently do you use technology in your daily work?",answers:{Never:1,Rarely:4,Sometimes:10,Often:22,"Very Often":15}},{question:"What technology tools do you currently use?",answers:{Smartphones:48,"Laptops/Computers":45,Tablets:18,"Software Applications":35,"Cloud Services":28}},{question:"How has technology impacted your work efficiency?",answers:{"Significantly Improved":25,Improved:18,"No Change":6,Declined:2,"Significantly Declined":1}}],keyFindings:["85% of respondents use technology frequently in their work","Smartphones and laptops are the most commonly used tools","Technology has improved efficiency for 83% of users","Younger respondents (18-35) show higher adoption rates","Cloud services adoption is growing but remains lower than traditional tools"],statisticalData:{meanAge:32.4,satisfactionRate:4.2,adoptionRate:.85,responseRate:.92}}},y=async e=>{const t=s.getGenerativeModel({model:o}),i=`You are an expert research methodology advisor. Generate a complete, research-specific questionnaire.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -97,7 +97,7 @@ Rules:
 - Include open-ended questions where qualitative depth is needed.
 - Do NOT include generic questions unrelated to the specific research topic.
 
-Return ONLY valid JSON.`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error generating questionnaire:",t),null}},f=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert qualitative researcher. Generate a semi-structured interview guide tailored to the specific research study.
+Return ONLY valid JSON.`,a=await t.generateContent(i);return n(a.response.text())},f=async e=>{const t=s.getGenerativeModel({model:o}),i=`You are an expert qualitative researcher. Generate a semi-structured interview guide tailored to the specific research study.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -146,7 +146,7 @@ Rules:
 - Include a closing section that allows participants to add anything not covered.
 - The depth and number of questions should be appropriate for the academic level and methodology.
 
-Return ONLY valid JSON.`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error generating interview guide:",t),null}},v=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert in qualitative focus group methodology. Generate a discussion protocol tailored to the specific research study.
+Return ONLY valid JSON.`,a=await t.generateContent(i);return n(a.response.text())},v=async e=>{const t=s.getGenerativeModel({model:o}),i=`You are an expert in qualitative focus group methodology. Generate a discussion protocol tailored to the specific research study.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -193,7 +193,7 @@ Rules:
 - Include a wrap-up section that summarizes key themes and invites final reflections.
 - The number and depth of topics should be appropriate for the academic level and research scope.
 
-Return ONLY valid JSON.`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error generating focus group protocol:",t),null}},b=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert in observational research methodology. Generate a structured observation checklist tailored to the specific research study.
+Return ONLY valid JSON.`,a=await t.generateContent(i);return n(a.response.text())},b=async e=>{const t=s.getGenerativeModel({model:o}),i=`You are an expert in observational research methodology. Generate a structured observation checklist tailored to the specific research study.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -237,7 +237,7 @@ Rules:
 - For rating scales, tailor the scale anchors to the construct being measured.
 - The number and specificity of indicators should be appropriate for the academic level and research scope.
 
-Return ONLY valid JSON.`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error generating observation checklist:",t),null}},E=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert in document analysis and content analysis methodology. Generate a document analysis template tailored to the specific research study.
+Return ONLY valid JSON.`,a=await t.generateContent(i);return n(a.response.text())},E=async e=>{const t=s.getGenerativeModel({model:o}),i=`You are an expert in document analysis and content analysis methodology. Generate a document analysis template tailored to the specific research study.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -280,7 +280,7 @@ Rules:
 - Organize codes into thematic sections that align with the study's conceptual framework.
 - The number and depth of codes should be appropriate for the academic level and research scope.
 
-Return ONLY valid JSON.`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error generating document analysis template:",t),null}},O=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert in case study research methodology. Generate a comprehensive research protocol tailored to the specific study.
+Return ONLY valid JSON.`,a=await t.generateContent(i);return n(a.response.text())},O=async e=>{const t=s.getGenerativeModel({model:o}),i=`You are an expert in case study research methodology. Generate a comprehensive research protocol tailored to the specific study.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -325,7 +325,7 @@ Rules:
 - Include a timeline with phases appropriate for the scope and level of the research.
 - The depth and rigor should be appropriate for the academic level.
 
-Return ONLY valid JSON.`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error generating case study protocol:",t),null}},N=async e=>{try{const t=a.getGenerativeModel({model:s}),o=`You are an expert research methodology advisor. Based on the following research project, recommend the most appropriate literature review type.
+Return ONLY valid JSON.`,a=await t.generateContent(i);return n(a.response.text())},N=async e=>{try{const t=s.getGenerativeModel({model:o}),i=`You are an expert research methodology advisor. Based on the following research project, recommend the most appropriate literature review type.
 
 PROJECT TITLE: "${e.title}"
 FIELD: ${e.field}
@@ -344,4 +344,4 @@ Return ONLY valid JSON in this structure:
   "reason": "Specific paragraph explaining why this type is best for this particular project, referencing the topic, field, and methodology.",
   "approach": "Concise paragraph describing how to approach the review using this type.",
   "keyElements": ["Element 1", "Element 2", "Element 3", "Element 4"]
-}`,i=await t.generateContent(o);return n(i.response.text())}catch(t){return console.error("Error recommending literature review type:",t),null}};export{g as a,E as b,v as c,f as d,b as e,y as f,O as g,p as h,N as r};
+}`,a=await t.generateContent(i);return n(a.response.text())}catch(t){return console.error("Error recommending literature review type:",t),null}};export{g as a,E as b,v as c,f as d,b as e,y as f,O as g,p as h,N as r};

@@ -1,4 +1,4 @@
-import{genAI as p,MODEL as E}from"./config-ZRg6eLvn.js";import{getWordCountPreset as Q}from"./config-ZRg6eLvn.js";import{c as R,b}from"./sourceExtractor-CdYfTMU0.js";import{e as ee,g as te}from"./sourceExtractor-CdYfTMU0.js";import{r as U}from"./instruments-BRyBIz-W.js";import{a as re,g as ae,b as se,c as ie,d as oe,e as ce,f as le,h as he}from"./instruments-BRyBIz-W.js";import"./mermaid-DnMQf98b.js";import"./react-vendor-BS-ySqmm.js";const I=`IMPORTANT TABLE RULES:
+import{genAI as p,MODEL as E}from"./config-ZRg6eLvn.js";import{getWordCountPreset as Q}from"./config-ZRg6eLvn.js";import{c as R,b}from"./sourceExtractor-CdYfTMU0.js";import{e as ee,g as te}from"./sourceExtractor-CdYfTMU0.js";import{r as U}from"./instruments-C2dgth3O.js";import{a as re,g as ae,b as se,c as ie,d as oe,e as ce,f as le,h as he}from"./instruments-C2dgth3O.js";import"./mermaid-DnMQf98b.js";import"./react-vendor-BS-ySqmm.js";const I=`IMPORTANT TABLE RULES:
 - Use natural markdown table format with header row and separator row
 - Header row: | Column 1 | Column 2 | Column 3 |
 - Separator row: |----------|----------|----------|

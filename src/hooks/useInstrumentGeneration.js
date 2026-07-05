@@ -50,19 +50,24 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
     setError(null);
     setGenerationProgress(0);
     const results = {};
+    let lastError = null;
     let completed = 0;
     for (const instrumentId of selectedInstruments) {
       try {
         const generator = generators[instrumentId];
-        if (generator) { const data = await generator(project); if (data) { results[instrumentId] = data; } }
-      } catch (err) { console.error(`Error generating ${instrumentId}:`, err); results[instrumentId] = null; }
+        if (generator) {
+          const data = await generator(project);
+          if (data) { results[instrumentId] = data; }
+          else { lastError = 'Response could not be parsed. Try again.'; }
+        }
+      } catch (err) { console.error(`Error generating ${instrumentId}:`, err); lastError = err.message || 'Unknown error'; }
       completed++;
       setGenerationProgress(Math.round((completed / selectedInstruments.length) * 100));
     }
     setGeneratedContent(results);
     setGenerating(false);
     if (Object.keys(results).length > 0) { setActiveTab(Object.keys(results)[0]); }
-    else { setError('Failed to generate any instruments. Please try again.'); }
+    else { setError(lastError || 'Failed to generate any instruments. Please try again.'); }
   };
 
   const handleDownloadInstrument = (instrumentId) => {

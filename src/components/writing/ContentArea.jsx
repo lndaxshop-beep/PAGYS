@@ -4,7 +4,7 @@ import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
   content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual,
-  chapterSubsections, subsectionsContent, isPremium, onFeedback, onSubsectionEdit
+  chapterSubsections, subsectionsContent, isPremium, onFeedback
 }) => {
   const { colors } = useTheme();
   const previewRef = useRef(null);
@@ -133,7 +133,7 @@ const ContentArea = ({
               Edit Content — {currentSubsection?.title || 'Full Chapter'}
             </h3>
             <textarea
-              value={onSubsectionEdit ? content : fullChapterText}
+              value={fullChapterText}
               onChange={(e) => onChange(e.target.value)}
               placeholder="Edit your content here..."
               style={{

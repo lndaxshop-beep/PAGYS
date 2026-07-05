@@ -119,7 +119,7 @@ const Write = () => {
 
   const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
@@ -367,24 +367,6 @@ const Write = () => {
       }
     }
     modals.setPendingChapterAfterWordCount(null);
-  };
-
-  const wrappedHandlePrevSubsection = () => {
-    const result = handlePrevSubsection();
-    if (result?.action === 'prev' && result.index >= 0) {
-      setCurrentSubsectionIndex(result.index); setIsViewingReferences(false); setIsPreviewMode(true);
-      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubsections[result.index].id] || '');
-      setShowReferenceInTextarea(false);
-    }
-  };
-
-  const wrappedHandleNextSubsection = () => {
-    const result = handleNextSubsection(activeSubsections);
-    if (result?.action === 'next') {
-      setCurrentSubsectionIndex(result.index); setIsViewingReferences(false); setIsPreviewMode(true);
-      setCurrentContent(generatedSubsections[activeChapter]?.[activeSubsections[result.index].id] || '');
-      setShowReferenceInTextarea(false);
-    }
   };
 
   const wrappedHandleCompleteChapter = async () => {
@@ -790,8 +772,7 @@ const Write = () => {
                  onGenerateChapter={wrappedGenerateChapter}
                  onComplete={wrappedHandleCompleteChapter}
                  getButtonText={getButtonText}
-                 allGenerated={generatedActive === totalActive && totalActive > 0}
-                 hasContent={generatedActive > 0}
+                allGenerated={generatedActive === totalActive && totalActive > 0}
                 />
                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
                   <button onClick={async () => {

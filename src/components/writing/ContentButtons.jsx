@@ -7,7 +7,6 @@ const ContentButtons = ({
   referencesSub, referencesGenerated,
   onGenerateChapter, onComplete, getButtonText,
   allGenerated,
-  hasContent,
 }) => {
   const { colors } = useTheme();
 

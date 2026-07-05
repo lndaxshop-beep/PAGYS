@@ -97,7 +97,7 @@ const NewProjectForm = ({
               <div
                 onClick={() => onTierChange('regular')}
                 style={{
-                  padding: '16px', borderRadius: '10px', cursor: 'pointer',
+                  padding: '20px', borderRadius: '10px', cursor: 'pointer',
                   border: `2px solid ${selectedTier === 'regular' ? colors.primary : colors.border}`,
                   backgroundColor: selectedTier === 'regular'
                     ? (isDarkMode ? '#2d2a4a' : '#f0f0ff')
@@ -109,18 +109,18 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(PRICES_GHS.regular)}</div>
-                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
-                  <li>Remove AI (5 free uses per project)</li>
-                  <li>Feedback (6 uses per chapter)</li>
-                  <li>Full thesis generation</li>
-                  <li>Professional tables & charts</li>
-                  <li>DOCX / PDF / Markdown / LaTeX export</li>
+                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4' }}>
+                  <li style={{ marginBottom: '8px' }}>Remove AI (5 free uses per project)</li>
+                  <li style={{ marginBottom: '8px' }}>Feedback (6 uses per chapter)</li>
+                  <li style={{ marginBottom: '8px' }}>Full thesis generation</li>
+                  <li style={{ marginBottom: '8px' }}>Professional tables & charts</li>
+                  <li style={{ marginBottom: '8px' }}>DOCX / PDF / Markdown / LaTeX export</li>
                 </ul>
               </div>
               <div
                 onClick={() => onTierChange('premium')}
                 style={{
-                  padding: '16px', borderRadius: '10px', cursor: 'pointer',
+                  padding: '20px', borderRadius: '10px', cursor: 'pointer',
                   border: `2px solid ${selectedTier === 'premium' ? '#f59e0b' : colors.border}`,
                   backgroundColor: selectedTier === 'premium'
                     ? (isDarkMode ? '#3d2d1a' : '#fffbe6')
@@ -132,13 +132,13 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(PRICES_GHS.premium)}</div>
-                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '12px', color: colors.textSecondary, lineHeight: '1.8' }}>
-                  <li>Remove AI (10 free uses per project)</li>
-                  <li>Feedback (12 uses per chapter)</li>
-                  <li>Write All Remaining at once</li>
-                  <li>Search Literature & Add Sources</li>
-                  <li>Custom chapter guidelines</li>
-                  <li>And many more features... ⭐</li>
+                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4' }}>
+                  <li style={{ marginBottom: '8px' }}>Remove AI (10 free uses per project)</li>
+                  <li style={{ marginBottom: '8px' }}>Feedback (12 uses per chapter)</li>
+                  <li style={{ marginBottom: '8px' }}>Write All Remaining at once</li>
+                  <li style={{ marginBottom: '8px' }}>Search Literature & Add Sources</li>
+                  <li style={{ marginBottom: '8px' }}>Custom chapter guidelines</li>
+                  <li style={{ marginBottom: '8px' }}>And many more features... ⭐</li>
                 </ul>
                 {selectedTier === 'premium' && (
                   <div style={{ marginTop: '8px', fontSize: '11px', color: '#d97706', fontWeight: '500' }}>

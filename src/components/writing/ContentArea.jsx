@@ -3,11 +3,19 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
-  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual
+  content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, currentSubsection, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual,
+  chapterSubsections, subsectionsContent, isPremium, onFeedback, onSubsectionEdit
 }) => {
   const { colors } = useTheme();
   const previewRef = useRef(null);
-  const isReferences = currentSubsection?.type === 'references' || showReferenceInTextarea;
+
+  const fullChapterText = chapterSubsections && subsectionsContent
+    ? chapterSubsections
+        .filter(s => s.type !== 'references')
+        .map(s => subsectionsContent[s.id] || '')
+        .filter(Boolean)
+        .join('\n\n')
+    : content;
 
   useEffect(() => {
     if (!isPreviewMode || !highlightRanges?.length || !previewRef.current) return;
@@ -54,6 +62,8 @@ const ContentArea = ({
     return () => timers.forEach(t => clearTimeout(t));
   }, [isPreviewMode, highlightRanges]);
 
+  const isReferences = currentSubsection?.type === 'references' || showReferenceInTextarea;
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', alignItems: 'center' }}>
@@ -76,6 +86,42 @@ const ContentArea = ({
             <div style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '2.0', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
               {content || <p style={{ color: colors.textSecondary, textAlign: 'center', fontStyle: 'italic' }}>References will appear here after generation...</p>}
             </div>
+          ) : chapterSubsections && subsectionsContent ? (
+            <div ref={previewRef}>
+              {chapterSubsections.filter(s => s.type !== 'references').map((sub, i) => {
+                const subContent = subsectionsContent[sub.id];
+                if (!subContent) return null;
+                return (
+                  <div key={sub.id} id={`subsection-${sub.id}`} style={{ position: 'relative' }}>
+                    <ContentRenderer content={subContent} colors={colors} onEditVisual={onEditVisual} />
+                    {i < chapterSubsections.filter(s => s.type !== 'references').length - 1 && (
+                      <hr style={{ border: 'none', borderTop: `1px solid ${colors.border}40`, margin: '32px 0' }} />
+                    )}
+                    {isPremium && onFeedback && (
+                      <div style={{ position: 'absolute', top: '0', right: '0' }}>
+                        <button
+                          onClick={() => onFeedback(sub)}
+                          style={{
+                            backgroundColor: '#f59e0b', color: 'white',
+                            border: 'none', borderRadius: '4px', padding: '4px 10px',
+                            fontSize: '11px', cursor: 'pointer', fontWeight: '500',
+                            opacity: 0.7
+                          }}
+                          title="Apply feedback to this subsection"
+                        >
+                          ✏️ Feedback
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {(!chapterSubsections.some(s => subsectionsContent?.[s.id])) && (
+                <p style={{ color: colors.textSecondary, textAlign: 'center', fontStyle: 'italic', padding: '40px 0' }}>
+                  Click "Write Chapter" to generate content for this chapter.
+                </p>
+              )}
+            </div>
           ) : (
             <div ref={previewRef}>
               <ContentRenderer content={content} colors={colors} onEditVisual={onEditVisual} />
@@ -83,9 +129,11 @@ const ContentArea = ({
           )
         ) : (
           <div>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>Edit Content</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>
+              Edit Content — {currentSubsection?.title || 'Full Chapter'}
+            </h3>
             <textarea
-              value={content}
+              value={onSubsectionEdit ? content : fullChapterText}
               onChange={(e) => onChange(e.target.value)}
               placeholder="Edit your content here..."
               style={{

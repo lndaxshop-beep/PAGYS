@@ -324,6 +324,247 @@ Write the complete content now.`;
   } catch (error) { console.error('Error generating academic content:', error); throw error; }
 };
 
+export const generateChapterContent = async (promptData) => {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      tools: [{ googleSearch: {} }],
+      generationConfig: { temperature: 0.4, topP: 0.85, maxOutputTokens: 64000 }
+    });
+
+    let sourceModeInstruction = '';
+    if (promptData.sourceMode === 'user-only' && promptData.userSources?.length > 0) {
+      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
+        title: s.title, authors: s.authors, year: s.year,
+        methodology: s.methodology, keyFindings: s.keyFindings,
+        theoreticalFramework: s.theoreticalFramework
+      })), null, 2);
+      sourceModeInstruction = `
+## USER-PROVIDED SOURCES (MANDATORY)
+The student has uploaded the following papers. These are the ONLY sources you may cite.
+${sourcesJson.substring(0, 15000)}
+
+### USER SOURCE RULES
+- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
+- You MUST find and cite from the REAL published paper.
+- If Google Search Grounding cannot find a specific paper, do NOT cite it.
+- At least 2 different sources must be cited across each subsection.
+- Reference sources specifically within each subsection: (Author, Year).`;
+    } else if (promptData.sourceMode === 'combine' && promptData.userSources?.length > 0) {
+      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
+        title: s.title, authors: s.authors, year: s.year,
+        methodology: s.methodology, keyFindings: s.keyFindings,
+        theoreticalFramework: s.theoreticalFramework
+      })), null, 2);
+      sourceModeInstruction = `
+## USER-PROVIDED SOURCES (PRIORITY)
+The student has uploaded the following papers. PRIORITIZE these sources for citations.
+${sourcesJson.substring(0, 15000)}
+
+### COMBINED SOURCE RULES
+- Use Google Search Grounding to find the ACTUAL publications for the user's papers.
+- Supplement with additional sources found via Google Search Grounding where needed.
+- At least 60% of citations should come from the user's papers.`;
+    }
+
+    const subsOutline = promptData.subsections.map((sub, i) => {
+      const children = (sub.children || []).map(c => `    - ${c.title}`).join('\n');
+      return `  ${i + 1}. [ID: ${sub.id}] ${sub.title}${children ? '\n' + children : ''}`;
+    }).join('\n');
+
+    const findingsInstruction = promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
+
+## CHAPTER 4 — RESULTS & ANALYSIS INSTRUCTIONS
+You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above contains real survey responses, demographic data, and key findings.
+
+### DATA ANALYSIS
+- Reference specific numbers, percentages, and statistics from the findings data.
+- Identify meaningful patterns and trends in the data.
+- Connect findings to the research questions or objectives implied by the topic.
+- Use proper statistical language: "the mean score was", "a majority of respondents", "the distribution shows".
+
+### ACADEMIC RESULTS WRITING
+- Present findings objectively in past tense: "the data revealed", "respondents reported".
+- Describe what the data shows without interpreting causes in Chapter 4.
+- Follow proper academic structure: introduce the analysis, present the data, highlight key observations.
+- Every paragraph should connect to a specific finding from the data.` : '';
+
+    const subsectionsList = promptData.subsections.map((sub, i) => {
+      return `[WRITE_SUBSECTION: ${sub.id}]
+${sub.title}
+[/WRITE_SUBSECTION]`;
+    }).join('\n\n');
+
+    const prompt = `You are a human PhD candidate writing a formal academic thesis chapter. Generate content that reads like a thoughtful scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+${promptData.thesisContext ? `
+## THESIS CONTEXT — PREVIOUS CHAPTERS
+This thesis has already written the following chapters. Use this context to maintain consistency in terminology, arguments, and references across chapters:
+${promptData.thesisContext.previousChapters.map(ch => `### ${ch.title}\n${ch.summary}`).join('\n\n')}
+
+### CONSISTENCY RULES
+- Use the same terminology and variable names established in previous chapters.
+- When referencing findings or arguments from earlier chapters, use phrases like "as discussed in Chapter X" or "consistent with the findings presented earlier."
+- Do not redefine terms that were already defined in previous chapters.
+- Build upon arguments from previous chapters rather than repeating them.` : ''}
+THESIS TITLE: "${promptData.topic}"
+${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
+FIELD: ${promptData.field || 'Not specified'}
+CHAPTER: ${promptData.chapter}
+METHODOLOGY: ${promptData.methodology || 'mixed methods'} — all content MUST align with this methodology
+${promptData.organization ? `CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
+${findingsInstruction}
+
+## SUBSECTIONS TO WRITE — WRITE ALL OF THEM IN ORDER
+Write the ENTIRE chapter below, one subsection at a time. This chapter has the following subsections to write. Write EVERY one of them completely:
+
+${subsOutline}
+
+${promptData.guidelines ? `
+## CHAPTER-SPECIFIC GUIDELINES
+The student has provided the following custom instructions specific to this chapter. These take priority over general rules where they conflict:
+
+${promptData.guidelines}
+` : ''}
+
+## VISUALS — YOU MUST INCLUDE THEM WHERE APPROPRIATE
+
+You MUST include proper tables, charts, and diagrams throughout the thesis. Use the following chapter-specific guidelines:
+
+**Chapter 2 (Literature Review):** Include at least one conceptual framework diagram showing independent, dependent, mediating, and moderating variables. Include comparison tables of literature. Use [FRAMEWORK: ...] for conceptual frameworks.
+
+**Chapter 3 (Methodology):** Include a research design flowchart. Use [FRAMEWORK: flowchart | ...] for methodologies.
+
+**Chapter 4 (Results/Analysis):** This chapter MUST have:
+- A demographic profile table of respondents
+- Descriptive statistics tables for each research question
+- Charts showing distributions — use [CHART: bar | title | Label1: value, Label2: value, ...] for categorical data
+- Use [CHART: pie | title | data] for percentage/proportion data
+- Use [CHART: line | title | data] for trend data
+- Tables at appropriate places showing frequencies, means, correlations
+
+**Chapter 5 (Discussion/Conclusion):** Include comparison tables contrasting findings with prior research.
+
+**FORMAT FOR TABLES:** Write natural markdown tables:
+| Variable | Frequency | Percentage |
+|----------|-----------|-----------|
+| Male | 45 | 45.0% |
+| Female | 55 | 55.0% |
+
+**FORMAT FOR CHARTS:** Use this simple inline format:
+[CHART: type | Title | Label1: value, Label2: value, Label3: value, ...]
+Types: bar, line, pie, horizontalBar
+
+**FORMAT FOR CONCEPTUAL FRAMEWORKS:** Use this format:
+[FRAMEWORK: Title of Framework
+  Independent: Variable1, Variable2
+  Dependent: Variable3
+  Mediating: Variable4
+  Moderating: Variable5
+  H1: Variable1 → Variable3
+  H2: Variable2 → Variable4
+]
+
+For hierarchical structures (org charts, governance, classifications), use:
+[FRAMEWORK: Title
+  Hierarchy: Parent → Child1, Child2
+  Hierarchy: Child1 → Grandchild
+]
+
+**GUIDELINES:**
+- Place each visual on its own line between paragraphs
+- Reference each visual in the text
+- All data in tables and charts must come from the research findings provided
+- **CRITICAL: NEVER draw text-based diagrams using ASCII characters.**
+- **CRITICAL: NEVER use code fences for visuals.**
+
+---
+
+# CRITICAL RULES — FOLLOW EVERY SINGLE ONE
+
+## OUTPUT FORMAT — YOU MUST USE THIS EXACT FORMAT
+Write ALL subsections in order. For EACH subsection, start with the marker [WRITE_SUBSECTION: id] where id matches the ID shown in the subsections list above. Then write the subsection title on the next line, then the full content. End with [/WRITE_SUBSECTION]. Example:
+
+[WRITE_SUBSECTION: chapter2_sub_1]
+2.0 Introduction
+This chapter reviews the literature on...
+[/WRITE_SUBSECTION]
+[WRITE_SUBSECTION: chapter2_sub_2]
+2.1 Theoretical Framework
+The theoretical foundation for this study...
+[/WRITE_SUBSECTION]
+
+YOU MUST write ALL subsections. Do NOT skip any. Do NOT reorder them.
+
+## HUMAN-LIKENESS — WRITE AS A HUMAN, NOT AN AI
+- This is a FORMAL ACADEMIC THESIS. Writing must be scholarly, professional, and authoritative.
+- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
+- NO contractions: write out ALL words fully ("do not", "will not", "cannot", "it is").
+- Use ACTIVE VOICE wherever possible.
+
+## SENTENCE RHYTHM (BURSTINESS)
+- Mix very short sentences (2–5 words) with long, complex ones (20–45 words).
+- Vary paragraph lengths — alternate between 2-sentence and 7–8 sentence paragraphs.
+- Vary sentence structures: simple, compound, complex.
+- Avoid starting consecutive sentences with the same word.
+- No two adjacent paragraphs should have the same sentence-length profile.
+
+## LANGUAGE BANS — NEVER USE THESE
+- Em dashes (—)
+- "In today's rapidly evolving society" or any variation
+- "In today's digital age/world/era"
+- "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion"
+- "It is worth noting that", "It is important to note that"
+- "A myriad of", "The realm of", "A plethora of"
+- Rhetorical questions
+- "This underscores", "This highlights", "This emphasizes"
+- "Delves into", "Navigates the complexities of"
+- "Paves the way for", "Sets the stage for"
+
+## IN-TEXT CITATIONS — EVERY PARAGRAPH
+- EVERY paragraph MUST contain at least one in-text citation.
+- Use Google Search Grounding to find REAL sources. NEVER fabricate a citation.
+- Format: (Author, Year) — e.g., (Smith, 2023).
+- For two authors: (Author and Author, Year).
+- For three+ authors: (Author et al., Year).
+- If no grounded source exists for a claim, write the claim without a citation.
+
+## REAL CITATIONS ONLY — NO FABRICATION
+- EVERY in-text citation MUST correspond to a REAL source found via Google Search Grounding.
+- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
+- Only use author names and publication years from sources you have actually found.
+
+## FORMATTING RULES
+- Plain text only. NO markdown headings (###, ##), NO HTML tags.
+- Use a single blank line between paragraphs, never more (except before tables/diagrams).
+- For tables, use natural markdown table format.
+- For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
+- For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
+${TABLE_RULES}
+
+Write the COMPLETE chapter now. Include ALL subsections listed above. Use the [WRITE_SUBSECTION: id] marker format for each one.`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const candidates = result.response.candidates;
+
+    let sources = [];
+    let groundingUsed = false;
+    if (candidates && candidates[0]?.groundingMetadata?.groundingChunks) {
+      sources = candidates[0].groundingMetadata.groundingChunks
+        .filter(chunk => chunk.web)
+        .map(chunk => ({ title: chunk.web.title || '', uri: chunk.web.uri || '' }));
+      groundingUsed = sources.length > 0;
+    }
+
+    const cleanedText = cleanOutput(responseText);
+    return {
+      text: groundingUsed ? cleanedText : `[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${cleanedText}`,
+      sources,
+      groundingUsed
+    };
+  } catch (error) { console.error('Error generating chapter content:', error); throw error; }
+};
+
 export const selfReviewContent = async (text, promptData) => {
   try {
     const model = genAI.getGenerativeModel({

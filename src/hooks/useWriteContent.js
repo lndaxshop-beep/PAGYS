@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { extractCitations, formatCitationEntry, formatGroundedReference, formatSimpleReference, getChapterDisplayTitle, getChapterOrdinal } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatGroundedReference, formatSimpleReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
 
 const buildThesisContext = (currentChapterId, chapters, generatedSubsections) => {
   const chapterOrder = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
@@ -12,21 +12,60 @@ const buildThesisContext = (currentChapterId, chapters, generatedSubsections) =>
     const ch = chapters.find(c => c.id === chId);
     if (!ch) continue;
     const content = generatedSubsections[chId] || {};
-    const subsectionTexts = Object.values(content).filter(v => typeof v === 'string' && v.length > 100);
+    const subsectionIds = ch.subsections.filter(s => s.type !== 'references').map(s => s.id);
+    const subsectionTexts = [];
+    for (const sid of subsectionIds) {
+      const text = content[sid];
+      if (text && text.length > 100) subsectionTexts.push(text);
+    }
     if (subsectionTexts.length > 0) {
-      const summary = subsectionTexts.map(t => t.substring(0, 300)).join(' ');
+      const summary = subsectionTexts.map(t => t.substring(0, 800)).join('\n\n');
       context.previousChapters.push({
         chapterId: chId,
         title: ch.title || chId,
-        summary: summary.substring(0, 1000),
+        summary: summary,
       });
     }
   }
   return context.previousChapters.length > 0 ? context : null;
 };
 
+const splitChapterContent = (fullText, subsections) => {
+  const result = {};
+  let remaining = fullText;
+  for (const sub of subsections) {
+    if (sub.type === 'references') continue;
+    const openMarker = `[WRITE_SUBSECTION: ${sub.id}]`;
+    const closeMarker = '[/WRITE_SUBSECTION]';
+    const startIdx = remaining.indexOf(openMarker);
+    if (startIdx === -1) {
+      remaining = remaining.replace(closeMarker, '');
+      continue;
+    }
+    const contentStart = remaining.indexOf('\n', startIdx) + 1;
+    const endIdx = remaining.indexOf(closeMarker, contentStart);
+    if (endIdx === -1) {
+      result[sub.id] = remaining.substring(contentStart).trim();
+      break;
+    }
+    const subContent = remaining.substring(contentStart, endIdx).trim();
+    result[sub.id] = subContent;
+    remaining = remaining.substring(endIdx + closeMarker.length);
+  }
+  return result;
+};
+
+const combineChapterContent = (subsections, contentMap) => {
+  return subsections
+    .filter(s => s.type !== 'references')
+    .map(s => contentMap[s.id] || '')
+    .filter(Boolean)
+    .join('\n\n');
+};
+
 const useWriteContent = (project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', feedbackLimit = 6) => {
   const [generating, setGenerating] = useState(false);
+  const [generatingChapter, setGeneratingChapter] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
   const [applyingSubFeedback, setApplyingSubFeedback] = useState(false);
 
@@ -84,49 +123,34 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
     } catch (error) { setGeneratingVisual(false); throw error; }
   }, [project, uploadedFindings]);
 
-  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList, force = false) => {
+  const generateChapterContent = useCallback(async (chapterId) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return { error: true, message: 'Chapter not found.' };
-    const sub = ch.subsections.find(s => s.id === subId);
-    if (!sub) return { error: true, message: 'Subsection not found.' };
-    if (sub.generated && !force) return { skipped: true, reason: 'already generated' };
-    if (sub.type === 'references') return { skipped: true, reason: 'references' };
-
-    const cacheKey = `${chapterId}:${subId}:${ch.guidelines || ''}`;
-    const cached = contentCache.current.get(cacheKey);
-    if (cached) return cached;
-
-    const chapterTitle = getChapterDisplayTitle(ch);
-    const ordinal = getChapterOrdinal(ch, chapters);
-    const numberWords = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN'];
-    const chapterNumber = ordinal > 0 && ordinal < numberWords.length ? numberWords[ordinal] : '';
-    const childrenTopics = (sub.children || []).map(c => c.title).filter(Boolean);
+    const allSubs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
+    if (allSubs.length === 0) return { error: true, message: 'No subsections to generate.' };
 
     const thesisContext = buildThesisContext(chapterId, chapters, generatedSubsections);
+    const chapterTitle = getChapterDisplayTitle(ch);
 
-    const { generateAcademicContent, selfReviewContent } = await import('../services/geminiService');
-    const result = await generateAcademicContent({
-      chapter: chapterTitle, chapterId, chapterNumber, subsection: subTitle,
-      topic: project.title, researchTopic: project.topic, field: project.field, level: project.level, methodology: project.methodology,
-      organization: sub.customValue || project?.organizationName || null,
-      hideOrganization: project?.hideOrganization || false, findings: chapterId === 'chapter4' ? uploadedFindings : null,
-      literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
+    const { generateChapterContent: apiGenerate } = await import('../services/geminiService');
+    const result = await apiGenerate({
+      chapter: chapterTitle, chapterId,
+      topic: project.title, researchTopic: project.topic, field: project.field,
+      level: project.level, methodology: project.methodology,
+      findings: chapterId === 'chapter4' ? uploadedFindings : null,
       userSources, sourceMode,
       guidelines: ch.guidelines || '',
-      childrenTopics,
+      organization: project?.organizationName || null,
       thesisContext,
+      subsections: allSubs.map(s => ({
+        id: s.id, title: s.title,
+        children: (s.children || []).map(c => ({ id: c.id, title: c.title }))
+      })),
     });
-    let generatedContent = typeof result === 'object' ? result.text : result;
-    try {
-      const reviewed = await selfReviewContent(generatedContent, {
-        topic: project.title, researchTopic: project.topic, field: project.field, chapter: chapterTitle, subsection: subTitle
-      });
-      if (reviewed && reviewed.trim().length > 50) {
-        generatedContent = reviewed;
-      }
-    } catch (e) {
-      console.warn('[useWriteContent] Self-review failed, using original output:', e.message);
-    }
+
+    const fullText = typeof result === 'object' ? result.text : result;
+    const parsed = splitChapterContent(fullText, allSubs);
+
     const sources = typeof result === 'object' ? (result.sources || []) : [];
     if (sources.length > 0) {
       const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
@@ -134,56 +158,34 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
       const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
       localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
     }
-    const { verifyCitations } = await import('../services/gemini/citationVerifier');
-    const storedSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
 
-    // Auto-repair: detect paragraphs missing citations, re-run self-review with targeted fix
-    let citationResult = verifyCitations(generatedContent, storedSources);
-    let repairAttempts = 0;
-    while (citationResult.paragraphsMissingCitations.length > 0 && repairAttempts < 2) {
-      const missingIndices = citationResult.paragraphsMissingCitations.map(p => p.index + 1);
-      const repairPrompt = `CRITICAL FIX REQUIRED: Paragraphs ${missingIndices.join(', ')} (${citationResult.paragraphsMissingCitations.length} total) are MISSING in-text citations. Add exactly one (Author, Year) citation to EACH of those paragraphs using Google Search Grounding. Do NOT change any other paragraphs. Do NOT remove existing citations.`;
-      try {
-        const repaired = await selfReviewContent(generatedContent, {
-          topic: project.title, researchTopic: project.topic, field: project.field, chapter: chapterTitle, subsection: subTitle,
-          extraInstruction: repairPrompt
-        });
-        if (repaired && repaired.trim().length > 50) {
-          generatedContent = repaired;
-        }
-      } catch (e) {
-        console.warn('[useWriteContent] Citation repair attempt failed:', e.message);
-        break;
+    const resultEntries = {};
+    for (const sub of allSubs) {
+      const content = parsed[sub.id] || '';
+      if (content) {
+        const citations = extractCitations(content);
+        resultEntries[sub.id] = { content, citations, subsectionId: sub.id, subsectionTitle: sub.title };
       }
-      citationResult = verifyCitations(generatedContent, storedSources);
-      repairAttempts++;
     }
 
-    const citations = extractCitations(generatedContent);
-    const { calculateBurstiness } = await import('../services/gemini/antiDetection');
-    const burstiness = calculateBurstiness(generatedContent);
-    const cacheEntry = { content: generatedContent, citations, subsectionId: subId, subsectionTitle: subTitle, burstiness: burstiness.cv };
-    contentCache.current.set(cacheKey, cacheEntry);
-    if (contentCache.current.size > 200) {
-      const firstKey = contentCache.current.keys().next().value;
-      contentCache.current.delete(firstKey);
-    }
-    return cacheEntry;
-  }, [project, chapters, uploadedFindings, literatureReviewType, userSources, sourceMode]);
+    return {
+      subsections: resultEntries,
+      fullText,
+      sources,
+      totalSubsections: allSubs.length,
+      generatedCount: Object.keys(resultEntries).length
+    };
+  }, [project, chapters, uploadedFindings, userSources, sourceMode]);
 
-  const handleGenerateCurrent = useCallback(async (activeSubsections) => {
-    const currentChapter = chapters.find(c => c.id === activeChapter);
-    if (currentSubsectionIndex >= activeSubsections.length) return { error: true, message: 'All subsections generated!' };
-    const currentSub = activeSubsections[currentSubsectionIndex];
-    if (currentSub.type === 'references') return { skipped: true, reason: 'references' };
-    if (currentSub.generated) return { error: true, message: 'This subsection has already been generated.' };
+  const handleGenerateChapter = useCallback(async () => {
+    setGeneratingChapter(true);
     setGenerating(true);
     try {
-      const result = await generateSubsectionContent(activeChapter, currentSub.title, currentSub.id, currentSubsectionIndex, activeSubsections);
+      const result = await generateChapterContent(activeChapter);
       return result;
     } catch (error) { throw error; }
-    finally { setGenerating(false); }
-  }, [activeChapter, currentSubsectionIndex, generateSubsectionContent]);
+    finally { setGeneratingChapter(false); setGenerating(false); }
+  }, [activeChapter, generateChapterContent]);
 
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
     const allGeneratedSubsections = currentChapter.subsections.filter(s => s.generated && s.type !== 'references' && !s.deleted);
@@ -319,18 +321,20 @@ const useWriteContent = (project, activeChapter, currentSubsection, currentSubse
   }, [activeChapter]);
 
   return {
-    generating, generatingVisual, applyingSubFeedback,
+    generating, generatingChapter, generatingVisual, applyingSubFeedback,
     handleGenerateConceptualFramework,
     handleGenerateTheoreticalFramework,
     handleGenerateResearchDesign,
     handleGenerateTable,
     handleGenerateChart,
-    handleGenerateCurrent,
-    generateSubsectionContent,
+    handleGenerateChapter,
+    generateChapterContent,
     handleGenerateReferences,
     autoGenerateReferences,
     handleApplyFeedback,
-    preRenderDiagrams
+    preRenderDiagrams,
+    splitChapterContent,
+    combineChapterContent,
   };
 };
 

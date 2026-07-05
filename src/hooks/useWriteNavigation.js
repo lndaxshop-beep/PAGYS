@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { renumberSubsections, getChapterOrdinal } from '../utils/writeHelpers.jsx';
 
-const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, literatureReviewType) => {
+const useWriteNavigation = (project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, literatureReviewType) => {
   const handleChapterClick = useCallback(async (chapterId) => {
     const chapter = chapters.find(c => c.id === chapterId);
     if (chapter && chapter.unlocked) {

@@ -9,15 +9,23 @@ import { getActiveSubsections, isReferencesClickable, validateReferencesClick } 
 
 import { extractOutline } from '../../utils/outlineHelpers';
 
+const subsectionsExist = (sub, chapter, generatedSubsections) => {
+  if (!generatedSubsections || !chapter) return false;
+  const chContent = generatedSubsections[chapter.id];
+  if (!chContent) return false;
+  if (chContent[sub.id]) return true;
+  return (sub.children || []).some(c => chContent[c.id]);
+};
+
 const LeftPane = ({
   chapters, activeChapter, onChapterClick, progress,
   onCustomizeSubsection, onAddSubsection, onSubsectionClick,
   onDeleteSubsection, onRestoreSubsection, onRenameSubsection, generatingSubtopics,
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
   draggedItem, dragOverItem,
-  generatingAll, onGenerateAll, onPauseWriteAll, onCancelWriteAll, onContinueWriteAll,
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
   onUpdateGuidelines, isPremium,
+  generatingChapter, onGenerateChapter,
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
@@ -223,83 +231,24 @@ const LeftPane = ({
                   )}
 
                   <AddSubsection onAdd={(title) => onAddSubsection(title, chapter.id)} />
-                  {isPremium && onGenerateAll && activeSubsections.some(s => !s.generated && s.type !== 'references') && (
-                    generatingAll && generatingAll.chapterId === chapter.id ? (
-                      <div style={{
-                        marginTop: '12px', padding: '12px',
-                        backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff',
-                        borderRadius: '8px', border: `1px solid ${colors.border}`
-                      }}>
-                        <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', color: colors.textSecondary }}>
-                            Writing {generatingAll.completed}/{generatingAll.total}
-                          </span>
-                          <span style={{ fontSize: '11px', color: colors.primary, fontWeight: '600' }}>
-                            {generatingAll.total > 0 ? Math.round((generatingAll.completed / generatingAll.total) * 100) : 0}%
-                          </span>
-                        </div>
-                        <div style={{
-                          height: '6px', backgroundColor: isDarkMode ? '#3d3d3d' : '#e5e7eb',
-                          borderRadius: '999px', overflow: 'hidden', marginBottom: '8px'
-                        }}>
-                          <div style={{
-                            height: '100%',
-                            width: `${generatingAll.total > 0 ? (generatingAll.completed / generatingAll.total) * 100 : 0}%`,
-                            backgroundColor: colors.primary, borderRadius: '999px',
-                            transition: 'width 0.3s'
-                          }} />
-                        </div>
-                        {generatingAll.currentTitle && (
-                          <p style={{ fontSize: '11px', color: colors.text, margin: '0 0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            Currently writing: <strong>"{generatingAll.currentTitle}"</strong>
-                          </p>
-                        )}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {generatingAll.paused ? (
-                            <button onClick={onContinueWriteAll} style={{
-                              padding: '6px 12px', fontSize: '11px',
-                              backgroundColor: colors.primary, color: 'white',
-                              border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500',
-                              flex: 1
-                            }}>
-                              ▶ Continue
-                            </button>
-                          ) : (
-                            <button onClick={onPauseWriteAll} style={{
-                              padding: '6px 12px', fontSize: '11px',
-                              backgroundColor: '#d97706', color: 'white',
-                              border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500',
-                              flex: 1
-                            }}>
-                              ⏸ Pause
-                            </button>
-                          )}
-                          <button onClick={onCancelWriteAll} style={{
-                            padding: '6px 12px', fontSize: '11px',
-                            backgroundColor: '#dc2626', color: 'white',
-                            border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500',
-                            flex: 1
-                          }}>
-                            ✕ Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => onGenerateAll(chapter.id)}
-                        style={{
-                          marginTop: '12px', width: '100%', padding: '8px', fontSize: '12px',
-                          backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f0ff',
-                          color: colors.primary, border: `1px solid ${colors.border}`,
-                          borderRadius: '6px', cursor: 'pointer', fontWeight: '500',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; }}
-                      >
-                        ⚡ Write All Remaining ({activeSubsections.filter(s => !s.generated && s.type !== 'references').length})
-                      </button>
-                    )
+                  {onGenerateChapter && activeSubsections.some(s => !subsectionsExist(s, chapter, generatedSubsections) && s.type !== 'references') && (
+                    <button
+                      onClick={() => onGenerateChapter(chapter.id)}
+                      disabled={generatingChapter}
+                      style={{
+                        marginTop: '12px', width: '100%', padding: '8px', fontSize: '12px',
+                        backgroundColor: generatingChapter ? colors.border : (isDarkMode ? '#2d2d2d' : '#f0f0ff'),
+                        color: generatingChapter ? colors.textSecondary : colors.primary,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: '6px', cursor: generatingChapter ? 'not-allowed' : 'pointer',
+                        fontWeight: '500', opacity: generatingChapter ? 0.5 : 1,
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => { if (!generatingChapter) { e.currentTarget.style.backgroundColor = colors.primary; e.currentTarget.style.color = 'white'; } }}
+                      onMouseLeave={(e) => { if (!generatingChapter) { e.currentTarget.style.backgroundColor = isDarkMode ? '#2d2d2d' : '#f0f0ff'; e.currentTarget.style.color = colors.primary; } }}
+                    >
+                      {generatingChapter ? '⏳ Writing Chapter...' : '✍️ Write Chapter'}
+                    </button>
                   )}
                   {isPremium && <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />}
                   <DeletedSubsections

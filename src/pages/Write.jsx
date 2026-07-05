@@ -47,7 +47,7 @@ const Write = () => {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generatingSubtopics, setGeneratingSubtopics] = useState(false);
-  const [generatingAll, setGeneratingAll] = useState(null);
+
   const [generatingReferences, setGeneratingReferences] = useState(false);
   const [feedbackUsed, setFeedbackUsed] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`feedbackUsed_${projectId}`) || '{}'); } catch { return {}; }
@@ -86,8 +86,7 @@ const Write = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [regeneratingChapter, setRegeneratingChapter] = useState(null);
   const [isEditingWordCount, setIsEditingWordCount] = useState(null);
-  const writeAllStateRef = useRef({ paused: false, cancelled: false });
-  const pauseResolveRef = useRef(null);
+
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
   const projectCache = useRef({});
@@ -118,9 +117,9 @@ const Write = () => {
 
   const feedbackBase = project?.tier === 'premium' ? 12 : 6;
 
-  const { generating, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateCurrent, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
+  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, currentSubsection, currentSubsectionIndex, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, sourceLibrary.sourceMode, feedbackBase);
 
-  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, handleGenerateCurrent, modals.literatureReviewType);
+  const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, handlePrevSubsection, handleNextSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, currentSubsectionIndex, setCurrentSubsectionIndex, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
 
   const visuals = useWriteVisuals(handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, toastSuccess, toastError);
 
@@ -408,23 +407,33 @@ const Write = () => {
     }
   };
 
-  const wrappedGenerateCurrent = async () => {
-    if (generatingAll) { toastError('Please wait for Write All to complete first.'); return; }
+  const wrappedGenerateChapter = async () => {
     try {
-      const result = await handleGenerateCurrent(activeSubsections);
-      if (!result || result.error) { toastError(result?.message || 'Writing failed.'); return; }
-      if (result.skipped) return;
-      const { content, citations, subsectionId } = result;
-      setChapterCitations(prev => ({ ...prev, [activeChapter]: [...new Set([...(prev[activeChapter] || []), ...citations])] }));
-      captureVersion(activeChapter, subsectionId, generatedSubsections[activeChapter]?.[subsectionId], 'AI Generated');
-      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [subsectionId]: content } }));
-      setCurrentContent(content);
-      setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.id === subsectionId ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s) } : ch));
+      const result = await handleGenerateChapter();
+      if (!result || result.error) { toastError(result?.message || 'Chapter generation failed.'); return; }
+      const { subsections, fullText } = result;
+      for (const [subId, entry] of Object.entries(subsections)) {
+        captureVersion(activeChapter, subId, generatedSubsections[activeChapter]?.[subId], 'AI Generated');
+      }
+      const chapterContent = {};
+      for (const [subId, entry] of Object.entries(subsections)) {
+        chapterContent[subId] = entry.content;
+      }
+      setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], ...chapterContent } }));
+      setChapters(prev => prev.map(ch =>
+        ch.id === activeChapter ? {
+          ...ch,
+          subsections: ch.subsections.map(s =>
+            subsections[s.id] ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s
+          )
+        } : ch
+      ));
+      setCurrentContent(fullText);
       setIsPreviewMode(true);
-      preRenderDiagrams(content, isDarkMode).then(rendered => {
+      preRenderDiagrams(fullText, isDarkMode).then(rendered => {
         if (rendered && Object.keys(rendered).length > 0) {
           const existing = JSON.parse(localStorage.getItem(`diagramSVGs_${projectId}`) || '{}');
-          localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_${subsectionId}`]: rendered }));
+          localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_fullChapter`]: rendered }));
         }
       });
       autoGenerateReferences(activeChapter, true).then(refResult => {
@@ -432,9 +441,11 @@ const Write = () => {
           setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
         }
       }).catch(e => console.error('Auto-generate references failed:', e));
+      const generatedCount = Object.keys(subsections).length;
+      toastSuccess(`Chapter written successfully! (${generatedCount} subsection${generatedCount !== 1 ? 's' : ''})`);
     } catch (error) {
-      console.error('Generation failed:', error);
-      toastError('Failed to write content. ' + error.message);
+      console.error('Chapter generation failed:', error);
+      toastError('Failed to write chapter. ' + error.message);
     }
   };
 
@@ -561,75 +572,6 @@ const Write = () => {
       setCurrentSubsectionIndex(idx); setCurrentContent(''); }
   };
 
-  const handleGenerateAll = async (chapterId) => {
-    writeAllStateRef.current = { paused: false, cancelled: false };
-    const chapter = chapters.find(c => c.id === chapterId);
-    if (!chapter) return;
-    const subs = chapter.subsections.filter(s => !s.generated && s.type !== 'references' && !s.deleted);
-    if (subs.length === 0) { toastError('All subsections already written.'); return; }
-    setGeneratingAll({ total: subs.length, completed: 0, errors: 0, chapterId, currentTitle: '', paused: false });
-    const activeSubsList = chapter.subsections.filter(s => !s.deleted && s.type !== 'references');
-    let errorCount = 0;
-    let wasCancelled = false;
-    for (let i = 0; i < subs.length; i++) {
-      if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
-      while (writeAllStateRef.current.paused) {
-        await new Promise(resolve => { pauseResolveRef.current = resolve; });
-        if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
-      }
-      if (wasCancelled) break;
-      const sub = subs[i];
-      setGeneratingAll(prev => prev ? { ...prev, currentTitle: sub.title } : null);
-      const subIndex = activeSubsList.findIndex(s => s.id === sub.id);
-      if (subIndex === -1) continue;
-      if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
-      const result = await generateSubsectionContent(chapterId, sub.title, sub.id, subIndex, activeSubsList);
-      if (writeAllStateRef.current.cancelled) { wasCancelled = true; break; }
-      if (result?.error) { errorCount++; setGeneratingAll(prev => prev ? { ...prev, errors: prev.errors + 1, completed: prev.completed + 1, currentTitle: '' } : null); continue; }
-      if (result?.skipped) { setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1, currentTitle: '' } : null); continue; }
-      setChapterCitations(prev => ({ ...prev, [chapterId]: [...new Set([...(prev[chapterId] || []), ...result.citations])] }));
-      setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], [result.subsectionId]: result.content } }));
-      setChapters(prev => prev.map(ch => ch.id === chapterId ? { ...ch, subsections: ch.subsections.map(s => s.id === result.subsectionId ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s) } : ch));
-      setGeneratingAll(prev => prev ? { ...prev, completed: prev.completed + 1, currentTitle: '' } : null);
-    }
-    setGeneratingAll(null);
-    if (wasCancelled) {
-      toastSuccess('Write All cancelled.');
-    } else if (errorCount > 0) {
-      toastError(`${errorCount} subsection(s) failed to write.`);
-    } else if (subs.length > 0) {
-      toastSuccess(`All ${subs.length} subsection(s) written successfully!`);
-      autoGenerateReferences(chapterId, true).then(refResult => {
-        if (refResult && refResult.content) {
-          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
-        }
-      }).catch(e => console.error('Auto-generate references failed:', e));
-    }
-  };
-
-  const handlePauseWriteAll = () => {
-    writeAllStateRef.current.paused = true;
-    setGeneratingAll(prev => prev ? { ...prev, paused: true } : null);
-  };
-
-  const handleContinueWriteAll = () => {
-    writeAllStateRef.current.paused = false;
-    if (pauseResolveRef.current) {
-      pauseResolveRef.current();
-      pauseResolveRef.current = null;
-    }
-    setGeneratingAll(prev => prev ? { ...prev, paused: false } : null);
-  };
-
-  const handleCancelWriteAll = () => {
-    writeAllStateRef.current.cancelled = true;
-    writeAllStateRef.current.paused = false;
-    if (pauseResolveRef.current) {
-      pauseResolveRef.current();
-      pauseResolveRef.current = null;
-    }
-  };
-
   const handleInstrumentsDownload = (downloadedTypes) => {
     setInstrumentsCompleted(true); modals.setShowDataCollectionModal(false);
     setChapters(prev => prev.map(ch => ch.id === 'chapter4' ? { ...ch, unlocked: true } : ch));
@@ -734,7 +676,7 @@ const Write = () => {
           onAddSubsection={handleAddSubsection} onSubsectionClick={wrappedHandleSubsectionClick} generatingSubtopics={generatingSubtopics}
           generatedSubsections={generatedSubsections} onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleWrappedDrop}
           onDragEnd={handleDragEnd} draggedItem={draggedItem} dragOverItem={dragOverItem} chapterWordCounts={chapterWordCounts}
-          generatingAll={generatingAll} onGenerateAll={handleGenerateAll} onPauseWriteAll={handlePauseWriteAll} onCancelWriteAll={handleCancelWriteAll} onContinueWriteAll={handleContinueWriteAll}
+          generatingChapter={generatingChapter} onGenerateChapter={(chId) => { if (chId === activeChapter) wrappedGenerateChapter(); }}
           onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
           onUpdateGuidelines={handleUpdateGuidelines}
           isPremium={project?.tier === 'premium'}
@@ -781,16 +723,20 @@ const Write = () => {
               <CurrentSubsectionBanner subsection={currentSubsection} currentIndex={currentSubsectionIndex} totalCount={activeSubsections.length} isViewingReferences={isViewingReferences} />
 
                <ContentArea
-                 content={currentContent}
-                 isPreviewMode={isPreviewMode}
-                 onTogglePreview={setIsPreviewMode}
-                 onSaveEdit={handleSaveEdit}
-                 onChange={setCurrentContent}
-                 currentSubsection={currentSubsection}
-                 showReferenceInTextarea={showReferenceInTextarea}
-                 generatingReferences={generatingReferences}
-                 highlightRanges={highlightRanges}
-                 onEditVisual={(blockIndex, newData) => {
+                  content={currentContent}
+                  isPreviewMode={isPreviewMode}
+                  onTogglePreview={setIsPreviewMode}
+                  onSaveEdit={handleSaveEdit}
+                  onChange={setCurrentContent}
+                  currentSubsection={currentSubsection}
+                  showReferenceInTextarea={showReferenceInTextarea}
+                  generatingReferences={generatingReferences}
+                  highlightRanges={highlightRanges}
+                  chapterSubsections={currentChapter?.subsections}
+                  subsectionsContent={generatedSubsections[activeChapter]}
+                  isPremium={project?.tier === 'premium'}
+                  onFeedback={(sub) => modals.openFeedbackModal(sub)}
+                  onEditVisual={(blockIndex, newData) => {
                    const blocks = parseContentBlocks(currentContent);
                    const block = blocks[blockIndex];
                    if (!block || !currentSubsection) return;
@@ -831,30 +777,22 @@ const Write = () => {
                  }}
                />
 
-              <ContentButtons
-                isViewingReferences={isViewingReferences}
-                currentSubsection={currentSubsection}
-                currentSubsectionIndex={currentSubsectionIndex}
-                activeSubsections={activeSubsections}
-                generating={generating}
-                generatingAll={generatingAll}
-                chapterComplete={chapterComplete}
-                overallProgress={overallProgress}
-                generatedActive={generatedActive}
-                totalActive={totalActive}
-                referencesSub={referencesSub}
-                referencesGenerated={referencesGenerated}
-                onGenerate={wrappedGenerateCurrent}
-                onFeedback={modals.openFeedbackModal}
-                onPrev={wrappedHandlePrevSubsection}
-                onNext={wrappedHandleNextSubsection}
-                onComplete={wrappedHandleCompleteChapter}
-                getButtonText={getButtonText}
-                feedbackAvailable={feedbackLeft > 0}
-                feedbackLeft={feedbackLeft}
-                onResetFeedback={() => setResetModalType('feedback')}
-                onOpenVersions={() => setVersionBrowserSubsection(currentSubsection)}
-               />
+               <ContentButtons
+                 isViewingReferences={isViewingReferences}
+                 activeSubsections={activeSubsections}
+                 generatingChapter={generatingChapter}
+                 chapterComplete={chapterComplete}
+                 overallProgress={overallProgress}
+                 generatedActive={generatedActive}
+                 totalActive={totalActive}
+                 referencesSub={referencesSub}
+                 referencesGenerated={referencesGenerated}
+                 onGenerateChapter={wrappedGenerateChapter}
+                 onComplete={wrappedHandleCompleteChapter}
+                 getButtonText={getButtonText}
+                 allGenerated={generatedActive === totalActive && totalActive > 0}
+                 hasContent={generatedActive > 0}
+                />
                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px' }}>
                   <button onClick={async () => {
                    if (!currentContent) return;

@@ -508,7 +508,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                     display: 'flex', flexDirection: 'column',
                     padding: '14px 16px', borderRadius: '8px',
                     backgroundColor: isSelected ? (isDarkMode ? '#2d6a4f30' : '#d1fae5') : (isDarkMode ? '#2d2d2d' : '#f9fafb'),
-                    border: `1px solid ${isSelected ? '#059669' : isDone ? '#7c3aed' : colors.border}`,
+                    border: `1px solid ${isSelected ? '#059669' : appliedVersion ? '#7c3aed' : colors.border}`,
                     cursor: hasContent ? 'pointer' : 'not-allowed',
                     opacity: hasContent ? 1 : 0.5,
                     transition: 'all 0.2s',

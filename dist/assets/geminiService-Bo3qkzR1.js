@@ -1,4 +1,4 @@
-import{genAI as f,MODEL as p}from"./config-ZRg6eLvn.js";import{getWordCountPreset as j}from"./config-ZRg6eLvn.js";import{c as T,b}from"./sourceExtractor-CdYfTMU0.js";import{e as _,g as ee}from"./sourceExtractor-CdYfTMU0.js";import{r as x}from"./instruments-BRyBIz-W.js";import{a as ne,g as re,b as ae,c as se,d as oe,e as ie,f as ce,h as le}from"./instruments-BRyBIz-W.js";import"./mermaid-DnMQf98b.js";import"./react-vendor-BS-ySqmm.js";const w=`IMPORTANT TABLE RULES:
+import{genAI as p,MODEL as E}from"./config-ZRg6eLvn.js";import{getWordCountPreset as Q}from"./config-ZRg6eLvn.js";import{c as R,b}from"./sourceExtractor-CdYfTMU0.js";import{e as ee,g as te}from"./sourceExtractor-CdYfTMU0.js";import{r as U}from"./instruments-BRyBIz-W.js";import{a as re,g as ae,b as se,c as ie,d as oe,e as ce,f as le,h as he}from"./instruments-BRyBIz-W.js";import"./mermaid-DnMQf98b.js";import"./react-vendor-BS-ySqmm.js";const I=`IMPORTANT TABLE RULES:
 - Use natural markdown table format with header row and separator row
 - Header row: | Column 1 | Column 2 | Column 3 |
 - Separator row: |----------|----------|----------|
@@ -13,11 +13,11 @@ EXAMPLES of appropriate tables:
 For Chapter 4: demographic profile tables, descriptive statistics, frequency distributions
 For Chapter 2: literature comparison tables, theoretical summary tables
 For Chapter 3: methodology summary tables
-For Chapter 5: findings summary tables, comparison tables`,k=async e=>{try{const t=f.getGenerativeModel({model:p,tools:[{googleSearch:{}}]});let n="",r=[];if(e.referenceData){if(e.referenceData.type==="combined"){const h=e.referenceData.text||"",d=(e.referenceData.files||[]).filter(c=>c.content?.startsWith("data:image/"));d.length>0?(r=d.map(c=>{const l=c.content.match(/^data:(image\/\w+);base64,(.+)$/);return l?{inlineData:{mimeType:l[1],data:l[2]}}:null}).filter(Boolean),n=`
-The user has uploaded ${d.length} screenshot(s) showing their desired chapter structure, along with pasted text.
+For Chapter 5: findings summary tables, comparison tables`,M=async e=>{try{const t=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}]});let n="",r=[];if(e.referenceData){if(e.referenceData.type==="combined"){const d=e.referenceData.text||"",g=(e.referenceData.files||[]).filter(c=>c.content?.startsWith("data:image/"));g.length>0?(r=g.map(c=>{const h=c.content.match(/^data:(image\/\w+);base64,(.+)$/);return h?{inlineData:{mimeType:h[1],data:h[2]}}:null}).filter(Boolean),n=`
+The user has uploaded ${g.length} screenshot(s) showing their desired chapter structure, along with pasted text.
 
 PASTED TEXT:
-${h}
+${d}
 
 CRITICAL: Examine ALL images AND the pasted text carefully. Extract:
 1. EVERY heading and sub-heading with exact numbering (2.1, 2.1.1, etc.)
@@ -28,7 +28,7 @@ CRITICAL: Examine ALL images AND the pasted text carefully. Extract:
 
 Generate subtopics that MIRROR this structure EXACTLY for: "${e.topic}". DO NOT add or remove sections. Match precisely.`):n=`
 UPLOADED REFERENCE TEXT:
-${h}
+${d}
 
 CRITICAL: Extract ONLY the structure:
 1. EVERY heading with exact numbering
@@ -48,7 +48,7 @@ Generate subtopics that MIRROR this structure EXACTLY for: "${e.topic}".`}else n
 UPLOADED TEXT:
 ${e.referenceData.content||""}
 
-Extract ONLY the structure (headings, numbering, hierarchy, visual placements). IGNORE the content. Match the structure EXACTLY for: "${e.topic}".`;else if(e.referenceData.type==="files"){const a=(e.referenceData.files||[]).filter(d=>d.content?.startsWith("data:image/"));r=a.map(d=>{const c=d.content.match(/^data:(image\/\w+);base64,(.+)$/);return c?{inlineData:{mimeType:c[1],data:c[2]}}:null}).filter(Boolean),n=`
+Extract ONLY the structure (headings, numbering, hierarchy, visual placements). IGNORE the content. Match the structure EXACTLY for: "${e.topic}".`;else if(e.referenceData.type==="files"){const a=(e.referenceData.files||[]).filter(g=>g.content?.startsWith("data:image/"));r=a.map(g=>{const c=g.content.match(/^data:(image\/\w+);base64,(.+)$/);return c?{inlineData:{mimeType:c[1],data:c[2]}}:null}).filter(Boolean),n=`
 The user has uploaded ${a.length} screenshot(s). Examine ALL images. Extract the complete structure: headings, numbering, hierarchy, visual placements, section count. Mirror EXACTLY for: "${e.topic}".`}else if(e.referenceData.content){if(e.referenceData.content?.startsWith("data:image/")){const a=e.referenceData.content.match(/^data:(image\/\w+);base64,(.+)$/);a&&(r=[{inlineData:{mimeType:a[1],data:a[2]}}])}n=`
 UPLOADED REFERENCE:
 ${e.referenceData.content}
@@ -66,10 +66,10 @@ ${e.referenceData?"CRITICAL: Return ONLY a JSON array matching the EXACT structu
 
 DO NOT include "References" as a subsection.
 
-Example: ["2.0 Introduction", "2.1 Theoretical Framework", "2.1.1 Key Theory", "2.2 Empirical Review", "2.3 Summary"]`;let o=r.length>0?[...r,{text:s}]:[{text:s}];const g=(await t.generateContent({contents:[{role:"user",parts:o}]})).response.text();return b(g)}catch(t){return console.error("Error generating subtopics:",t),null}},M=async e=>{try{const t=f.getGenerativeModel({model:p,tools:[{googleSearch:{}}],generationConfig:{temperature:.4,topP:.85}}),n="Start directly with the subsection heading.";let r="";e.sourceMode==="user-only"&&e.userSources?.length>0?r=`
+Example: ["2.0 Introduction", "2.1 Theoretical Framework", "2.1.1 Key Theory", "2.2 Empirical Review", "2.3 Summary"]`;let o=r.length>0?[...r,{text:s}]:[{text:s}];const u=(await t.generateContent({contents:[{role:"user",parts:o}]})).response.text();return b(u)}catch(t){return console.error("Error generating subtopics:",t),null}},F=async e=>{try{const t=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}],generationConfig:{temperature:.4,topP:.85}}),n="Start directly with the subsection heading.";let r="";e.sourceMode==="user-only"&&e.userSources?.length>0?r=`
 ## USER-PROVIDED SOURCES (MANDATORY)
 The student has uploaded the following papers. These are the ONLY sources you may cite.
-${JSON.stringify(e.userSources.map(l=>({title:l.title,authors:l.authors,year:l.year,methodology:l.methodology,keyFindings:l.keyFindings,theoreticalFramework:l.theoreticalFramework})),null,2).substring(0,15e3)}
+${JSON.stringify(e.userSources.map(h=>({title:h.title,authors:h.authors,year:h.year,methodology:h.methodology,keyFindings:h.keyFindings,theoreticalFramework:h.theoreticalFramework})),null,2).substring(0,15e3)}
 
 ### USER SOURCE RULES
 - For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
@@ -80,7 +80,7 @@ ${JSON.stringify(e.userSources.map(l=>({title:l.title,authors:l.authors,year:l.y
 - Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`:e.sourceMode==="combine"&&e.userSources?.length>0&&(r=`
 ## USER-PROVIDED SOURCES (PRIORITY)
 The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${JSON.stringify(e.userSources.map(l=>({title:l.title,authors:l.authors,year:l.year,methodology:l.methodology,keyFindings:l.keyFindings,theoreticalFramework:l.theoreticalFramework})),null,2).substring(0,15e3)}
+${JSON.stringify(e.userSources.map(h=>({title:h.title,authors:h.authors,year:h.year,methodology:h.methodology,keyFindings:h.keyFindings,theoreticalFramework:h.theoreticalFramework})),null,2).substring(0,15e3)}
 
 ### COMBINED SOURCE RULES
 - Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
@@ -186,7 +186,7 @@ ${e.childrenTopics?.length>0?`
 ## SUB-TOPICS TO COVER IN THIS SECTION
 This section has the following sub-topics that must be covered. Include EACH as an H3 subheading within the text:
 
-${e.childrenTopics.map((c,l)=>`${l+1}. ${c}`).join(`
+${e.childrenTopics.map((c,h)=>`${h+1}. ${c}`).join(`
 `)}
 `:""}
 ${e.guidelines?`
@@ -250,7 +250,7 @@ You must NEVER use the following:
 - For tables, use natural markdown table format: | Header 1 | Header 2 |
 - For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
 - For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
-${w}
+${I}
 
 ## VISUAL GUIDANCE
 If the user has provided screenshots, images, or reference files:
@@ -266,7 +266,196 @@ Why this is bad: generic opener, stacked transitions, no specific claim, no cita
 "Over three semesters, students using AI-assisted tutoring scored 18% higher on standardised assessments than their peers in traditional classrooms (Park, 2023). The effect was most pronounced among students who entered with below-median prerequisite scores: a finding that challenges the assumption that AI tools primarily benefit advanced learners."
 Why this is good: specific data, grounded claim, meaningful citation, original insight, varied sentence rhythm.
 
-Write the complete content now.`,o=await t.generateContent(s),i=o.response.text(),g=o.response.candidates;let h=[],a=!1;g&&g[0]?.groundingMetadata?.groundingChunks&&(h=g[0].groundingMetadata.groundingChunks.filter(c=>c.web).map(c=>({title:c.web.title||"",uri:c.web.uri||""})),a=h.length>0);const d=T(i);return{text:a?d:`[NOTE: Google Search Grounding was not used for this response. Citations may not be verified.] ${d}`,sources:h,groundingUsed:a}}catch(t){throw console.error("Error generating academic content:",t),t}},F=async(e,t)=>{try{const n=f.getGenerativeModel({model:p,tools:[{googleSearch:{}}],generationConfig:{temperature:.5,topP:.85}}),r=t?.extraInstruction?`
+Write the complete content now.`,o=await t.generateContent(s),l=o.response.text(),u=o.response.candidates;let d=[],a=!1;return u&&u[0]?.groundingMetadata?.groundingChunks&&(d=u[0].groundingMetadata.groundingChunks.filter(c=>c.web).map(c=>({title:c.web.title||"",uri:c.web.uri||""})),a=d.length>0),{text:R(l),sources:d,groundingUsed:a}}catch(t){throw console.error("Error generating academic content:",t),t}},k=async e=>{try{const t=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}],generationConfig:{temperature:.4,topP:.85,maxOutputTokens:64e3}});let n="";e.sourceMode==="user-only"&&e.userSources?.length>0?n=`
+## USER-PROVIDED SOURCES (MANDATORY)
+The student has uploaded the following papers. These are the ONLY sources you may cite.
+${JSON.stringify(e.userSources.map(i=>({title:i.title,authors:i.authors,year:i.year,methodology:i.methodology,keyFindings:i.keyFindings,theoreticalFramework:i.theoreticalFramework})),null,2).substring(0,15e3)}
+
+### USER SOURCE RULES
+- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
+- You MUST find and cite from the REAL published paper.
+- If Google Search Grounding cannot find a specific paper, do NOT cite it.
+- At least 2 different sources must be cited across each subsection.
+- Reference sources specifically within each subsection: (Author, Year).`:e.sourceMode==="combine"&&e.userSources?.length>0&&(n=`
+## USER-PROVIDED SOURCES (PRIORITY)
+The student has uploaded the following papers. PRIORITIZE these sources for citations.
+${JSON.stringify(e.userSources.map(i=>({title:i.title,authors:i.authors,year:i.year,methodology:i.methodology,keyFindings:i.keyFindings,theoreticalFramework:i.theoreticalFramework})),null,2).substring(0,15e3)}
+
+### COMBINED SOURCE RULES
+- Use Google Search Grounding to find the ACTUAL publications for the user's papers.
+- Supplement with additional sources found via Google Search Grounding where needed.
+- At least 60% of citations should come from the user's papers.`);const r=e.subsections.map((m,i)=>{const T=(m.children||[]).map(f=>`    - ${f.title}`).join(`
+`);return`  ${i+1}. [ID: ${m.id}] ${m.title}${T?`
+`+T:""}`}).join(`
+`),s=e.findings?`RESEARCH FINDINGS DATA: ${typeof e.findings=="object"?JSON.stringify(e.findings):e.findings}
+
+## CHAPTER 4 — RESULTS & ANALYSIS INSTRUCTIONS
+You are writing Chapter 4 (Results/Analysis). The RESEARCH FINDINGS DATA above contains real survey responses, demographic data, and key findings.
+
+### DATA ANALYSIS
+- Reference specific numbers, percentages, and statistics from the findings data.
+- Identify meaningful patterns and trends in the data.
+- Connect findings to the research questions or objectives implied by the topic.
+- Use proper statistical language: "the mean score was", "a majority of respondents", "the distribution shows".
+
+### ACADEMIC RESULTS WRITING
+- Present findings objectively in past tense: "the data revealed", "respondents reported".
+- Describe what the data shows without interpreting causes in Chapter 4.
+- Follow proper academic structure: introduce the analysis, present the data, highlight key observations.
+- Every paragraph should connect to a specific finding from the data.`:"",o=e.subsections.map((m,i)=>`[WRITE_SUBSECTION: ${m.id}]
+${m.title}
+[/WRITE_SUBSECTION]`).join(`
+
+`),l=`You are a human PhD candidate writing a formal academic thesis chapter. Generate content that reads like a thoughtful scholar's work — never like AI output. This is a PROFESSIONAL ACADEMIC THESIS.
+${e.thesisContext?`
+## THESIS CONTEXT — PREVIOUS CHAPTERS
+This thesis has already written the following chapters. Use this context to maintain consistency in terminology, arguments, and references across chapters:
+${e.thesisContext.previousChapters.map(m=>`### ${m.title}
+${m.summary}`).join(`
+
+`)}
+
+### CONSISTENCY RULES
+- Use the same terminology and variable names established in previous chapters.
+- When referencing findings or arguments from earlier chapters, use phrases like "as discussed in Chapter X" or "consistent with the findings presented earlier."
+- Do not redefine terms that were already defined in previous chapters.
+- Build upon arguments from previous chapters rather than repeating them.`:""}
+THESIS TITLE: "${e.topic}"
+${e.researchTopic?`RESEARCH QUESTION: "${e.researchTopic}"`:""}
+FIELD: ${e.field||"Not specified"}
+CHAPTER: ${e.chapter}
+METHODOLOGY: ${e.methodology||"mixed methods"} — all content MUST align with this methodology
+${e.organization?`CASE STUDY: ${e.organization}`:""}${n}
+${s}
+
+## SUBSECTIONS TO WRITE — WRITE ALL OF THEM IN ORDER
+Write the ENTIRE chapter below, one subsection at a time. This chapter has the following subsections to write. Write EVERY one of them completely:
+
+${r}
+
+${e.guidelines?`
+## CHAPTER-SPECIFIC GUIDELINES
+The student has provided the following custom instructions specific to this chapter. These take priority over general rules where they conflict:
+
+${e.guidelines}
+`:""}
+
+## VISUALS — YOU MUST INCLUDE THEM WHERE APPROPRIATE
+
+You MUST include proper tables, charts, and diagrams throughout the thesis. Use the following chapter-specific guidelines:
+
+**Chapter 2 (Literature Review):** Include at least one conceptual framework diagram showing independent, dependent, mediating, and moderating variables. Include comparison tables of literature. Use [FRAMEWORK: ...] for conceptual frameworks.
+
+**Chapter 3 (Methodology):** Include a research design flowchart. Use [FRAMEWORK: flowchart | ...] for methodologies.
+
+**Chapter 4 (Results/Analysis):** This chapter MUST have:
+- A demographic profile table of respondents
+- Descriptive statistics tables for each research question
+- Charts showing distributions — use [CHART: bar | title | Label1: value, Label2: value, ...] for categorical data
+- Use [CHART: pie | title | data] for percentage/proportion data
+- Use [CHART: line | title | data] for trend data
+- Tables at appropriate places showing frequencies, means, correlations
+
+**Chapter 5 (Discussion/Conclusion):** Include comparison tables contrasting findings with prior research.
+
+**FORMAT FOR TABLES:** Write natural markdown tables:
+| Variable | Frequency | Percentage |
+|----------|-----------|-----------|
+| Male | 45 | 45.0% |
+| Female | 55 | 55.0% |
+
+**FORMAT FOR CHARTS:** Use this simple inline format:
+[CHART: type | Title | Label1: value, Label2: value, Label3: value, ...]
+Types: bar, line, pie, horizontalBar
+
+**FORMAT FOR CONCEPTUAL FRAMEWORKS:** Use this format:
+[FRAMEWORK: Title of Framework
+  Independent: Variable1, Variable2
+  Dependent: Variable3
+  Mediating: Variable4
+  Moderating: Variable5
+  H1: Variable1 → Variable3
+  H2: Variable2 → Variable4
+]
+
+For hierarchical structures (org charts, governance, classifications), use:
+[FRAMEWORK: Title
+  Hierarchy: Parent → Child1, Child2
+  Hierarchy: Child1 → Grandchild
+]
+
+**GUIDELINES:**
+- Place each visual on its own line between paragraphs
+- Reference each visual in the text
+- All data in tables and charts must come from the research findings provided
+- **CRITICAL: NEVER draw text-based diagrams using ASCII characters.**
+- **CRITICAL: NEVER use code fences for visuals.**
+
+---
+
+# CRITICAL RULES — FOLLOW EVERY SINGLE ONE
+
+## OUTPUT FORMAT — YOU MUST USE THIS EXACT FORMAT
+Write ALL subsections in order. For EACH subsection, start with the marker [WRITE_SUBSECTION: id] where id matches the ID shown in the subsections list above. Then write the subsection title on the next line, then the full content. End with [/WRITE_SUBSECTION]. Example:
+
+[WRITE_SUBSECTION: chapter2_sub_1]
+2.0 Introduction
+This chapter reviews the literature on...
+[/WRITE_SUBSECTION]
+[WRITE_SUBSECTION: chapter2_sub_2]
+2.1 Theoretical Framework
+The theoretical foundation for this study...
+[/WRITE_SUBSECTION]
+
+YOU MUST write ALL subsections. Do NOT skip any. Do NOT reorder them.
+
+## HUMAN-LIKENESS — WRITE AS A HUMAN, NOT AN AI
+- This is a FORMAL ACADEMIC THESIS. Writing must be scholarly, professional, and authoritative.
+- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
+- NO contractions: write out ALL words fully ("do not", "will not", "cannot", "it is").
+- Use ACTIVE VOICE wherever possible.
+
+## SENTENCE RHYTHM (BURSTINESS)
+- Mix very short sentences (2–5 words) with long, complex ones (20–45 words).
+- Vary paragraph lengths — alternate between 2-sentence and 7–8 sentence paragraphs.
+- Vary sentence structures: simple, compound, complex.
+- Avoid starting consecutive sentences with the same word.
+- No two adjacent paragraphs should have the same sentence-length profile.
+
+## LANGUAGE BANS — NEVER USE THESE
+- Em dashes (—)
+- "In today's rapidly evolving society" or any variation
+- "In today's digital age/world/era"
+- "Furthermore", "Moreover", "Additionally", "Consequently", "Thus", "Hence", "In conclusion"
+- "It is worth noting that", "It is important to note that"
+- "A myriad of", "The realm of", "A plethora of"
+- Rhetorical questions
+- "This underscores", "This highlights", "This emphasizes"
+- "Delves into", "Navigates the complexities of"
+- "Paves the way for", "Sets the stage for"
+
+## IN-TEXT CITATIONS — EVERY PARAGRAPH
+- EVERY paragraph MUST contain at least one in-text citation.
+- Use Google Search Grounding to find REAL sources. NEVER fabricate a citation.
+- Format: (Author, Year) — e.g., (Smith, 2023).
+- For two authors: (Author and Author, Year).
+- For three+ authors: (Author et al., Year).
+- If no grounded source exists for a claim, write the claim without a citation.
+
+## REAL CITATIONS ONLY — NO FABRICATION
+- EVERY in-text citation MUST correspond to a REAL source found via Google Search Grounding.
+- NEVER fabricate, invent, or hallucinate any author, year, study, or paper.
+- Only use author names and publication years from sources you have actually found.
+
+## FORMATTING RULES
+- Plain text only. NO markdown headings (###, ##), NO HTML tags.
+- Use a single blank line between paragraphs, never more (except before tables/diagrams).
+- For tables, use natural markdown table format.
+- For charts, use inline format: [CHART: type | Title | Label1: value, Label2: value]
+- For frameworks, use: [FRAMEWORK: Title | Independent: ... | Dependent: ...]
+${I}
+
+Write the COMPLETE chapter now. Include ALL subsections listed above. Use the [WRITE_SUBSECTION: id] marker format for each one.`,u=await t.generateContent(l),d=u.response.text(),a=u.response.candidates;let g=[],c=!1;return a&&a[0]?.groundingMetadata?.groundingChunks&&(g=a[0].groundingMetadata.groundingChunks.filter(m=>m.web).map(m=>({title:m.web.title||"",uri:m.web.uri||""})),c=g.length>0),{text:R(d),sources:g,groundingUsed:c}}catch(t){throw console.error("Error generating chapter content:",t),t}},H=async(e,t)=>{try{const n=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}],generationConfig:{temperature:.5,topP:.85}}),r=t?.extraInstruction?`
 
 ## ADDITIONAL INSTRUCTION
 ${t.extraInstruction}`:"",s=`You are a senior academic editor performing a quality review on AI-generated thesis content. Your task: identify all detectable AI writing patterns and rewrite the text so it is COMPLETELY INDISTINGUISHABLE from human academic writing.
@@ -309,12 +498,12 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
 - Rewrite the ENTIRE text incorporating all fixes above.
 - Preserve ALL: tables, diagrams, [CHART:{...}] tags, data, numbers, statistics.
 - Preserve ALL subsection headings exactly as they appear.
-- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`,o=await n.generateContent(s);return T(o.response.text())}catch(n){return console.error("Error in self-review:",n),e}},G=async(e,t,n,r,s=null,o="ai-only")=>{try{const i=f.getGenerativeModel({model:p,tools:[{googleSearch:{}}]});let g="",h=[];if(t.files?.length){const A=t.files.filter(m=>m.type==="image"&&m.content),u=t.files.filter(m=>m.type!=="image");h=A.map(m=>{const E=m.content.match(/^data:(image\/\w+);base64,(.+)$/);return E?{inlineData:{mimeType:E[1],data:E[2]}}:null}).filter(Boolean);const y=t.files.map(m=>m.name).join(", ");g=`
-Uploaded ${t.files.length} file(s): ${y}.`,u.length>0&&u.forEach(m=>{m.extractedText&&(g+=`
-Content from ${m.name}: ${m.extractedText.substring(0,3e3)}`)})}let a="";o==="user-only"&&s?.length>0?a=`
+- Return ONLY the rewritten text. No explanations, no annotations, no meta-commentary.`,o=await n.generateContent(s);return R(o.response.text())}catch(n){return console.error("Error in self-review:",n),e}},G=async(e,t,n,r,s=null,o="ai-only")=>{try{const l=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}]});let u="",d=[];if(t.files?.length){const m=t.files.filter(f=>f.type==="image"&&f.content),i=t.files.filter(f=>f.type!=="image");d=m.map(f=>{const y=f.content.match(/^data:(image\/\w+);base64,(.+)$/);return y?{inlineData:{mimeType:y[1],data:y[2]}}:null}).filter(Boolean);const T=t.files.map(f=>f.name).join(", ");u=`
+Uploaded ${t.files.length} file(s): ${T}.`,i.length>0&&i.forEach(f=>{f.extractedText&&(u+=`
+Content from ${f.name}: ${f.extractedText.substring(0,3e3)}`)})}let a="";o==="user-only"&&s?.length>0?a=`
 ## USER-PROVIDED SOURCES (MANDATORY)
 The student has uploaded the following papers. These are the ONLY sources you may cite.
-${JSON.stringify(s.map(u=>({title:u.title,authors:u.authors,year:u.year,methodology:u.methodology,keyFindings:u.keyFindings,theoreticalFramework:u.theoreticalFramework})),null,2).substring(0,15e3)}
+${JSON.stringify(s.map(i=>({title:i.title,authors:i.authors,year:i.year,methodology:i.methodology,keyFindings:i.keyFindings,theoreticalFramework:i.theoreticalFramework})),null,2).substring(0,15e3)}
 
 ### USER SOURCE RULES
 - For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
@@ -325,13 +514,13 @@ ${JSON.stringify(s.map(u=>({title:u.title,authors:u.authors,year:u.year,methodol
 - Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`:o==="combine"&&s?.length>0&&(a=`
 ## USER-PROVIDED SOURCES (PRIORITY)
 The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${JSON.stringify(s.map(u=>({title:u.title,authors:u.authors,year:u.year,methodology:u.methodology,keyFindings:u.keyFindings,theoreticalFramework:u.theoreticalFramework})),null,2).substring(0,15e3)}
+${JSON.stringify(s.map(i=>({title:i.title,authors:i.authors,year:i.year,methodology:i.methodology,keyFindings:i.keyFindings,theoreticalFramework:i.theoreticalFramework})),null,2).substring(0,15e3)}
 
 ### COMBINED SOURCE RULES
 - Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
 - Supplement with additional sources found via Google Search Grounding where user sources do not provide sufficient coverage.
 - At least 60% of citations should come from the user's papers.
-- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`);const d=`You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
+- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`);const g=`You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
 
 SUBSECTION: ${n}
 THESIS TITLE: "${r?.title}"
@@ -339,10 +528,10 @@ ${r?.topic?`RESEARCH QUESTION: "${r.topic}"`:""}
 FIELD: ${r?.field}
 
 FEEDBACK TO APPLY:
-"${t.text}"${g}
+"${t.text}"${u}
 
 CURRENT TEXT:
-${T(e)}${a}
+${R(e)}${a}
 
 ## INSTRUCTION HIERARCHY (highest to lowest priority)
 
@@ -376,17 +565,17 @@ ${T(e)}${a}
 - NO em dashes.
 - Plain text only.
 
-Return ONLY the complete modified text for this subsection.`,c=h.length>0?[...h,{text:d}]:[{text:d}],l=await i.generateContent({contents:[{role:"user",parts:c}]});return T(l.response.text())}catch(i){throw console.error("Error applying feedback:",i),i}},O=(e,t,n)=>{const r=t?.topic||"thesis topic",s=t?.field||"social sciences",o=t?.chapter||"thesis chapter",i=t?.subsection||"subsection",g=t?.diagnosticReport||"",h=t?.flaggedSentences||[];let a="";if(h.length>0){const I=h.filter(R=>R.aiProbability>.5).slice(0,15).map((R,S)=>`SENTENCE ${S+1}: "${R.text.slice(0,150)}"
-  Flags: ${R.flags.join(", ")||"none"}
-  Suggestions: ${R.suggestions.join(", ")||"none"}`).join(`
+Return ONLY the complete modified text for this subsection.`,c=d.length>0?[...d,{text:g}]:[{text:g}],h=await l.generateContent({contents:[{role:"user",parts:c}]});return R(h.response.text())}catch(l){throw console.error("Error applying feedback:",l),l}},O=(e,t,n)=>{const r=t?.topic||"thesis topic",s=t?.field||"social sciences",o=t?.chapter||"thesis chapter",l=t?.subsection||"subsection",u=t?.diagnosticReport||"",d=t?.flaggedSentences||[];let a="";if(d.length>0){const S=d.filter(A=>A.aiProbability>.5).slice(0,15).map((A,w)=>`SENTENCE ${w+1}: "${A.text.slice(0,150)}"
+  Flags: ${A.flags.join(", ")||"none"}
+  Suggestions: ${A.suggestions.join(", ")||"none"}`).join(`
 
-`);I&&(a=`
+`);S&&(a=`
 ## TARGETED REWRITE — FLAGGED SENTENCES
 The following sentences were flagged as AI-like. Rewrite each one with specific fixes:
 
-${I}
+${S}
 
-For each flagged sentence above, apply its specific suggestions. Do NOT rewrite sentences not listed above.`)}const d=`You are a smart graduate student who writes clearly and naturally. Rewrite the following thesis excerpt so it sounds like a real person wrote it — not AI.
+For each flagged sentence above, apply its specific suggestions. Do NOT rewrite sentences not listed above.`)}const g=`You are a smart graduate student who writes clearly and naturally. Rewrite the following thesis excerpt so it sounds like a real person wrote it — not AI.
 
 TEXT TO REWRITE:
 ${e}
@@ -395,8 +584,8 @@ THESIS TITLE: "${r}"
 ${t?.researchTopic?`RESEARCH QUESTION: "${t.researchTopic}"`:""}
 FIELD: ${s}
 CHAPTER: ${o}
-SUBSECTION: ${i}
-${g}${a}
+SUBSECTION: ${l}
+${u}${a}
 
 ## CRITICAL RULES — FOLLOW EVERY ONE
 
@@ -405,87 +594,87 @@ ${g}${a}
 - No two consecutive sentences should start with the same word.
 - Vary paragraph lengths from 1 sentence to 8 sentences.
 - Use short punchy statements: "This matters. Here's why."
-- Then immediately follow with a longer, flowing sentence.`,l=`
+- Then immediately follow with a longer, flowing sentence.`,h=`
 - STRONG rhythm variation: freely mix very short (3-6 words), medium (15-25 words), and long (30-50 words) sentences.
 - No two consecutive sentences should start with the same word.
 - Include occasional one-sentence paragraphs for dramatic emphasis.
 - Start some paragraphs with a short, direct statement followed by a longer explanatory sentence.
-- Vary paragraph length unpredictably: some 2 sentences, some 8 sentences.`,A=`
+- Vary paragraph length unpredictably: some 2 sentences, some 8 sentences.`,m=`
 - MAXIMUM burstiness: sentences should feel random in length — 4 words, then 50, then 7, then 30.
 - No two sentences should have a similar structure or length pattern.
 - Start most paragraphs with a very short punchy sentence (3-6 words).
 - Let each paragraph have its own unique rhythm — some fast and punchy, some slow and flowing.
-- Avoid any detectable pattern in sentence length or structure.`;let u,y,m,E;return n===1?(u=c,y=`
+- Avoid any detectable pattern in sentence length or structure.`;let i,T,f,y;return n===1?(i=c,T=`
 ### 2. TONE — NATURAL ACADEMIC STYLE
 - Write like a smart graduate student writing a thesis — clear and natural, not stiff or robotic.
 - NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
 - Mix confident statements ("The data clearly show...") with thoughtful hedging ("This may suggest...", "It is possible that...").
 - Simple vocabulary is GOOD. Avoid jargon and fancy words.
-- Never say "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion".`,m=`
+- Never say "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion".`,f=`
 ### 3. VARIED ACADEMIC STYLE
 - Start sentences with variety: "Notably...", "Critically...", "An important finding is...", "Turning to...", "What is particularly striking is..."
 - Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
 - Use natural academic phrasing: "importantly", "notably", "interestingly", "critically", "in practice"
 - Vary confidence: some claims sound certain, others hedge ("this may suggest", "it appears that").
-- Long sentences should feel thoughtful and purposeful, not formulaic.`,E=`
+- Long sentences should feel thoughtful and purposeful, not formulaic.`,y=`
 ### 4. WHAT TO AVOID AT ALL COSTS
 - NO transitions (furthermore, moreover, additionally, consequently, thus, hence)
 - NO formal openers ("This study examines", "The research aims to", "It is important to")
 - NO overly complex sentences with multiple nested clauses
 - NO perfect uniformity — sentences should have different rhythms
-- NO big vocabulary where simple words work`):n===2?(u=l,y=`
+- NO big vocabulary where simple words work`):n===2?(i=h,T=`
 ### 2. TONE — LESS FORMAL ACADEMIC STYLE
 - Write like a smart graduate student who has mastered the material and writes with natural confidence.
 - NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
 - Use the simplest word that works — if a 10th grader could understand it, that is perfect.
 - Sound certain where appropriate ("The data indicate..."), hedge where uncertain ("It appears that...", "This may reflect...").
-- Never use "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion", "additionally".`,m=`
+- Never use "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion", "additionally".`,f=`
 ### 3. NATURAL VARIED STYLE
 - Vary sentence starters: "What is striking...", "An important observation...", "This connects to...", "Notably...", "A key point is...", "Looking at..."
 - Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
 - Vary confidence levels naturally — some paragraphs sound definitive, others exploratory.
 - Use natural academic connectors: "importantly", "notably", "interestingly", "in practice", "specifically"
-- Write as if explaining to a colleague — clear, direct, but still academic.`,E=`
+- Write as if explaining to a colleague — clear, direct, but still academic.`,y=`
 ### 4. WHAT TO AVOID AT ALL COSTS
 - NO formal openers ("This study examines", "The research aims to", "It should be noted")
 - NO overly complex sentences with multiple nested clauses
 - NO repeated sentence structures
 - NO big vocabulary where simple words work
-- NO two paragraphs with the same rhythm`):(u=A,y=`
+- NO two paragraphs with the same rhythm`):(i=m,T=`
 ### 2. TONE — MAXIMUM NATURAL
 - Write like an experienced researcher explaining their work to a colleague — clear, direct, completely natural.
 - NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
 - Use everyday academic vocabulary — the simplest word that conveys the meaning correctly.
 - Sound completely natural: some sentences definitive, some speculative, some purely observational.
-- Completely avoid "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion", "additionally", "therefore".`,m=`
+- Completely avoid "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion", "additionally", "therefore".`,f=`
 ### 3. NATURAL FLUCTUATING STYLE
 - Vary openings unpredictably: "What is striking...", "The data point to...", "A contrasting view comes from...", "Importantly...", "This raises a key question...", "A critical finding..."
 - Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest", "the data indicate".
 - Each paragraph should have its own distinct voice and rhythm.
 - Avoid ALL transition-like phrasing entirely. Let ideas connect naturally without signposting.
-- Write like a published academic whose writing feels effortless and unforced.`,E=`
+- Write like a published academic whose writing feels effortless and unforced.`,y=`
 ### 4. WHAT TO AVOID AT ALL COSTS
 - NO detectable patterns in sentence structure or length
 - NO formulaic academic writing of any kind
 - NO two sentences that sound like they were written by the same template
 - NO paragraphs that feel "balanced" or "structured" — they should feel organic
-- NO vocabulary that feels chosen to impress rather than to communicate`),`${d}${u}${y}${m}${E}
+- NO vocabulary that feels chosen to impress rather than to communicate`),`${g}${i}${T}${f}${y}
 ### 5. STRUCTURAL PRESERVATION
 - Keep ALL in-text citations (Author, Year) exactly as written.
 - Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged.
 - Keep ALL subsection headings exactly as they appear.
 - No markdown headings, no HTML tags.
 
-Return ONLY the rewritten text. No explanations.`},H=async(e,t=null,n=1)=>{try{const r={1:.9,2:1,3:1.1},s=f.getGenerativeModel({model:p,tools:[{googleSearch:{}}],generationConfig:{temperature:r[n]||.9,topP:.95}}),o=O(e,t,n),i=await s.generateContent(o);let g=T(i.response.text());return!g||g.trim().length<50?e:g}catch(r){throw console.error("Error humanising:",r),r}},P=async(e,t,n=null,r="ai-only")=>{try{const s=f.getGenerativeModel({model:p,tools:[{googleSearch:{}}]}),o=t==="apa"?"APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.":t==="mla"?"MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.":"Chicago: Author Last, First. Year. Title of Work. Publisher.";let i="";n?.length>0&&(r==="user-only"||r==="combine")&&(i=`
-## USER-PROVIDED SOURCES (VERIFIED)
-The student has uploaded the following papers. These are REAL, VERIFIABLE sources. Use them to create reference entries when the in-text citations match.
-
+Return ONLY the rewritten text. No explanations.`},Y=async(e,t=null,n=1)=>{try{const r={1:.9,2:1,3:1.1},s=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}],generationConfig:{temperature:r[n]||.9,topP:.95}}),o=O(e,t,n),l=await s.generateContent(o);let u=R(l.response.text());return!u||u.trim().length<50?e:u}catch(r){throw console.error("Error humanising:",r),r}},P=async(e,t,n=null,r="ai-only")=>{try{const s=p.getGenerativeModel({model:E,tools:[{googleSearch:{}}]}),o=t==="apa"?"APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.":t==="mla"?"MLA 9th edition: Author Last, First. Title of Work. Publisher, Year.":"Chicago: Author Last, First. Year. Title of Work. Publisher.";let l="";n?.length>0&&(l=`
+## USER-PROVIDED SOURCES
+The student has uploaded the following papers. These are REAL sources with verified metadata. Use them to create reference entries when the in-text citations match.
+ 
 ${JSON.stringify(n.map(a=>({title:a.title,authors:a.authors,year:a.year,methodology:a.methodology,keyFindings:a.keyFindings,theoreticalFramework:a.theoreticalFramework})),null,2)}
-
+ 
 ### USER SOURCE RULES
 - If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
-- These sources may not have DOI/URL — format them as "Author, A. A. (Year). Title. [Unpublished source]" if no publication venue is known.
-- Prioritize Google Search Grounding for complete reference details, but fall back to user-provided metadata when search fails.`);const g=`You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
+- Use Google Search Grounding to find the actual publication for complete details (DOI, volume, pages), but fall back to user-provided metadata when search fails.
+- When formatting from user metadata, produce a complete reference following the style guide: Author, A. A. (Year). Title. Retrieved from thesis sources.`);const u=`You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list using REAL, VERIFIABLE sources found via Google Search Grounding.
 
 IN-TEXT CITATIONS (extracted from thesis content):
 ${e.map(a=>`- ${a}`).join(`
@@ -493,25 +682,27 @@ ${e.map(a=>`- ${a}`).join(`
 
 REFERENCE STYLE: ${t.toUpperCase()}
 STYLE GUIDE: ${o}
-${i}
+${l}
 
 ## CRITICAL RULES
 
-### SOURCE VERIFICATION
-- Search Google for EACH citation independently to find the REAL publication.
-- Use ONLY real publications, journals, books, and papers that actually exist and are verifiable.
-- If you find the real source, format it according to the style guide with the real title, journal, volume, pages, and DOI/URL.
-- CROSS-CHECK: Ensure the author names and year in the generated reference match the in-text citation exactly.
+### NO ANNOTATIONS WHATSOEVER
+- NEVER output any warning, annotation, placeholder, bracket text, or meta-commentary.
+- No "⚠️", no "UNVERIFIED", no "NOTE:", no "[Source details unavailable]", no "[Retrieved from]", no "[Unpublished source]".
+- Every entry must be a clean, complete reference that looks professionally researched.
+- The output must be indistinguishable from a reference list in a published thesis.
 
-### FILTERING INCOMPLETE CITATIONS
-- If you CANNOT find a real, verifiable source for a given citation after searching, SKIP it entirely. Do not include it in the reference list.
-- NEVER use placeholder text ("Title of the work", "Source", "Publisher", "Unknown", "n.d."). Either produce a real reference or omit the entry.
-- It is better to omit an unfindable citation than to fabricate details.
+### PRODUCE A REFERENCE FOR EVERY CITATION
+- You MUST produce a formatted reference entry for EVERY citation in the list above. Do not skip any.
+- Search Google for EACH citation to find the REAL publication.
+- If Google Search Grounding finds the real source, format it with the actual title, journal, volume, pages, and DOI/URL.
+- If you CANNOT find the real source via grounding, use the citation text (author, year) and any available user-supplied metadata to construct the best possible reference following the style guide. Do not note that it was unverifiable.
+- CROSS-CHECK: Ensure author names and year match the in-text citation exactly.
 
 ### NO NEW CITATIONS
 - ONLY produce references for citations in the list above.
 - Do NOT add, invent, or generate references for citations that are not in the provided list.
-- If Google Search Grounding suggests additional related sources, ignore them — only format what was given.
+- If Google Search Grounding suggests additional related sources, ignore them.
 
 ### FORMATTING
 - Use the EXACT author names and years from the citations.
@@ -523,7 +714,7 @@ ${i}
 - Each entry must be a complete, standalone reference string.
 
 Example (APA):
-Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`,h=await s.generateContent(g);return T(h.response.text())}catch(s){throw console.error("Error generating references:",s),s}},Y=async e=>{try{const t=f.getGenerativeModel({model:p}),n=`Generate a conceptual framework description for a thesis.
+Smith, J. A. (2023). Understanding organizational behavior in digital transformation. Journal of Management Studies, 60(4), 1123-1145. https://doi.org/10.1111/joms.12901`,d=await s.generateContent(u);return R(d.response.text())}catch(s){throw console.error("Error generating references:",s),s}},V=async e=>{try{const t=p.getGenerativeModel({model:E}),n=`Generate a conceptual framework description for a thesis.
 
 Topic: ${e?.topic||e?.title}
 Field: ${e?.field}
@@ -538,7 +729,7 @@ Moderating: moderating variable (if any)
 H1: IndependentVariable → DependentVariable
 H2: IndependentVariable → MediatingVariable → DependentVariable
 
-List ALL variables with their full academic names. Use only the format above, no JSON.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},D=async e=>{try{const t=f.getGenerativeModel({model:p}),n=`Generate a theoretical framework description for a thesis.
+List ALL variables with their full academic names. Use only the format above, no JSON.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},D=async e=>{try{const t=p.getGenerativeModel({model:E}),n=`Generate a theoretical framework description for a thesis.
 
 Topic: ${e?.topic||e?.title}
 Field: ${e?.field}
@@ -548,7 +739,7 @@ Return a structured description:
 Theory 1: name and key concepts
 Theory 2: name and key concepts
 Relationship: how they connect
-Application: how they apply to this study`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},V=async e=>{try{const t=f.getGenerativeModel({model:p}),n=`Generate a research design description for a thesis.
+Application: how they apply to this study`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},W=async e=>{try{const t=p.getGenerativeModel({model:E}),n=`Generate a research design description for a thesis.
 
 Topic: ${e?.topic||e?.title}
 Methodology: ${e?.methodology||"mixed methods"}
@@ -561,7 +752,7 @@ Step 3: ...
 Step 4: ...
 Step 5: ...
 
-List the key methodological steps in order. Use plain text, no diagrams.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},W=async(e,t,n)=>{try{const r=f.getGenerativeModel({model:p}),s=n?`
+List the key methodological steps in order. Use plain text, no diagrams.`;return(await t.generateContent(n)).response.text().trim()||null}catch(t){return console.error("Error:",t),null}},B=async(e,t,n)=>{try{const r=p.getGenerativeModel({model:E}),s=n?`
 
 REAL RESEARCH FINDINGS:
 ${JSON.stringify(n).substring(0,2e4)}`:"",o=`Generate realistic data for a results table.
@@ -570,12 +761,12 @@ Topic: ${t?.topic||t?.title}
 Subsection: ${e}
 Methodology: ${t?.methodology||"quantitative"}${s}
 
-${w}
+${I}
 
-Return a markdown table with 4-6 rows of realistic data based on the research findings provided. Use proper column headers and realistic values.`;return(await r.generateContent(o)).response.text().trim()}catch(r){return console.error("Error:",r),null}},B=async(e,t,n,r)=>{try{const s=f.getGenerativeModel({model:p}),o=r?`
+Return a markdown table with 4-6 rows of realistic data based on the research findings provided. Use proper column headers and realistic values.`;return(await r.generateContent(o)).response.text().trim()}catch(r){return console.error("Error:",r),null}},X=async(e,t,n,r)=>{try{const s=p.getGenerativeModel({model:E}),o=r?`
 
 REAL RESEARCH FINDINGS:
-${JSON.stringify(r).substring(0,2e4)}`:"",i=`Generate data for a ${e} chart.
+${JSON.stringify(r).substring(0,2e4)}`:"",l=`Generate data for a ${e} chart.
 
 Topic: ${n?.topic||n?.title}
 Subsection: ${t}${o}
@@ -583,8 +774,8 @@ Subsection: ${t}${o}
 Return in this exact format:
 [CHART: ${e} | Chart Title | Label1: value, Label2: value, Label3: value, ...]
 
-Use REAL data values from the research findings. For pie charts, values should sum to 100.`;return(await s.generateContent(i)).response.text().trim()}catch(s){return console.error("Error:",s),null}},X=async e=>{try{const t=f.getGenerativeModel({model:p}),n=e.chapters||{},r=Object.entries(n);if(r.length===0)return null;const s=r.map(([a,d])=>{const c=d.title||a,l=d.content||"";return`--- ${c} ---
-${l||"No content available."}`}).join(`
+Use REAL data values from the research findings. For pie charts, values should sum to 100.`;return(await s.generateContent(l)).response.text().trim()}catch(s){return console.error("Error:",s),null}},q=async e=>{try{const t=p.getGenerativeModel({model:E}),n=e.chapters||{},r=Object.entries(n);if(r.length===0)return null;const s=r.map(([a,g])=>{const c=g.title||a,h=g.content||"";return`--- ${c} ---
+${h||"No content available."}`}).join(`
 
 `),o=`You are a thesis defence expert preparing a student for their viva voce.
 
@@ -602,8 +793,8 @@ Based on this content, think of every possible question a panel member could ask
 For each question, provide ONE clear answer. Write the answer in plain, basic English — as if you are explaining to someone who is new to academic work. Use simple words and short sentences. Do not use jargon unless absolutely necessary, and explain it if you do. The answer should be a moderate length — a few sentences that give the most correct and helpful explanation without being too short or too long.
 
 Return ONLY valid JSON with chapter IDs as keys and arrays of {question, answer} objects. Example:
-{"proposal":[{"question":"...","answer":"..."}],"chapter1":[{"question":"...","answer":"..."}]}`,h=(await t.generateContent(o)).response.text().match(/\{[\s\S]*\}/);if(h)try{return JSON.parse(h[0])}catch{}return null}catch(t){return console.error("Error generating defence questions:",t),null}},q=(e,t)=>!e||e.length===0?"":[...new Set(e)].sort().map(r=>{const s=r.split(/[, ]+/),o=s[0]||"Author",i=s[1]||"n.d.";switch(t){case"apa":return`${o}. (${i}). Title of the work. Publisher.`;case"mla":return`${o}. Title of the Work. Publisher, ${i}.`;case"chicago":return`${o}. ${i}. Title of the Work. Publisher.`;case"harvard":return`${o} (${i}). Title of the work. Publisher.`;default:return`${o} (${i})`}}).join(`
-`),J=async(e,t)=>{try{const n=f.getGenerativeModel({model:p}),r=e.substring(0,15e3),s=`Extract field-specific abbreviations from this thesis content. Only include abbreviations that are specialized technical terms relevant to the thesis topic or academic field.
+{"proposal":[{"question":"...","answer":"..."}],"chapter1":[{"question":"...","answer":"..."}]}`,d=(await t.generateContent(o)).response.text().match(/\{[\s\S]*\}/);if(d)try{return JSON.parse(d[0])}catch{}return null}catch(t){return console.error("Error generating defence questions:",t),null}},J=(e,t)=>!e||e.length===0?"":[...new Set(e)].sort().map(r=>{const s=r.split(/[, ]+/),o=s[0]||"Author",l=s[1]||"n.d.";switch(t){case"apa":return`${o}. (${l}). Title of the work. Publisher.`;case"mla":return`${o}. Title of the Work. Publisher, ${l}.`;case"chicago":return`${o}. ${l}. Title of the Work. Publisher.`;case"harvard":return`${o} (${l}). Title of the work. Publisher.`;default:return`${o} (${l})`}}).join(`
+`),K=async(e,t)=>{try{const n=p.getGenerativeModel({model:E}),r=e.substring(0,15e3),s=`Extract field-specific abbreviations from this thesis content. Only include abbreviations that are specialized technical terms relevant to the thesis topic or academic field.
 
 PROJECT: "${t}"
 
@@ -621,9 +812,9 @@ RULES:
 - EXCLUDE very common non-technical terms: number, total, info, etc.
 - Focus on abbreviations that a reader of this specific thesis would need defined (e.g., field-specific acronyms, statistical terms, methodology-specific abbreviations)
 - Return [] if no abbreviations meeting these criteria are found
-- Return ONLY the JSON array, no other text`,o=await n.generateContent(s);return b(o.response.text())||[]}catch(n){return console.error("Error extracting abbreviations:",n),[]}},K=async(e,t)=>{try{const n=f.getGenerativeModel({model:p});let r="";Object.entries(t||{}).forEach(([h,a])=>{!a||typeof a!="object"||(r+=`
---- ${h} ---
-`,Object.values(a).forEach(d=>{typeof d=="string"&&(r+=d.substring(0,3e3)+`
+- Return ONLY the JSON array, no other text`,o=await n.generateContent(s);return b(o.response.text())||[]}catch(n){return console.error("Error extracting abbreviations:",n),[]}},j=async(e,t)=>{try{const n=p.getGenerativeModel({model:E});let r="";Object.entries(t||{}).forEach(([d,a])=>{!a||typeof a!="object"||(r+=`
+--- ${d} ---
+`,Object.values(a).forEach(g=>{typeof g=="string"&&(r+=g.substring(0,3e3)+`
 `)}))});const s=r.substring(0,5e4),o=`You are writing the abstract for an academic thesis.
 
 THESIS TITLE: "${e?.title||""}"
@@ -644,4 +835,4 @@ Write a concise academic abstract (200-350 words) that covers:
 - Key findings and results
 - Conclusions and implications
 
-Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;return(await n.generateContent(o)).response.text().trim()||null}catch(n){return console.error("Error generating abstract:",n),null}};export{ne as analyzeTranscriptText,G as applyFeedbackToContent,J as extractAbbreviations,_ as extractPaperMetadata,q as formatReferences,K as generateAbstract,M as generateAcademicContent,re as generateCaseStudyProtocol,B as generateChartData,Y as generateConceptualFramework,W as generateDataTable,X as generateDefenceQuestions,ae as generateDocumentAnalysisTemplate,se as generateFocusGroupProtocol,oe as generateInterviewGuide,ee as generateLiteratureMatrix,ie as generateObservationChecklist,ce as generateQuestionnaire,P as generateReferences,V as generateResearchDesignFlowchart,le as generateSampleData,k as generateSubtopics,D as generateTheoreticalFramework,j as getWordCountPreset,H as humaniseContent,x as recommendLiteratureReviewType,F as selfReviewContent};
+Use formal academic language in a single cohesive paragraph. Do not include headings, labels, or bracketed instructions. Return ONLY the abstract text.`;return(await n.generateContent(o)).response.text().trim()||null}catch(n){return console.error("Error generating abstract:",n),null}};export{re as analyzeTranscriptText,G as applyFeedbackToContent,K as extractAbbreviations,ee as extractPaperMetadata,J as formatReferences,j as generateAbstract,F as generateAcademicContent,ae as generateCaseStudyProtocol,k as generateChapterContent,X as generateChartData,V as generateConceptualFramework,B as generateDataTable,q as generateDefenceQuestions,se as generateDocumentAnalysisTemplate,ie as generateFocusGroupProtocol,oe as generateInterviewGuide,te as generateLiteratureMatrix,ce as generateObservationChecklist,le as generateQuestionnaire,P as generateReferences,W as generateResearchDesignFlowchart,he as generateSampleData,M as generateSubtopics,D as generateTheoreticalFramework,Q as getWordCountPreset,Y as humaniseContent,U as recommendLiteratureReviewType,H as selfReviewContent};

@@ -86,10 +86,11 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   const removeAILeft = effectiveLimit - removeAIUsed;
 
   const getChapterContent = useCallback((chapterId) => {
+    const content = rawContent[chapterId] || {};
+    if (content.fullChapter) return content.fullChapter;
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return '';
     const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-    const content = rawContent[chapterId] || {};
     const parts = [];
     for (let i = 0; i < subs.length; i++) {
       const text = content[subs[i].id];
@@ -99,10 +100,11 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   }, [chapters, rawContent]);
 
   const getChapterFlatText = useCallback((chapterId) => {
+    const content = rawContent[chapterId] || {};
+    if (content.fullChapter) return content.fullChapter;
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return '';
     const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-    const content = rawContent[chapterId] || {};
     return subs.map(s => content[s.id] || '').filter(Boolean).join(' ');
   }, [chapters, rawContent]);
 
@@ -249,39 +251,7 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     try {
       const ch = chapters.find(c => c.id === chId);
       if (!ch) { setProcessing(false); setProcessingChapter(null); return; }
-      const subs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
-      let remainingText = version.text;
-      let updatedContent = { ...(rawContent[chId] || {}) };
-      for (let j = 0; j < subs.length; j++) {
-        const sub = subs[j];
-        const header = sub.title;
-        const headerIdx = remainingText.indexOf(header);
-        if (headerIdx < 0) continue;
-        const nextSub = j < subs.length - 1 ? subs[j + 1] : null;
-        const nextHeader = nextSub ? nextSub.title : null;
-        let subContent;
-        if (nextHeader) {
-          const nextIdx = remainingText.indexOf(nextHeader, headerIdx + header.length);
-          subContent = nextIdx >= 0 ? remainingText.slice(headerIdx, nextIdx).trim() : remainingText.slice(headerIdx).trim();
-        } else {
-          subContent = remainingText.slice(headerIdx).trim();
-        }
-        const contentStart = subContent.indexOf('\n');
-        updatedContent[sub.id] = contentStart >= 0 ? subContent.slice(contentStart).trim() : '';
-      }
-      const existingVersions = await getSubsectionVersions(projectId) || {};
-      const newWrittenVersions = { ...existingVersions };
-      for (const sub of subs) {
-        const key = `${chId}_${sub.id}`;
-        const oldContent = rawContent[chId]?.[sub.id];
-        if (oldContent) {
-          const list = existingVersions[key] || [];
-          if (list.length === 0 || list[list.length - 1].content !== oldContent) {
-            newWrittenVersions[key] = [...list, { content: oldContent, label: `Remove AI Level ${version.level}`, timestamp: Date.now() }];
-          }
-        }
-      }
-      await saveSubsectionVersions(projectId, newWrittenVersions);
+      let updatedContent = { ...(rawContent[chId] || {}), fullChapter: version.text };
       const merged = { ...rawContent, [chId]: updatedContent };
       await saveGeneratedContent(projectId, merged);
       if (onContentUpdated) onContentUpdated(chId, updatedContent);
@@ -757,19 +727,13 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
                               </>
                             ) : (
                               <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text, whiteSpace: 'pre-wrap' }}>
-                                {selectedVersion.text.slice(0, 2000)}
-                                {selectedVersion.text.length > 2000 && (
-                                  <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
-                                )}
+                                {selectedVersion.text}
                               </div>
                             )}
                           </>
                         ) : (
                           <div style={{ padding: '12px', backgroundColor: isDarkMode ? '#1f2937' : 'white', borderRadius: '6px', maxHeight: '300px', overflowY: 'auto', fontSize: '13px', lineHeight: '1.7', color: colors.text, whiteSpace: 'pre-wrap' }}>
-                            {getChapterContent(ch.id).slice(0, 2000)}
-                            {getChapterContent(ch.id).length > 2000 && (
-                              <span style={{ color: '#9ca3af', fontSize: '12px' }}>... (content truncated)</span>
-                            )}
+                            {getChapterContent(ch.id)}
                           </div>
                         )}
                       </div>

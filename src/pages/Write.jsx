@@ -670,6 +670,7 @@ const Write = () => {
           isPremium={project?.tier === 'premium'}
           onEditWordCount={handleEditWordCount}
           regeneratingChapter={regeneratingChapter}
+          generatingReferences={generatingReferences}
           />
       </div>
 

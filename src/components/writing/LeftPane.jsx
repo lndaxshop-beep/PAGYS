@@ -26,6 +26,7 @@ const LeftPane = ({
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
   onUpdateGuidelines, isPremium,
   generatingChapter, onGenerateChapter,
+  generatingReferences,
 }) => {
   const { colors, isDarkMode } = useTheme();
   const [expandedChapters, setExpandedChapters] = useState([]);
@@ -92,8 +93,16 @@ const LeftPane = ({
     <div data-tour="left-pane" style={{
       width: '100%', height: '100vh', backgroundColor: colors.surface,
       borderRight: `1px solid ${colors.border}`, padding: '20px',
-      overflowY: 'auto'
+      overflowY: 'auto', position: 'relative',
+      pointerEvents: generatingReferences ? 'none' : 'auto',
+      opacity: generatingReferences ? 0.6 : 1,
+      transition: 'opacity 0.2s',
     }}>
+      {generatingReferences && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+          <p style={{ color: colors.primary, fontWeight: '600', fontSize: '13px' }}>Generating references...</p>
+        </div>
+      )}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: '20px', paddingBottom: '12px',

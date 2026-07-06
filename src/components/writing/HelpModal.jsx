@@ -72,7 +72,7 @@ const FEATURES = [
   {
     icon: '💎',
     title: 'Premium Features',
-    description: 'Upgrade to unlock Write All Remaining, Search Literature, Custom Guidelines, and larger per-chapter pools for Remove AI and Feedback.',
+    description: 'Upgrade to double your Remove AI and Feedback limits, search academic databases for real sources, set custom chapter guidelines, and unlock lower reset prices.',
     premium: true,
   },
 ];

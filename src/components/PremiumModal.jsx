@@ -22,7 +22,7 @@ const PremiumModal = ({ onClose, isPremium }) => {
         {isPremium ? (
           <div style={{ backgroundColor: '#f59e0b', borderRadius: '12px', padding: '20px', color: 'white', marginBottom: '24px' }}>
             <div style={{ fontSize: '16px', fontWeight: '600' }}>Premium Active</div>
-            <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '4px' }}>Remove AI: 10 free uses • Feedback: 12 per chapter • Literature search • Bulk generation</div>
+            <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '4px' }}>Remove AI (10 uses) • Feedback (12 per chapter) • Literature search • Custom guidelines</div>
           </div>
         ) : (
           <div style={{ backgroundColor: '#6b7280', borderRadius: '12px', padding: '20px', color: 'white', marginBottom: '24px' }}>

@@ -109,12 +109,13 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(getProjectPrice('regular', form.level))}</div>
-                <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4', listStyle: 'decimal' }}>
-                  <li style={{ marginBottom: '8px' }}>Remove AI (5 free uses per project)</li>
-                  <li style={{ marginBottom: '8px' }}>Feedback (6 uses per chapter)</li>
-                  <li style={{ marginBottom: '8px' }}>Full thesis generation</li>
-                  <li style={{ marginBottom: '8px' }}>Professional tables & charts</li>
-                  <li style={{ marginBottom: '8px' }}>DOCX / PDF / Markdown / LaTeX export</li>
+                <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.6', listStyle: 'decimal' }}>
+                  <li style={{ marginBottom: '8px' }}><strong>Write chapters</strong> — we generate each chapter from your topic, field, and methodology</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Feedback</strong> — paste supervisor corrections and we rewrite exactly</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Remove AI</strong> — 5 uses to make text sound naturally human</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Upload sources</strong> — add PDFs, Word docs, or images as references</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Auto-citations</strong> — we verify every citation and format references for you</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Export</strong> — DOCX, PDF, Markdown, or LaTeX with proper thesis formatting</li>
                 </ol>
               </div>
               <div
@@ -132,13 +133,13 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(getProjectPrice('premium', form.level))}</div>
-                <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.4', listStyle: 'decimal' }}>
-                  <li style={{ marginBottom: '8px' }}>Remove AI (10 free uses per project)</li>
-                  <li style={{ marginBottom: '8px' }}>Feedback (12 uses per chapter)</li>
-                  <li style={{ marginBottom: '8px' }}>Write All Remaining at once</li>
-                  <li style={{ marginBottom: '8px' }}>Search Literature & Add Sources</li>
-                  <li style={{ marginBottom: '8px' }}>Custom chapter guidelines</li>
-                  <li style={{ marginBottom: '8px' }}>And many more features... ⭐</li>
+                <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#d97706', fontWeight: '500', fontStyle: 'italic' }}>Everything in Regular, plus:</p>
+                <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.6', listStyle: 'decimal' }}>
+                  <li style={{ marginBottom: '8px' }}><strong>Double capacity</strong> — Remove AI (10 uses) + Feedback (12 per chapter)</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Search literature</strong> — find real academic papers by topic and add them instantly</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Custom guidelines</strong> — set per-chapter instructions that we follow every time</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Lower reset costs</strong> — Remove AI resets at ₵2 instead of ₵5</li>
+                  <li style={{ marginBottom: '8px' }}>⭐ Built for serious thesis work</li>
                 </ol>
                 {selectedTier === 'premium' && (
                   <div style={{ marginTop: '8px', fontSize: '11px', color: '#d97706', fontWeight: '500' }}>

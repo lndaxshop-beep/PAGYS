@@ -16,7 +16,7 @@ const HelpSupport = () => {
     { q: 'Can I edit the generated content?', a: 'Absolutely. Click "✏️ Edit" to switch to editing mode. Make changes, then click "Save & Preview" to see the rendered version.' },
     { q: 'What citation styles are supported?', a: 'APA 7th Edition, MLA 9th Edition, Chicago/Turabian, Harvard, and IEEE.' },
     { q: 'How do I upload my own chapter structure?', a: 'When you click a new chapter, a popup appears. Upload a screenshot, document, or paste formatted text showing your desired structure. We will follow it.' },
-    { q: 'What is Premium?', a: 'Premium unlocks Remove AI (10 free uses per project), Feedback (12 uses per chapter), Write All Remaining, Search Literature, and Custom Chapter Guidelines.' },
+    { q: 'What is Premium?', a: 'Premium doubles your Remove AI (10 uses) and Feedback (12 per chapter) limits — so you can apply more supervisor corrections and humanise more sections. You also unlock literature search across real academic databases, the ability to set custom writing guidelines per chapter, and cheaper feature resets.' },
     { q: 'Do you offer refunds?', a: `No. All purchases are final. If you experience issues, contact ${SUPPORT_EMAIL}.` },
   ];
 

@@ -43,7 +43,6 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
   const [showManualEdit, setShowManualEdit] = useState(null);
   const [manualEditDraft, setManualEditDraft] = useState('');
   const initialLoad = useRef(true);
-  const saveTimer = useRef(null);
 
   useEffect(() => { try { localStorage.setItem(`removeAIUsed_${projectId}`, JSON.stringify(removeAIUsed)); } catch {} }, [removeAIUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`removeAIResets_${projectId}`, JSON.stringify(removeAIResets)); } catch {} }, [removeAIResets, projectId]);
@@ -61,22 +60,14 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
     })();
   }, [projectId]);
 
-  const persistData = useCallback((edits, versions) => {
+  const persistData = useCallback(() => {
     if (initialLoad.current) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveRemoveAIData(projectId, {
-        sentenceEdits: edits !== undefined ? edits : sentenceEdits,
-        chapterVersions: versions !== undefined ? versions : chapterVersions,
-      });
-    }, 1500);
+    saveRemoveAIData(projectId, { sentenceEdits, chapterVersions });
   }, [projectId, sentenceEdits, chapterVersions]);
 
   useEffect(() => {
-    if (initialLoad.current) return;
     persistData();
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [sentenceEdits, chapterVersions]);
+  }, [persistData]);
 
   useEffect(() => {
     try { localStorage.setItem(`removeAIResets_${projectId}`, JSON.stringify(removeAIResets)); } catch {}
@@ -178,14 +169,16 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
           timestamp: Date.now(),
           applied: false,
         };
-        setChapterVersions(prev => {
-          const existing = prev[chId] || [];
-          return { ...prev, [chId]: [...existing, newVersion] };
-        });
-        setSelectedVersionIdx(prev => {
-          const versions = chapterVersions[chId] || [];
-          return { ...prev, [chId]: versions.length };
-        });
+        const updatedChapterVersions = {
+          ...chapterVersions,
+          [chId]: [...(chapterVersions[chId] || []), newVersion]
+        };
+        setChapterVersions(updatedChapterVersions);
+        saveRemoveAIData(projectId, { sentenceEdits, chapterVersions: updatedChapterVersions });
+        setSelectedVersionIdx(prev => ({
+          ...prev,
+          [chId]: (chapterVersions[chId] || []).length
+        }));
         setExpandedChapter(chId);
         completed.push(chapterTitle + ` (Level ${level})`);
         setRemoveAIUsed(prev => prev + 1);

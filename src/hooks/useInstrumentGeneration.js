@@ -5,6 +5,7 @@ import {
   generateObservationChecklist, generateDocumentAnalysisTemplate, generateCaseStudyProtocol
 } from '../services/geminiService';
 import { INSTRUMENT_TYPES, buildWordExport } from '../utils/instrumentHelpers';
+import { saveInstruments, getInstruments } from '../services/firestoreService';
 
 const generators = {
   questionnaire: generateQuestionnaire, interview: generateInterviewGuide,
@@ -25,12 +26,28 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
   const [newCustomQuestion, setNewCustomQuestion] = useState('');
 
   useEffect(() => {
-    if (autoSelect && project?.methodology) {
-      const recommended = Object.values(INSTRUMENT_TYPES)
-        .filter(t => t.recommendedFor.includes(project.methodology))
-        .map(t => t.id);
-      setSelectedInstruments(recommended);
-    }
+    if (!project?.id) return;
+    getInstruments(project.id).then(data => {
+      if (data.generatedContent && Object.keys(data.generatedContent).length > 0) {
+        setGeneratedContent(data.generatedContent || {});
+        setActiveTab(Object.keys(data.generatedContent)[0]);
+        setSelectedInstruments(data.selectedInstruments || []);
+        setDownloadedInstruments(data.downloadedInstruments || []);
+        setCustomQuestions(data.customQuestions || []);
+      } else if (autoSelect && project?.methodology) {
+        const recommended = Object.values(INSTRUMENT_TYPES)
+          .filter(t => t.recommendedFor.includes(project.methodology))
+          .map(t => t.id);
+        setSelectedInstruments(recommended);
+      }
+    }).catch(() => {
+      if (autoSelect && project?.methodology) {
+        const recommended = Object.values(INSTRUMENT_TYPES)
+          .filter(t => t.recommendedFor.includes(project.methodology))
+          .map(t => t.id);
+        setSelectedInstruments(recommended);
+      }
+    });
   }, [project, autoSelect]);
 
   const toggleInstrument = (id) => {
@@ -68,6 +85,7 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
     setGenerating(false);
     if (Object.keys(results).length > 0) { setActiveTab(Object.keys(results)[0]); }
     else { setError(lastError || 'Failed to generate any instruments. Please try again.'); }
+    persistToFirestore(results);
   };
 
   const handleDownloadInstrument = (instrumentId) => {
@@ -81,12 +99,18 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
     const updated = [...downloadedInstruments];
     if (!updated.includes(instrumentId)) { updated.push(instrumentId); }
     setDownloadedInstruments(updated);
-    try {
-      localStorage.setItem(`instrument_content_${project.id}_${instrumentId}`, JSON.stringify(content));
-      const existing = JSON.parse(localStorage.getItem(`instruments_${project.id}`) || '[]');
-      if (!existing.includes(instrumentId)) { localStorage.setItem(`instruments_${project.id}`, JSON.stringify([...existing, instrumentId])); }
-    } catch (e) { console.warn('Failed to persist instrument:', e); }
+    persistToFirestore();
     if (onDownload) { onDownload(updated); }
+  };
+
+  const persistToFirestore = (content) => {
+    if (!project?.id) return;
+    saveInstruments(project.id, {
+      generatedContent: content || generatedContent,
+      selectedInstruments,
+      downloadedInstruments,
+      customQuestions,
+    });
   };
 
   const handleDownloadAll = () => {
@@ -99,6 +123,7 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
     setDownloadedInstruments([]);
     setActiveTab(null);
     setSelectedInstruments([]);
+    persistToFirestore({});
   };
 
   const canClose = downloadedInstruments.length > 0;
@@ -106,18 +131,23 @@ const useInstrumentGeneration = (project, onClose, onDownload, onNotify) => {
 
   const handleAddCustomQuestion = () => {
     if (newCustomQuestion.trim()) {
-      setCustomQuestions(prev => [...prev, {
-        id: `custom_${Date.now()}`,
-        text: newCustomQuestion.trim(),
-        type: 'open-ended',
-        isCustom: true
-      }]);
+      setCustomQuestions(prev => {
+        const next = [...prev, {
+          id: `custom_${Date.now()}`,
+          text: newCustomQuestion.trim(),
+          type: 'open-ended',
+          isCustom: true
+        }];
+        setTimeout(() => persistToFirestore(), 0);
+        return next;
+      });
       setNewCustomQuestion('');
     }
   };
 
   const handleRemoveCustomQuestion = (id) => {
     setCustomQuestions(prev => prev.filter(q => q.id !== id));
+    setTimeout(() => persistToFirestore(), 0);
   };
 
   return {

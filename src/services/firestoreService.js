@@ -202,3 +202,51 @@ export const getVisualData = async (projectId) => {
     return {};
   } catch (e) { logError('getVisualData', e); throw e; }
 };
+
+export const saveInstruments = async (projectId, instruments) => {
+  try {
+    await setDoc(doc(db, 'instruments', projectId.toString()), {
+      instruments, updatedAt: new Date().toISOString(),
+    });
+  } catch (e) { logError('saveInstruments', e); }
+};
+
+export const getInstruments = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'instruments', projectId.toString()));
+    if (snap.exists()) return snap.data().instruments || {};
+    return {};
+  } catch (e) { logError('getInstruments', e); return {}; }
+};
+
+export const saveFindings = async (projectId, findings) => {
+  try {
+    await setDoc(doc(db, 'findings', projectId.toString()), {
+      findings, updatedAt: new Date().toISOString(),
+    });
+  } catch (e) { logError('saveFindings', e); }
+};
+
+export const getFindings = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'findings', projectId.toString()));
+    if (snap.exists()) return snap.data().findings;
+    return null;
+  } catch (e) { logError('getFindings', e); return null; }
+};
+
+export const saveMatrix = async (projectId, matrix) => {
+  try {
+    await setDoc(doc(db, 'matrices', projectId.toString()), {
+      matrix, updatedAt: new Date().toISOString(),
+    });
+  } catch (e) { logError('saveMatrix', e); }
+};
+
+export const getMatrix = async (projectId) => {
+  try {
+    const snap = await getDoc(doc(db, 'matrices', projectId.toString()));
+    if (snap.exists()) return snap.data().matrix;
+    return null;
+  } catch (e) { logError('getMatrix', e); return null; }
+};

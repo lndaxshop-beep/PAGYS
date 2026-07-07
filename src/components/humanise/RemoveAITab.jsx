@@ -54,6 +54,8 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
         if (saved) {
           if (saved.sentenceEdits) setSentenceEdits(saved.sentenceEdits);
           if (saved.chapterVersions) setChapterVersions(saved.chapterVersions);
+          if (saved.removeAIUsed !== undefined) setRemoveAIUsed(saved.removeAIUsed);
+          if (saved.removeAIResets !== undefined) setRemoveAIResets(saved.removeAIResets);
         }
       } catch (e) { console.error('Failed to load Remove AI data:', e); }
       initialLoad.current = false;
@@ -62,8 +64,8 @@ const RemoveAITab = ({ projectId, chapters, rawContent, projectData, colors, isD
 
   const persistData = useCallback(() => {
     if (initialLoad.current) return;
-    saveRemoveAIData(projectId, { sentenceEdits, chapterVersions });
-  }, [projectId, sentenceEdits, chapterVersions]);
+    saveRemoveAIData(projectId, { sentenceEdits, chapterVersions, removeAIUsed, removeAIResets });
+  }, [projectId, sentenceEdits, chapterVersions, removeAIUsed, removeAIResets]);
 
   useEffect(() => {
     persistData();

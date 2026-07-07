@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { extractTextFromFile, getFileType } from '../utils/fileExtractors';
 import { extractPaperMetadata, generateLiteratureMatrix } from '../services/gemini/sourceExtractor';
+import { saveMatrix, getMatrix } from '../services/firestoreService';
 
 const STORAGE_KEY = 'userSources';
 const SAVE_DEBOUNCE = 2000;
@@ -77,7 +78,14 @@ const useSourceLibrary = (projectId, userId) => {
     if (cached) {
       try { setMatrix(JSON.parse(cached)); } catch {}
     } else {
-      setMatrix(null);
+      getMatrix(projectId).then(savedMatrix => {
+        if (savedMatrix) {
+          setMatrix(savedMatrix);
+          localStorage.setItem(key, JSON.stringify(savedMatrix));
+        } else {
+          setMatrix(null);
+        }
+      }).catch(() => setMatrix(null));
     }
   }, [sources.length, projectId]);
 
@@ -161,6 +169,7 @@ const useSourceLibrary = (projectId, userId) => {
       if (result) {
         setMatrix(result);
         localStorage.setItem(key, JSON.stringify(result));
+        saveMatrix(projectId, result).catch(() => {});
       }
     } catch (error) {
       console.error('Error generating matrix:', error);
@@ -182,6 +191,7 @@ const useSourceLibrary = (projectId, userId) => {
       if (result) {
         setMatrix(result);
         localStorage.setItem(key, JSON.stringify(result));
+        saveMatrix(projectId, result).catch(() => {});
       }
     } catch (error) {
       console.error('Error regenerating matrix:', error);

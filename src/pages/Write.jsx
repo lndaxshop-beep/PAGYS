@@ -28,7 +28,7 @@ import LiteratureSearchModal from '../components/LiteratureSearchModal';
 import DiffModal from '../components/DiffModal';
 import SourceModePrompt from '../components/writing/SourceModePrompt';
 import { PageSkeleton } from '../components/Skeleton';
-import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject, updateProject } from '../services/firestoreService';
+import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject, updateProject, saveFindings, getFindings, getInstruments } from '../services/firestoreService';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
@@ -60,12 +60,7 @@ const Write = () => {
   const [generatedSubsections, setGeneratedSubsections] = useState({});
   const [chapterCitations, setChapterCitations] = useState({});
   const [uploadedFindings, setUploadedFindings] = useState(null);
-  const [instrumentsCompleted, setInstrumentsCompleted] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`instruments_${projectId}`);
-      return saved ? JSON.parse(saved).length > 0 : false;
-    } catch { return false; }
-  });
+  const [instrumentsCompleted, setInstrumentsCompleted] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
   const [showReferenceInTextarea, setShowReferenceInTextarea] = useState(false);
@@ -158,12 +153,13 @@ const Write = () => {
       }
 
       try {
-        const [currentProject, savedChapters, savedContent, savedCitations, vd] = await Promise.all([
+        const [currentProject, savedChapters, savedContent, savedCitations, vd, savedFindingsData] = await Promise.all([
           getProject(projectId, user?.uid),
           getChapters(projectId),
           getGeneratedContent(projectId),
           getCitations(projectId),
           getVisualData(projectId),
+          getFindings(projectId),
         ]);
 
         if (!currentProject) { navigate('/dashboard'); setLoading(false); if (endTransition) endTransition(); return; }
@@ -189,6 +185,18 @@ const Write = () => {
         if (vd.diagrams) setDiagramData(vd.diagrams);
         if (vd.charts) setChartData(vd.charts);
         if (vd.tables) setTableData(vd.tables);
+        if (savedFindingsData) setUploadedFindings(savedFindingsData);
+        if (currentProject.literatureReviewType) modals.setLiteratureReviewType(currentProject.literatureReviewType);
+        if (currentProject.feedbackUsed) {
+          setFeedbackUsed(currentProject.feedbackUsed);
+          try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(currentProject.feedbackUsed)); } catch {}
+        }
+
+        getInstruments(projectId).then(instruments => {
+          if (instruments.generatedContent && Object.keys(instruments.generatedContent).length > 0) {
+            setInstrumentsCompleted(true);
+          }
+        }).catch(() => {});
 
         const savedVersions = await getSubsectionVersions(projectId);
         if (savedVersions && Object.keys(savedVersions).length) setSubsectionVersions(savedVersions);
@@ -213,17 +221,16 @@ const Write = () => {
   useEffect(() => { if (projectId && Object.keys(chartData).length) saveVisualData(projectId, 'charts', chartData).catch(e => console.error('Auto-save charts failed:', e)); }, [chartData, projectId]);
   useEffect(() => { if (projectId && Object.keys(tableData).length) saveVisualData(projectId, 'tables', tableData).catch(e => console.error('Auto-save tables failed:', e)); }, [tableData, projectId]);
 
-  useEffect(() => { try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {} }, [feedbackUsed, projectId]);
+  useEffect(() => {
+    try { localStorage.setItem(`feedbackUsed_${projectId}`, JSON.stringify(feedbackUsed)); } catch {}
+    if (projectId && Object.keys(feedbackUsed).length) updateProject(projectId, { feedbackUsed }).catch(() => {});
+  }, [feedbackUsed, projectId]);
   useEffect(() => { try { localStorage.setItem(`subsectionVersions_${projectId}`, JSON.stringify(subsectionVersions)); } catch {} }, [subsectionVersions, projectId]);
+  useEffect(() => { if (projectId && uploadedFindings) saveFindings(projectId, uploadedFindings).catch(() => {}); }, [uploadedFindings, projectId]);
 
-  const versionsTimerRef = useRef(null);
   useEffect(() => {
     if (!projectId || Object.keys(subsectionVersions).length === 0) return;
-    if (versionsTimerRef.current) clearTimeout(versionsTimerRef.current);
-    versionsTimerRef.current = setTimeout(() => {
-      saveSubsectionVersions(projectId, subsectionVersions).catch(e => console.warn('Failed to save versions:', e));
-    }, 15000);
-    return () => { if (versionsTimerRef.current) clearTimeout(versionsTimerRef.current); };
+    saveSubsectionVersions(projectId, subsectionVersions).catch(e => console.warn('Failed to save versions:', e));
   }, [subsectionVersions, projectId]);
 
   useEffect(() => {
@@ -436,6 +443,7 @@ const Write = () => {
         chapterContent[subId] = entry.content;
       }
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], ...chapterContent } }));
+      saveNow();
       setChapters(prev => prev.map(ch =>
         ch.id === activeChapter ? {
           ...ch,
@@ -455,6 +463,7 @@ const Write = () => {
       autoGenerateReferences(activeChapter, true).then(refResult => {
         if (refResult && refResult.content) {
           setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+          saveNow();
         }
       }).catch(e => console.error('Auto-generate references failed:', e));
       const generatedCount = Object.keys(subsections).length;
@@ -474,6 +483,7 @@ const Write = () => {
       setCurrentContent(content); setShowReferenceInTextarea(true); setIsViewingReferences(true); setIsPreviewMode(true);
       setChapters(prev => prev.map(ch => ch.id === activeChapter ? { ...ch, subsections: ch.subsections.map(s => s.type === 'references' ? { ...s, generated: true } : s) } : ch));
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], references: content } }));
+      saveNow();
       toastSuccess(usedGrounding ? 'References written from real sources!' : 'References written from your citations. Verify entries before submitting.');
     } finally {
       setGeneratingReferences(false);
@@ -509,11 +519,13 @@ const Write = () => {
       const applyChanges = () => {
         captureVersion(activeChapter, modals.currentFeedbackSubsection.id, currentContentText, 'Feedback Applied');
         setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], [modals.currentFeedbackSubsection.id]: modifiedContent } }));
+        saveNow();
         setCurrentContent(modifiedContent);
         setFeedbackUsed(prev => ({ ...prev, [feedbackKey]: (prev[feedbackKey] || 0) + 1 }));
       autoGenerateReferences(activeChapter, true).then(refResult => {
           if (refResult && refResult.content) {
             setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+            saveNow();
           }
         }).catch(e => console.error('Auto-generate references failed:', e));
         toastSuccess('Feedback applied successfully!');
@@ -550,6 +562,7 @@ const Write = () => {
   const handleLiteratureTypeSubmit = (type) => {
     modals.setLiteratureReviewType(type);
     modals.setShowLiteratureTypeModal(false);
+    updateProject(projectId, { literatureReviewType: type }).catch(() => {});
     if (modals.pendingChapterForStructure) {
       modals.setShowChapterStructureModal(true);
     }
@@ -634,6 +647,7 @@ const Write = () => {
     if (currentContent) {
       captureVersion(activeChapter, 'fullChapter', generatedSubsections[activeChapter]?.fullChapter, 'Manual Edit');
       setGeneratedSubsections(prev => ({ ...prev, [activeChapter]: { ...prev[activeChapter], fullChapter: currentContent } }));
+      saveNow();
       setIsPreviewMode(true);
     }
   };

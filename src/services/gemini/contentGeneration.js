@@ -507,161 +507,75 @@ const buildHumanisePrompt = (text, promptData, humaniseLevel) => {
   const field = promptData?.field || 'social sciences';
   const chapter = promptData?.chapter || 'thesis chapter';
   const subsection = promptData?.subsection || 'subsection';
-  const diagnosticReport = promptData?.diagnosticReport || '';
-  const flaggedSentences = promptData?.flaggedSentences || [];
 
-  let flaggedSection = '';
-  if (flaggedSentences.length > 0) {
-    const list = flaggedSentences
-      .filter(s => s.aiProbability > 0.5)
-      .slice(0, 15)
-      .map((s, i) =>
-        `SENTENCE ${i + 1}: "${s.text.slice(0, 150)}"\n  Flags: ${s.flags.join(', ') || 'none'}\n  Suggestions: ${s.suggestions.join(', ') || 'none'}`
-      )
-      .join('\n\n');
-    if (list) {
-      flaggedSection = `
-## TARGETED REWRITE — FLAGGED SENTENCES
-The following sentences were flagged as AI-like. Rewrite each one with specific fixes:
+  const levelInstructions = {
+    1: `Polish this thesis text to sound like a capable graduate student wrote it. Improve fluency and readability while keeping the original structure and flow. The writing should feel clear, direct, and naturally academic.`,
 
-${list}
+    2: `Rewrite this thesis text as a human scholar would naturally write it. Restructure paragraphs for organic flow. Vary confidence levels — some claims sound definitive, others are thoughtfully hedged. Use transitions where they fit naturally. Let paragraphs breathe with varied lengths and purposes.`,
 
-For each flagged sentence above, apply its specific suggestions. Do NOT rewrite sentences not listed above.`;
-    }
-  }
+    3: `Rewrite this thesis text completely naturally, as if a human scholar wrote it from scratch. Do not think about rules or formulas — simply write as a real academic would. Vary sentence flow organically. Use parenthetical asides and natural hedging where appropriate. Let the writing feel genuinely human — confident in places, exploratory in others, always natural.`
+  };
 
-  const baseHeader = `You are a smart graduate student who writes clearly and naturally. Rewrite the following thesis excerpt so it sounds like a real person wrote it — not AI.
+  const humanWritingExamples = `
+## HUMAN WRITING REFERENCE EXAMPLES
+Study these excerpts from a real thesis that scored 0% AI probability. They show what natural academic writing looks like in practice.
 
-TEXT TO REWRITE:
-${text}
+EXAMPLE 1 (Natural narrative flow — short and long sentences, confident opening):
+"Financial literacy has emerged as one of the essential life skills that an individual can acquire in the present-day world. Indeed, in each and every day of their lives, people are expected to make decisions regarding money whether it comes to how to budget for daily expenses, save for tuition or even apply for a loan in either a banking institution or mobile money platform. Though small on their own, such decisions can have a huge impact when accumulated."
 
-THESIS TITLE: "${topic}"
-${promptData?.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
-FIELD: ${field}
-CHAPTER: ${chapter}
-SUBSECTION: ${subsection}
-${diagnosticReport}${flaggedSection}
+EXAMPLE 2 (Confidence variation, natural hedging, integrated citations):
+"This confidence is termed as financial self-efficacy, and empirical research indicates that it is a reliable predictor of sound financial behavior among young people (Sun & Chen, 2024). For instance, the student who has the confidence that he or she is able to follow the budget will be much more likely to plan and observe the budget compared to the student who does not believe that he or she has the ability to do that. College years are characterized by strong peer influence on the part of college students."
 
-## CRITICAL RULES — FOLLOW EVERY ONE
+Notice what makes these passages work:
+- Sentences vary in length naturally, without mechanical patterns
+- Transitions emerge where they fit ('Indeed', 'For instance') — they are not forced nor avoided
+- Some claims are confident ('research indicates'), others are hedged ('may be', 'it appears')
+- Citations are woven into the narrative naturally
+- The rhythm comes from the writer's ideas, not from counting words
+- Academic vocabulary serves the point; the simplest word that works is preferred`;
 
-### 1. SENTENCE RHYTHM (MOST IMPORTANT)`;
+  const patternsSection = `
+## WRITING GUIDELINES
+- Write in third person (the researcher, the findings suggest, the data indicate)
+- No contractions — write out all words fully (do not, will not, cannot, it is, they are)
+- Vary confidence naturally — some paragraphs are definitive, others exploratory
+- Use transitions where they fit naturally (however, furthermore, therefore, nevertheless are all fine)
+- Parenthetical asides and brief qualifying statements add a human feel
+- Each paragraph should have its own rhythm — some short and direct, others longer and more developed
+- Keep vocabulary straightforward; clarity matters more than impressiveness
 
-  const level1Rhythm = `
-- DRAMATICALLY vary sentence length. Mix 3-word sentences with 30-word sentences.
-- No two consecutive sentences should start with the same word.
-- Vary paragraph lengths from 1 sentence to 8 sentences.
-- Use short punchy statements: "This matters. Here's why."
-- Then immediately follow with a longer, flowing sentence.`;
-
-  const level2Rhythm = `
-- STRONG rhythm variation: freely mix very short (3-6 words), medium (15-25 words), and long (30-50 words) sentences.
-- No two consecutive sentences should start with the same word.
-- Include occasional one-sentence paragraphs for dramatic emphasis.
-- Start some paragraphs with a short, direct statement followed by a longer explanatory sentence.
-- Vary paragraph length unpredictably: some 2 sentences, some 8 sentences.`;
-
-  const level3Rhythm = `
-- MAXIMUM burstiness: sentences should feel random in length — 4 words, then 50, then 7, then 30.
-- No two sentences should have a similar structure or length pattern.
-- Start most paragraphs with a very short punchy sentence (3-6 words).
-- Let each paragraph have its own unique rhythm — some fast and punchy, some slow and flowing.
-- Avoid any detectable pattern in sentence length or structure.`;
-
-  let rhythmSection;
-  let toneSection;
-  let styleSection;
-  let avoidSection;
-
-  if (humaniseLevel === 1) {
-    rhythmSection = level1Rhythm;
-    toneSection = `
-### 2. TONE — NATURAL ACADEMIC STYLE
-- Write like a smart graduate student writing a thesis — clear and natural, not stiff or robotic.
-- NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
-- Mix confident statements ("The data clearly show...") with thoughtful hedging ("This may suggest...", "It is possible that...").
-- Simple vocabulary is GOOD. Avoid jargon and fancy words.
-- Never say "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion".`;
-    styleSection = `
-### 3. VARIED ACADEMIC STYLE
-- Start sentences with variety: "Notably...", "Critically...", "An important finding is...", "Turning to...", "What is particularly striking is..."
-- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
-- Use natural academic phrasing: "importantly", "notably", "interestingly", "critically", "in practice"
-- Vary confidence: some claims sound certain, others hedge ("this may suggest", "it appears that").
-- Long sentences should feel thoughtful and purposeful, not formulaic.`;
-    avoidSection = `
-### 4. WHAT TO AVOID AT ALL COSTS
-- NO transitions (furthermore, moreover, additionally, consequently, thus, hence)
-- NO formal openers ("This study examines", "The research aims to", "It is important to")
-- NO overly complex sentences with multiple nested clauses
-- NO perfect uniformity — sentences should have different rhythms
-- NO big vocabulary where simple words work`;
-  } else if (humaniseLevel === 2) {
-    rhythmSection = level2Rhythm;
-    toneSection = `
-### 2. TONE — LESS FORMAL ACADEMIC STYLE
-- Write like a smart graduate student who has mastered the material and writes with natural confidence.
-- NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
-- Use the simplest word that works — if a 10th grader could understand it, that is perfect.
-- Sound certain where appropriate ("The data indicate..."), hedge where uncertain ("It appears that...", "This may reflect...").
-- Never use "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion", "additionally".`;
-    styleSection = `
-### 3. NATURAL VARIED STYLE
-- Vary sentence starters: "What is striking...", "An important observation...", "This connects to...", "Notably...", "A key point is...", "Looking at..."
-- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest".
-- Vary confidence levels naturally — some paragraphs sound definitive, others exploratory.
-- Use natural academic connectors: "importantly", "notably", "interestingly", "in practice", "specifically"
-- Write as if explaining to a colleague — clear, direct, but still academic.`;
-    avoidSection = `
-### 4. WHAT TO AVOID AT ALL COSTS
-- NO formal openers ("This study examines", "The research aims to", "It should be noted")
-- NO overly complex sentences with multiple nested clauses
-- NO repeated sentence structures
-- NO big vocabulary where simple words work
-- NO two paragraphs with the same rhythm`;
-  } else {
-    rhythmSection = level3Rhythm;
-    toneSection = `
-### 2. TONE — MAXIMUM NATURAL
-- Write like an experienced researcher explaining their work to a colleague — clear, direct, completely natural.
-- NO contractions: write out ALL words fully (do not, will not, cannot, it is, they are, that is, does not).
-- Use everyday academic vocabulary — the simplest word that conveys the meaning correctly.
-- Sound completely natural: some sentences definitive, some speculative, some purely observational.
-- Completely avoid "furthermore", "moreover", "consequently", "thus", "hence", "in conclusion", "additionally", "therefore".`;
-    styleSection = `
-### 3. NATURAL FLUCTUATING STYLE
-- Vary openings unpredictably: "What is striking...", "The data point to...", "A contrasting view comes from...", "Importantly...", "This raises a key question...", "A critical finding..."
-- Use THIRD PERSON exclusively: "the researcher", "this study", "the findings suggest", "the data indicate".
-- Each paragraph should have its own distinct voice and rhythm.
-- Avoid ALL transition-like phrasing entirely. Let ideas connect naturally without signposting.
-- Write like a published academic whose writing feels effortless and unforced.`;
-    avoidSection = `
-### 4. WHAT TO AVOID AT ALL COSTS
-- NO detectable patterns in sentence structure or length
-- NO formulaic academic writing of any kind
-- NO two sentences that sound like they were written by the same template
-- NO paragraphs that feel "balanced" or "structured" — they should feel organic
-- NO vocabulary that feels chosen to impress rather than to communicate`;
-  }
-
-  const structuralSection = `
-### 5. STRUCTURAL PRESERVATION
-- Keep ALL in-text citations (Author, Year) exactly as written.
-- Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged.
-- Keep ALL subsection headings exactly as they appear.
-- No markdown headings, no HTML tags.
+## STRUCTURAL PRESERVATION
+- Keep ALL in-text citations (Author, Year) exactly as written
+- Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged
+- Keep ALL subsection headings exactly as they appear
+- No markdown headings, no HTML tags
 
 Return ONLY the rewritten text. No explanations.`;
 
-  return `${baseHeader}${rhythmSection}${toneSection}${styleSection}${avoidSection}${structuralSection}`;
+  return `
+You are a skilled academic writer. Rewrite thesis content so it reads like a human scholar wrote it.
+
+## THESIS CONTEXT
+TITLE: "${topic}"
+FIELD: ${field}
+CHAPTER: ${chapter}
+SUBSECTION: ${subsection}
+
+## TEXT TO REWRITE
+${text}
+
+## LEVEL OF REWRITING
+${levelInstructions[humaniseLevel] || levelInstructions[1]}
+${humanWritingExamples}
+${patternsSection}`;
 };
 
 export const humaniseContent = async (text, promptData = null, humaniseLevel = 1) => {
   try {
-    const temps = { 1: 0.9, 2: 1.0, 3: 1.1 };
+    const temps = { 1: 0.7, 2: 0.8, 3: 0.9 };
     const model = genAI.getGenerativeModel({
       model: MODEL,
-      tools: [{ googleSearch: {} }],
-      generationConfig: { temperature: temps[humaniseLevel] || 0.9, topP: 0.95 }
+      generationConfig: { temperature: temps[humaniseLevel] || 0.7, topP: 0.95 }
     });
     const prompt = buildHumanisePrompt(text, promptData, humaniseLevel);
     const result = await model.generateContent(prompt);

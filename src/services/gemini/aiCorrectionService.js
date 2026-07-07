@@ -90,20 +90,4 @@ ${content}`;
   return { correctedContent: parsed?.correctedText || content, changedText: '' };
 };
 
-export const humaniseContent = async (content) => {
-  const prompt = `You are an academic writing assistant. Rewrite the following text to make it sound more natural and human-written, while keeping all academic facts, data, and citations intact.
 
-Rules:
-1. Keep ALL facts, data, citations, figures, and academic content.
-2. Make the language flow more naturally like a human academic writer.
-3. Vary sentence structure and length.
-4. Avoid common AI-sounding phrases.
-5. Return ONLY a JSON object: { "correctedText": "the full corrected text" }
-
-TEXT TO IMPROVE:
-${content}`;
-
-  const raw = await callModel(prompt);
-  const parsed = safeParse(raw);
-  return { correctedContent: parsed?.correctedText || content, changedText: '' };
-};

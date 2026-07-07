@@ -211,10 +211,9 @@ export const computeFormalityIndex = (text) => {
   const contractionRate = contractions / sentences.length;
   const passiveRate = passiveVoice / sentences.length;
   const nominalizationRate = nominalizations / words.length;
-  const contractionScore = Math.min(1, contractionRate * 5);
   const passiveScore = Math.min(1, passiveRate * 2);
   const nominalizationScore = Math.min(1, nominalizationRate * 20);
-  const score = Math.min(1, Math.max(0, (passiveScore + nominalizationScore) / 2 + (1 - contractionScore) / 2));
+  const score = Math.min(1, Math.max(0, (passiveScore + nominalizationScore) / 2));
   const flag = score > 0.7;
   return {
     score: Math.round(score * 100) / 100,

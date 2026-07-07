@@ -509,42 +509,65 @@ const buildHumanisePrompt = (text, promptData, humaniseLevel) => {
   const subsection = promptData?.subsection || 'subsection';
 
   const levelInstructions = {
-    1: `Polish this thesis text to sound like a capable graduate student wrote it. Improve fluency and readability while keeping the original structure and flow. The writing should feel clear, direct, and naturally academic.`,
+    1: `LEVEL 1 — REWRITE THIS TEXT TO SOUND LIKE A REAL PERSON WROTE IT
+Rewrite the text below following these specific techniques:
 
-    2: `Rewrite this thesis text as a human scholar would naturally write it. Restructure paragraphs for organic flow. Vary confidence levels — some claims sound definitive, others are thoughtfully hedged. Use transitions where they fit naturally. Let paragraphs breathe with varied lengths and purposes.`,
+VARY SENTENCE LENGTHS DRAMATICALLY: Follow a long sentence (25-40 words) with a very short one (5-10 words). Never let three consecutive sentences have similar lengths. This creates a natural human rhythm.
 
-    3: `Rewrite this thesis text completely naturally, as if a human scholar wrote it from scratch. Do not think about rules or formulas — simply write as a real academic would. Vary sentence flow organically. Use parenthetical asides and natural hedging where appropriate. Let the writing feel genuinely human — confident in places, exploratory in others, always natural.`
+PREFER ACTIVE VOICE: Write "the data show" instead of "it is shown by the data." Write "students lack knowledge" instead of "a lack of knowledge is observed among students."
+
+USE PLAIN VOCABULARY: Choose the simplest word that works — "use" over "utilize," "show" over "demonstrate," "change" over "transform," "help" over "facilitate," "start" over "commence," "need" over "require," "get" over "obtain."
+
+REDUCE COMPLEX NOUNS: Avoid words ending in -tion, -sion, -ment, -ness, -ity, -ance, -ence. Prefer verb forms: say "deciding" instead of "decision-making," "managing" instead of "management," "investigating" instead of "investigation," "educating" instead of "education," "improving" instead of "improvement."
+
+NO CONTRACTIONS: Write out all words fully (do not, will not, cannot, it is, they are).
+
+KEEP ALL CITATIONS AND DATA EXACTLY AS WRITTEN.`,
+
+    2: `LEVEL 2 — REWRITE THIS TEXT TO SOUND COMPLETELY HUMAN
+Apply everything from Level 1 more aggressively, plus:
+
+MAXIMUM SENTENCE VARIETY: Create wild swings in sentence length — alternate 4-word sentences with 35-word sentences. Short punchy statements followed by long flowing explanations. No two adjacent sentences should feel rhythmically similar.
+
+PURE ACTIVE VOICE: Every sentence should have a clear subject doing an action. Eliminate all passive constructions. Instead of "it was found that," write "the study found." Instead of "it is believed that," write "researchers believe."
+
+SIMPLEST POSSIBLE ENGLISH: Replace every long word with a short one. Turn nouns into verbs. Instead of "the implementation of the program," write "putting the program into practice." Instead of "the management of finances," write "managing money." Instead of "the investigation revealed," write "the researcher found." Instead of "an examination of the data," write "looking at the data."
+
+MINIMIZE NOMINALIZATIONS: Eliminate nearly all -tion, -sion, -ment, -ness, -ity, -ance, -ence words. Replace "analysis" with "analyzing," "education" with "teaching and learning," "observation" with "what researchers saw."
+
+NO CONTRACTIONS. KEEP ALL CITATIONS AND DATA EXACTLY AS WRITTEN.`,
+
+    3: `LEVEL 3 — REWRITE THIS TEXT TO PASS AS 100% HUMAN-WRITTEN
+Apply everything from Levels 1 and 2 at maximum intensity, plus:
+
+EXTREME BURSTINESS: Make sentence lengths unpredictable. Use 3-word sentences and 40-word sentences in the same paragraph. Let some paragraphs have one short sentence followed by a long one. Let others build gradually. Every paragraph should feel rhythmically unique.
+
+COMPLETE ACTIVE VOICE: Zero passive constructions. Every sentence is a subject doing an action. Read every sentence back — if you see "is," "are," "was," "were," "been," or "being" followed by a past participle, rewrite the sentence.
+
+SIMPLEST ENGLISH POSSIBLE: Write as if explaining this topic to a high school student who is smart but new to the subject. Use the most basic words. "Helps," "shows," "gives," "finds," "uses," "needs," "has," "does," "makes," "changes," "takes," "puts," "gets," "looks at" — these should be your core vocabulary.
+
+NEAR-ZERO NOMINALIZATIONS: Replace every complex noun with a verb phrase. "Conducting an investigation" → "investigating." "The management of financial resources" → "managing money." "The implementation of strategies" → "putting plans into action." "The collection of data" → "gathering information."
+
+NO CONTRACTIONS. KEEP ALL CITATIONS AND DATA EXACTLY AS WRITTEN.`
   };
 
-  const humanWritingExamples = `
-## HUMAN WRITING REFERENCE EXAMPLES
-Study these excerpts from a real thesis that scored 0% AI probability. They show what natural academic writing looks like in practice.
+  const referenceExamples = `
+## REFERENCE — HUMAN THESIS EXCERPTS (SCORED 0% AI)
+These passages show the natural rhythm and simple vocabulary you should aim for:
 
-EXAMPLE 1 (Natural narrative flow — short and long sentences, confident opening):
 "Financial literacy has emerged as one of the essential life skills that an individual can acquire in the present-day world. Indeed, in each and every day of their lives, people are expected to make decisions regarding money whether it comes to how to budget for daily expenses, save for tuition or even apply for a loan in either a banking institution or mobile money platform. Though small on their own, such decisions can have a huge impact when accumulated."
 
-EXAMPLE 2 (Confidence variation, natural hedging, integrated citations):
-"This confidence is termed as financial self-efficacy, and empirical research indicates that it is a reliable predictor of sound financial behavior among young people (Sun & Chen, 2024). For instance, the student who has the confidence that he or she is able to follow the budget will be much more likely to plan and observe the budget compared to the student who does not believe that he or she has the ability to do that. College years are characterized by strong peer influence on the part of college students."
+"This confidence is termed as financial self-efficacy, and empirical research indicates that it is a reliable predictor of sound financial behavior among young people (Sun & Chen, 2024). For instance, the student who has the confidence that he or she is able to follow the budget will be much more likely to plan and observe the budget compared to the student who does not believe that he or she has the ability to do that."
 
-Notice what makes these passages work:
-- Sentences vary in length naturally, without mechanical patterns
-- Transitions emerge where they fit ('Indeed', 'For instance') — they are not forced nor avoided
-- Some claims are confident ('research indicates'), others are hedged ('may be', 'it appears')
-- Citations are woven into the narrative naturally
-- The rhythm comes from the writer's ideas, not from counting words
-- Academic vocabulary serves the point; the simplest word that works is preferred`;
+Key patterns in these examples:
+- Sentence lengths swing naturally: short ("Though small on their own..."), long ("For instance, the student who...")
+- Active phrasing: "research indicates," "the student... will be much more likely"
+- Simple vocabulary carries the meaning without help from complex words
+- Transitions like "Indeed" and "For instance" are used naturally, not overused`;
 
-  const patternsSection = `
-## WRITING GUIDELINES
-- Write in third person (the researcher, the findings suggest, the data indicate)
-- No contractions — write out all words fully (do not, will not, cannot, it is, they are)
-- Vary confidence naturally — some paragraphs are definitive, others exploratory
-- Use transitions where they fit naturally (however, furthermore, therefore, nevertheless are all fine)
-- Parenthetical asides and brief qualifying statements add a human feel
-- Each paragraph should have its own rhythm — some short and direct, others longer and more developed
-- Keep vocabulary straightforward; clarity matters more than impressiveness
-
-## STRUCTURAL PRESERVATION
+  const structuralRules = `
+## RULES
+- No contractions (do not, will not, cannot, it is, they are)
 - Keep ALL in-text citations (Author, Year) exactly as written
 - Keep ALL data, tables, [CHART:{...}] tags, and diagrams unchanged
 - Keep ALL subsection headings exactly as they appear
@@ -553,7 +576,7 @@ Notice what makes these passages work:
 Return ONLY the rewritten text. No explanations.`;
 
   return `
-You are a skilled academic writer. Rewrite thesis content so it reads like a human scholar wrote it.
+You are a skilled writer. Your task is to rewrite thesis text so it reads like a human wrote it.
 
 ## THESIS CONTEXT
 TITLE: "${topic}"
@@ -564,18 +587,18 @@ SUBSECTION: ${subsection}
 ## TEXT TO REWRITE
 ${text}
 
-## LEVEL OF REWRITING
+## INSTRUCTIONS
 ${levelInstructions[humaniseLevel] || levelInstructions[1]}
-${humanWritingExamples}
-${patternsSection}`;
+${referenceExamples}
+${structuralRules}`;
 };
 
 export const humaniseContent = async (text, promptData = null, humaniseLevel = 1) => {
   try {
-    const temps = { 1: 0.7, 2: 0.8, 3: 0.9 };
+    const temps = { 1: 0.9, 2: 1.0, 3: 1.1 };
     const model = genAI.getGenerativeModel({
       model: MODEL,
-      generationConfig: { temperature: temps[humaniseLevel] || 0.7, topP: 0.95 }
+      generationConfig: { temperature: temps[humaniseLevel] || 0.9, topP: 0.95 }
     });
     const prompt = buildHumanisePrompt(text, promptData, humaniseLevel);
     const result = await model.generateContent(prompt);

@@ -28,6 +28,8 @@ import usePayment from '../hooks/usePayment';
 
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+const FREE_PROJECT_EMAILS = ['jawuitor75@gmail.com'];
+
 const Dashboard = () => {
   const { colors } = useTheme();
   const { isMobile } = useResponsive();
@@ -195,24 +197,37 @@ const Dashboard = () => {
     }
   };
 
+  const saveProjectAndFinalize = async (project, tier, { isUpgrade = false, receipt = null, successToast = null } = {}) => {
+    if (!project) return;
+    if (!isUpgrade) {
+      const backupKey = 'pendingProject_' + project.id;
+      localStorage.setItem(backupKey, JSON.stringify({ ...project, tier }));
+      try {
+        await saveProject({ ...project, tier, isPremium: tier === 'premium' }, user?.uid);
+        localStorage.removeItem(backupKey);
+      } catch (e) {
+        notify(receipt
+          ? 'Payment successful but project could not be saved. Your receipt is recorded. It will be restored automatically on your next visit.'
+          : 'Your project could not be saved. Please try again.', 'error');
+        setShowPaymentModal(false);
+        setPaymentProject(null);
+        setPaymentTier(null);
+        return;
+      }
+    }
+    setShowPaymentModal(false);
+    if (receipt) setPaymentReceipt(receipt);
+    setPaymentProject(null);
+    setPaymentTier(null);
+    if (successToast) notify(successToast, 'success');
+    loadProjects();
+    if (!isUpgrade && tier === 'premium') setShowSourceSetup(true);
+  };
+
   const handlePaymentConfirm = async () => {
     if (!paymentProject) return;
     const success = await processPayment(paymentProject.id, paymentTier, paymentProject.level);
     if (success) {
-      if (!paymentIsUpgrade) {
-        sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
-        try {
-          await saveProject(paymentProject, user?.uid);
-          sessionStorage.removeItem('pendingProject_' + paymentProject.id);
-        } catch (e) {
-          notify('Payment successful but project could not be saved. Your receipt is recorded. It will be restored automatically on your next visit.', 'error');
-          setShowPaymentModal(false);
-          setPaymentProject(null);
-          setPaymentTier(null);
-          return;
-        }
-      }
-      setShowPaymentModal(false);
       const country = getUserCountry(user);
       const priceKey = paymentIsUpgrade ? 'upgrade' : (paymentTier === 'premium' ? 'premium' : 'regular');
       const receiptData = {
@@ -224,14 +239,7 @@ const Dashboard = () => {
         paidAt: new Date().toISOString(),
         channel: DEV_BYPASS ? 'mock' : 'card',
       };
-      setPaymentReceipt(receiptData);
-      setPaymentProject(null);
-      setPaymentTier(null);
-      loadProjects();
-      if (paymentIsUpgrade) {
-      } else if (paymentTier === 'premium') {
-        setShowSourceSetup(true);
-      }
+      await saveProjectAndFinalize(paymentProject, paymentTier, { isUpgrade: paymentIsUpgrade, receipt: receiptData });
     }
   };
 
@@ -310,6 +318,12 @@ const Dashboard = () => {
     setShowNewProjectForm(false);
     setCreatedProjectId(project.id);
     setCreatedProjectTier(tier);
+
+    if (FREE_PROJECT_EMAILS.includes((user?.email || '').trim().toLowerCase())) {
+      await saveProjectAndFinalize(project, tier, { successToast: 'Project created! Your project is ready to use.' });
+      return;
+    }
+
     setPaymentProject(project);
     setPaymentTier(tier);
     setPaymentIsUpgrade(false);

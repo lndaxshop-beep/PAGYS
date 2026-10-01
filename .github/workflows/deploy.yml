@@ -1,0 +1,81 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint -- --quiet || true
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          echo "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          # Stop before touching files so a failed checkout never runs half a release.
+          if [ -f ecosystem.config.js ]; then
+            pm2 stop ecosystem.config.js || true
+          fi
+
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          git clean -fd
+
+          npm ci
+          npm run build
+
+          if [ -f ecosystem.config.js ]; then
+            pm2 restart ecosystem.config.js
+          fi
+
+          echo "Deployed commit $(git rev-parse --short HEAD)"
+
+      - name: Verify
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+        run: |
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$SITE_URL/api/health" || \
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$SITE_URL"

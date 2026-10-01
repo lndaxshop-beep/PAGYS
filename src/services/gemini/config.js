@@ -8,9 +8,12 @@ const getAuthToken = async () => {
   } catch { return null; }
 };
 
-const callProxy = async (promptOrRequest, modelName, tools) => {
+const TIMEOUT_ERROR_CODE = 'GATEWAY_TIMEOUT';
+
+const callProxy = async (promptOrRequest, modelName, tools, generationConfig, signal) => {
   const body = { prompt: promptOrRequest, model: modelName };
   if (tools) body.tools = tools;
+  if (generationConfig) body.generationConfig = generationConfig;
   const token = await getAuthToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -19,20 +22,32 @@ const callProxy = async (promptOrRequest, modelName, tools) => {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${response.status}`);
+    let err = {};
+    try { err = await response.json(); } catch { err = {}; }
+    const message = err.error || (response.status === 504 || response.status === 408
+      ? 'The server took too long to respond. Please try again.'
+      : response.status === 413
+        ? 'The content you uploaded is too large. Please use fewer or smaller files.'
+        : response.status === 429
+          ? 'Too many requests. Please wait a moment and try again.'
+          : `Request failed (${response.status})`);
+    const error = new Error(message);
+    error.code = err.code || (response.status === 504 ? TIMEOUT_ERROR_CODE : `HTTP_${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
 };
 
 export const genAI = {
-  getGenerativeModel: ({ model, tools }) => ({
-    generateContent: async (promptOrRequest) => {
-      const data = await callProxy(promptOrRequest, model || 'gemini-2.5-flash', tools);
+  getGenerativeModel: ({ model, tools, generationConfig } = {}) => ({
+    generateContent: async (promptOrRequest, options = {}) => {
+      const data = await callProxy(promptOrRequest, model || 'gemini-2.5-flash', tools, generationConfig, options.signal);
       const text = data.text || '';
       return {
         response: {

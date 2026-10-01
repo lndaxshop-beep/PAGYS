@@ -425,17 +425,31 @@ const Write = () => {
     pendingChapterGeneration.current = false;
   };
 
+  const [chapterProgress, setChapterProgress] = useState(null);
+
   const doGenerateChapter = async () => {
     const mode = project?.referenceSourceMode || 'user';
     if (mode === 'user' && (!sourceLibrary.sources || sourceLibrary.sources.length === 0)) {
       toastError('You chose "Use my sources" but no literature sources are uploaded yet. Go to MyFiles to add sources, or change your source choice.');
       return;
     }
+    const activeChapterObj = chapters.find(c => c.id === activeChapter);
+    const persistedEntries = {};
     try {
-      const result = await handleGenerateChapter();
+      const result = await handleGenerateChapter({
+        continueOnError: true,
+        onProgress: (p) => setChapterProgress(p),
+        onSubsectionComplete: (chapterId, entries) => {
+          for (const [subId, entry] of Object.entries(entries)) persistedEntries[subId] = entry.content;
+          const partial = {};
+          for (const [subId, content] of Object.entries(persistedEntries)) partial[subId] = content;
+          setGeneratedSubsections(prev => ({ ...prev, [chapterId]: { ...prev[chapterId], ...partial } }));
+          saveNow();
+        },
+      });
       if (!result || result.error) { toastError(result?.message || 'Chapter generation failed.'); return; }
-      const { subsections, fullText } = result;
-      for (const [subId, entry] of Object.entries(subsections)) {
+      const { subsections } = result;
+      for (const [subId] of Object.entries(subsections)) {
         captureVersion(activeChapter, subId, generatedSubsections[activeChapter]?.[subId], 'AI Generated');
       }
       const chapterContent = {};
@@ -448,29 +462,38 @@ const Write = () => {
         ch.id === activeChapter ? {
           ...ch,
           subsections: ch.subsections.map(s =>
-            subsections[s.id] ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) } : s
+            subsections[s.id] || Object.keys(subsections).some(k => k.startsWith(`${s.id}__part`))
+              ? { ...s, generated: true, children: (s.children || []).map(c => ({ ...c, generated: true })) }
+              : s
           )
         } : ch
       ));
-      setCurrentContent(fullText);
+      const combined = combineChapterContent(activeChapterObj?.subsections || [], chapterContent);
+      setCurrentContent(combined);
       setIsPreviewMode(true);
-      preRenderDiagrams(fullText, isDarkMode).then(rendered => {
+      preRenderDiagrams(combined, isDarkMode).then(rendered => {
         if (rendered && Object.keys(rendered).length > 0) {
           const existing = JSON.parse(localStorage.getItem(`diagramSVGs_${projectId}`) || '{}');
           localStorage.setItem(`diagramSVGs_${projectId}`, JSON.stringify({ ...existing, [`${activeChapter}_fullChapter`]: rendered }));
         }
       });
-      autoGenerateReferences(activeChapter, true).then(refResult => {
-        if (refResult && refResult.content) {
-          setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
-          saveNow();
-        }
-      }).catch(e => console.error('Auto-generate references failed:', e));
-      const generatedCount = Object.keys(subsections).length;
-      toastSuccess(`Chapter written successfully! (${generatedCount} subsection${generatedCount !== 1 ? 's' : ''})`);
+      if (result.complete) {
+        autoGenerateReferences(activeChapter, true).then(refResult => {
+          if (refResult && refResult.content) {
+            setGeneratedSubsections(prev => ({ ...prev, [refResult.chapterId]: { ...prev[refResult.chapterId], references: refResult.content } }));
+            saveNow();
+          }
+        }).catch(e => console.error('Auto-generate references failed:', e));
+        const generatedCount = Object.keys(subsections).length;
+        toastSuccess(`Chapter written successfully! (${generatedCount} subsection${generatedCount !== 1 ? 's' : ''})`);
+      } else {
+        toastError(`Partially written: ${result.generatedCount} of ${result.totalSubsections} sections completed. ${result.failed ? `Failed on: ${result.failed}` : ''} Press Write again to retry the remaining sections.`);
+      }
     } catch (error) {
       console.error('Chapter generation failed:', error);
       toastError('Failed to write chapter. ' + error.message);
+    } finally {
+      setChapterProgress(null);
     }
   };
 
@@ -776,6 +799,36 @@ const Write = () => {
                    }
                  }}
                />
+
+               {chapterProgress && (
+                 <div style={{
+                   display: 'flex', alignItems: 'center', gap: '10px',
+                   padding: '10px 14px', marginBottom: '10px',
+                   background: chapterProgress.status === 'failed' ? `${colors.error}1A` : `${colors.primary}14`,
+                   border: `1px solid ${chapterProgress.status === 'failed' ? colors.error : colors.primary}44`,
+                   borderRadius: '8px', fontSize: '13px', color: colors.text
+                 }}>
+                   <span>{chapterProgress.status === 'failed' ? '⚠️' : chapterProgress.status === 'skipped' ? '↩️' : '⏳'}</span>
+                   <span style={{ flex: 1 }}>
+                     {chapterProgress.status === 'failed'
+                       ? `Failed on "${chapterProgress.subsection}"${chapterProgress.error ? `: ${chapterProgress.error}` : ''}`
+                       : chapterProgress.status === 'skipped'
+                         ? `Already written: ${chapterProgress.subsection} (${chapterProgress.current} of ${chapterProgress.total})`
+                         : `Writing section ${chapterProgress.current} of ${chapterProgress.total}: ${chapterProgress.subsection}`}
+                   </span>
+                   {chapterProgress.total > 1 && (
+                     <span style={{ display: 'flex', gap: '3px' }}>
+                       {Array.from({ length: chapterProgress.total }).map((_, i) => (
+                         <span key={i} style={{
+                           width: '7px', height: '7px', borderRadius: '50%',
+                           background: i < chapterProgress.current - 1 ? colors.primary : i === chapterProgress.current - 1 ? colors.primary : `${colors.primary}33`,
+                           opacity: i < chapterProgress.current - 1 ? 1 : i === chapterProgress.current - 1 ? 0.6 : 0.25
+                         }} />
+                       ))}
+                     </span>
+                   )}
+                 </div>
+               )}
 
                <ContentButtons
                  isViewingReferences={isViewingReferences}

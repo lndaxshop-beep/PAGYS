@@ -1,4 +1,4 @@
-import{genAI as s,MODEL as o}from"./config-ZRg6eLvn.js";import{a as n}from"./sourceExtractor-CdYfTMU0.js";const p=async e=>{try{const t=s.getGenerativeModel({model:o}),i=`You are a research methodology expert. Generate realistic sample survey data for an academic study.
+import{genAI as s,MODEL as o}from"./config-BeaKSpOi.js";import{a as n}from"./sourceExtractor-DZzJ6B4k.js";const p=async e=>{try{const t=s.getGenerativeModel({model:o}),i=`You are a research methodology expert. Generate realistic sample survey data for an academic study.
 
 PROJECT TOPIC: "${e?.topic||e?.title||"A research study"}"
 FIELD: ${e?.field||"Social Sciences"}

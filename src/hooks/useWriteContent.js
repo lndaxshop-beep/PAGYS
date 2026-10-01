@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { extractCitations, formatGroundedReference, getChapterDisplayTitle } from '../utils/writeHelpers.jsx';
+import { extractCitations, formatGroundedReference, distributeWordCount } from '../utils/writeHelpers.jsx';
 
 const buildThesisContext = (currentChapterId, chapters, generatedSubsections) => {
   const chapterOrder = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'];
@@ -30,35 +30,37 @@ const buildThesisContext = (currentChapterId, chapters, generatedSubsections) =>
   return context.previousChapters.length > 0 ? context : null;
 };
 
-const splitChapterContent = (fullText, subsections) => {
-  const result = {};
-  let remaining = fullText;
-  for (const sub of subsections) {
-    if (sub.type === 'references') continue;
-    const openMarker = `[WRITE_SUBSECTION: ${sub.id}]`;
-    const closeMarker = '[/WRITE_SUBSECTION]';
-    const startIdx = remaining.indexOf(openMarker);
-    if (startIdx === -1) {
-      remaining = remaining.replace(closeMarker, '');
-      continue;
-    }
-    const contentStart = remaining.indexOf('\n', startIdx) + 1;
-    const endIdx = remaining.indexOf(closeMarker, contentStart);
-    if (endIdx === -1) {
-      result[sub.id] = remaining.substring(contentStart).trim();
-      break;
-    }
-    const subContent = remaining.substring(contentStart, endIdx).trim();
-    result[sub.id] = subContent;
-    remaining = remaining.substring(endIdx + closeMarker.length);
-  }
-  return result;
+const MAX_WORDS_PER_SEGMENT = 2800;
+
+const getClosingParagraph = (text) => {
+  if (!text || text.length < 80) return '';
+  const paragraphs = text.split(/\n\n+/);
+  if (paragraphs.length >= 2) return paragraphs[paragraphs.length - 1].trim();
+  const sentences = text.split(/\.(?=\s)/);
+  if (sentences.length >= 2) return `${sentences[sentences.length - 2].trim()}${sentences[sentences.length - 1] ? '.' + sentences[sentences.length - 1].trim() : ''}`.trim();
+  return text.slice(-200).trim();
+};
+
+const getOpeningParagraph = (text) => {
+  if (!text || text.length < 40) return '';
+  const paragraphs = text.split(/\n\n+/);
+  return paragraphs[0].trim();
 };
 
 const combineChapterContent = (subsections, contentMap) => {
   return subsections
-    .filter(s => s.type !== 'references')
-    .map(s => contentMap[s.id] || '')
+    .filter(s => s.type !== 'references' && !s.deleted)
+    .map(s => {
+      if (contentMap[s.id]) return contentMap[s.id];
+      const partKeys = Object.keys(contentMap)
+        .filter(k => k.startsWith(`${s.id}__part`))
+        .sort((a, b) => {
+          const ai = parseInt(a.split('__part')[1], 10) || 0;
+          const bi = parseInt(b.split('__part')[1], 10) || 0;
+          return ai - bi;
+        });
+      return partKeys.map(k => contentMap[k]).filter(Boolean).join('\n\n');
+    })
     .filter(Boolean)
     .join('\n\n');
 };
@@ -123,25 +125,49 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
     } catch (error) { setGeneratingVisual(false); throw error; }
   }, [project, uploadedFindings]);
 
-  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList, force = false) => {
+  const generateSubsectionContent = useCallback(async (chapterId, subTitle, subId, subIndex, activeSubsList, force = false, options = {}) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return { error: true, message: 'Chapter not found.' };
-    const sub = ch.subsections.find(s => s.id === subId);
-    if (!sub) return { error: true, message: 'Subsection not found.' };
-    const cacheKey = `${chapterId}:${subId}:${ch.guidelines || ''}`;
+    const segmentInfo = options.segmentInfo || null;
+    const baseSubId = segmentInfo
+      ? (subId.replace(/__seg\d+$/, '') || subId)
+      : subId;
+    const sub = ch.subsections.find(s => s.id === baseSubId) || null;
+    if (!sub && !segmentInfo) return { error: true, message: 'Subsection not found.' };
+    const cacheKey = `${chapterId}:${subId}:${ch.guidelines || ''}:${segmentInfo ? segmentInfo.index : 'x'}`;
     const cached = contentCache.current.get(cacheKey);
-    if (cached) return cached;
+    if (cached && !force) return cached;
     const ordinal = ch.ordinal !== undefined ? ch.ordinal : -1;
     const numberWords = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN'];
     const chapterNumber = ordinal > 0 && ordinal < numberWords.length ? numberWords[ordinal] : '';
-    const childrenTopics = (sub.children || []).map(c => c.title).filter(Boolean);
+    const childrenTopics = (sub?.children || []).map(c => c.title).filter(Boolean);
     const thesisContext = buildThesisContext(chapterId, chapters, generatedSubsections);
+
+    let targetWords = options.targetWords || null;
+    if (!targetWords && ch.wordCount) {
+      const allSubs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
+      targetWords = distributeWordCount(ch.wordCount.min, ch.wordCount.max, allSubs, subTitle);
+    }
+
+    const continuity = {};
+    if (options.continuity) {
+      if (options.continuity.openingOfChapter) continuity.openingOfChapter = options.continuity.openingOfChapter;
+      if (options.continuity.previousSubsection) {
+        const prev = options.continuity.previousSubsection;
+        continuity.previousSubsection = { id: prev.id, title: prev.title };
+        continuity.closingParagraph = prev.closingParagraph || getClosingParagraph(generatedSubsections[chapterId]?.[prev.id] || '');
+      }
+      if (options.continuity.previousSegment) {
+        continuity.previousSegment = options.continuity.previousSegment;
+      }
+    }
+
     const { generateAcademicContent } = await import('../services/geminiService');
     const result = await generateAcademicContent({
       chapter: ch.title || ch.id, chapterId, chapterNumber, subsection: subTitle,
       topic: project.title, researchTopic: project.topic, field: project.field,
       level: project.level, methodology: project.methodology,
-      organization: sub.customValue || project?.organizationName || null,
+      organization: sub?.customValue || project?.organizationName || null,
       hideOrganization: project?.hideOrganization || false,
       findings: chapterId === 'chapter4' ? uploadedFindings : null,
       literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
@@ -149,6 +175,9 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
       guidelines: ch.guidelines || '',
       childrenTopics,
       thesisContext,
+      targetWords,
+      continuity,
+      segmentInfo,
     });
     let generatedContent = typeof result === 'object' ? result.text : result;
     const sources = typeof result === 'object' ? (result.sources || []) : [];
@@ -162,72 +191,190 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
     const storedSources = localStorage.getItem(`groundingSources_${chapterId}`);
     const groundedSources = storedSources ? JSON.parse(storedSources) : [];
     const finalCitations = verifyCitations(generatedContent, groundedSources);
-    contentCache.current.set(cacheKey, { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId });
-    return { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId };
-  }, [chapters, project, generatedSubsections, literatureReviewType, userSources, sourceMode]);
+    if (!force) contentCache.current.set(cacheKey, { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId });
+    return { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId, sources };
+  }, [chapters, project, generatedSubsections, literatureReviewType, userSources, sourceMode, uploadedFindings]);
 
-  const generateChapterContent = useCallback(async (chapterId) => {
+  const generateChapterContent = useCallback(async (chapterId, options = {}) => {
     const ch = chapters.find(c => c.id === chapterId);
     if (!ch) return { error: true, message: 'Chapter not found.' };
     const allSubs = ch.subsections.filter(s => s.type !== 'references' && !s.deleted);
     if (allSubs.length === 0) return { error: true, message: 'No subsections to generate.' };
 
-    const thesisContext = buildThesisContext(chapterId, chapters, generatedSubsections);
-    const chapterTitle = getChapterDisplayTitle(ch);
-
-    const { generateChapterContent: apiGenerate } = await import('../services/geminiService');
-    const result = await apiGenerate({
-      chapter: chapterTitle, chapterId,
-      topic: project.title, researchTopic: project.topic, field: project.field,
-      level: project.level, methodology: project.methodology,
-      findings: chapterId === 'chapter4' ? uploadedFindings : null,
-      userSources, sourceMode,
-      guidelines: ch.guidelines || '',
-      organization: project?.organizationName || null,
-      thesisContext,
-      subsections: allSubs.map(s => ({
-        id: s.id, title: s.title,
-        children: (s.children || []).map(c => ({ id: c.id, title: c.title }))
-      })),
-    });
-
-    const fullText = typeof result === 'object' ? result.text : result;
-    const parsed = splitChapterContent(fullText, allSubs);
-
-    const sources = typeof result === 'object' ? (result.sources || []) : [];
-    if (sources.length > 0) {
-      const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
-      const combined = [...existingSources, ...sources];
-      const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
-      localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
-    }
-
+    const { force = false, onProgress } = options;
+    const existing = generatedSubsections[chapterId] || {};
     const resultEntries = {};
-    for (const sub of allSubs) {
-      const content = parsed[sub.id] || '';
-      if (content) {
-        const citations = extractCitations(content);
-        resultEntries[sub.id] = { content, citations, subsectionId: sub.id, subsectionTitle: sub.title };
+    let generatedCount = 0;
+    let skippedCount = 0;
+    let lastError = null;
+    let cancelled = false;
+    let openingOfChapter = '';
+
+    const sources = [];
+
+    // Large budgets are split into several requests so no single call can exceed the
+    // upstream timeout. Each segment aims at the subsection's upper word bound because
+    // the model naturally lands slightly under the requested length; segments are then
+    // joined under the stable subsection id so export ordering is unaffected.
+    const planSegments = (budget, sub) => {
+      const maxWords = budget?.max;
+      if (!maxWords || maxWords <= MAX_WORDS_PER_SEGMENT) return null;
+      const segmentCount = Math.ceil(maxWords / MAX_WORDS_PER_SEGMENT);
+      const perSegment = Math.ceil(maxWords / segmentCount);
+      return Array.from({ length: segmentCount }, (_, si) => ({
+        index: si,
+        count: segmentCount,
+        title: `${sub.title} (Part ${si + 1} of ${segmentCount})`,
+        min: Math.max(200, Math.round(perSegment * 0.8)),
+        max: perSegment,
+      }));
+    };
+
+    for (let i = 0; i < allSubs.length; i++) {
+      const sub = allSubs[i];
+      const alreadyDone = !force && existing[sub.id] && String(existing[sub.id]).trim().length > 0;
+
+      if (alreadyDone) {
+        resultEntries[sub.id] = {
+          content: String(existing[sub.id]),
+          citations: extractCitations(String(existing[sub.id])),
+          subsectionId: sub.id,
+          subsectionTitle: sub.title,
+        };
+        skippedCount++;
+        if (!openingOfChapter) openingOfChapter = getOpeningParagraph(String(existing[sub.id]));
+        onProgress?.({ current: i + 1, total: allSubs.length, subsection: sub.title, status: 'skipped', chapterId });
+        continue;
+      }
+
+      if (cancelled) break;
+
+      onProgress?.({ current: i + 1, total: allSubs.length, subsection: sub.title, status: 'generating', chapterId });
+
+      const previousEntry = i > 0 ? { id: allSubs[i - 1].id, title: allSubs[i - 1].title } : null;
+
+      const targetBudget = ch.wordCount
+        ? distributeWordCount(ch.wordCount.min, ch.wordCount.max, allSubs, sub.title)
+        : null;
+
+      const segments = planSegments(targetBudget, sub);
+
+      try {
+        const segmentTexts = [];
+        let segmentCitations = [];
+
+        if (segments) {
+          for (const seg of segments) {
+            const segContinuity = {};
+            if (i === 0 && seg.index === 0) {
+              // first segment opens the chapter
+            } else if (seg.index === 0 && previousEntry) {
+              segContinuity.previousSubsection = previousEntry;
+            } else if (seg.index > 0) {
+              segContinuity.previousSegment = {
+                title: segments[seg.index - 1].title,
+                closingParagraph: getClosingParagraph(segmentTexts[seg.index - 1]),
+              };
+            }
+            if (openingOfChapter && !(i === 0 && seg.index === 0)) segContinuity.openingOfChapter = openingOfChapter;
+
+            onProgress?.({
+              current: i + 1,
+              total: allSubs.length,
+              subsection: seg.title,
+              status: 'generating',
+              chapterId,
+            });
+
+            const segResult = await generateSubsectionContent(
+              chapterId,
+              seg.title,
+              `${sub.id}__seg${seg.index + 1}`,
+              i,
+              allSubs,
+              force,
+              { continuity: segContinuity, targetWords: { min: seg.min, max: seg.max }, segmentInfo: seg }
+            );
+
+            const segContent = segResult?.content || '';
+            if (!segContent || segContent.trim().length === 0) throw new Error(`The model returned an empty section for "${seg.title}".`);
+            if (Array.isArray(segResult.sources)) sources.push(...segResult.sources);
+            segmentTexts.push(segContent);
+            if (seg.index === 0 && !openingOfChapter) openingOfChapter = getOpeningParagraph(segContent);
+          }
+          const joined = segmentTexts.join('\n\n');
+          segmentCitations = extractCitations(joined);
+          resultEntries[sub.id] = {
+            content: joined,
+            citations: segmentCitations,
+            subsectionId: sub.id,
+            subsectionTitle: sub.title,
+            segmented: true,
+            segmentCount: segments.length,
+          };
+        } else {
+          const continuity = {};
+          if (previousEntry) continuity.previousSubsection = previousEntry;
+          if (openingOfChapter && i > 0) continuity.openingOfChapter = openingOfChapter;
+
+          const result = await generateSubsectionContent(chapterId, sub.title, sub.id, i, allSubs, force, { continuity });
+          const content = result?.content || '';
+          if (!content || content.trim().length === 0) throw new Error('The model returned an empty section.');
+
+          if (Array.isArray(result.sources)) sources.push(...result.sources);
+          if (!openingOfChapter) openingOfChapter = getOpeningParagraph(content);
+
+          segmentCitations = result.citations || extractCitations(content);
+          resultEntries[sub.id] = {
+            content,
+            citations: segmentCitations,
+            subsectionId: sub.id,
+            subsectionTitle: sub.title,
+          };
+        }
+
+        generatedCount++;
+        options.onSubsectionComplete?.(chapterId, { ...resultEntries });
+      } catch (err) {
+        lastError = err;
+        console.error(`Failed to generate subsection "${sub.title}":`, err);
+        onProgress?.({ current: i + 1, total: allSubs.length, subsection: sub.title, status: 'failed', chapterId, error: err.message });
+        if (!options.continueOnError) { cancelled = true; break; }
       }
     }
 
+    if (sources.length > 0) {
+      try {
+        const existingSources = JSON.parse(localStorage.getItem(`groundingSources_${chapterId}`) || '[]');
+        const combined = [...existingSources, ...sources];
+        const unique = combined.filter((s, i, arr) => arr.findIndex(t => t.uri === s.uri) === i);
+        localStorage.setItem(`groundingSources_${chapterId}`, JSON.stringify(unique));
+      } catch (e) { console.warn('Failed to persist grounding sources:', e); }
+    }
+
+    const generatedIds = Object.keys(resultEntries);
     return {
       subsections: resultEntries,
-      fullText,
       sources,
       totalSubsections: allSubs.length,
-      generatedCount: Object.keys(resultEntries).length
+      generatedCount,
+      skippedCount,
+      failed: lastError ? lastError.message : null,
+      partial: generatedIds.length > 0 && generatedIds.length < allSubs.length,
+      complete: generatedIds.length >= allSubs.length,
     };
-  }, [project, chapters, uploadedFindings, userSources, sourceMode]);
+  }, [chapters, generatedSubsections, generateSubsectionContent]);
 
-  const handleGenerateChapter = useCallback(async () => {
+  const handleGenerateChapter = useCallback(async (options) => {
     setGeneratingChapter(true);
     setGenerating(true);
     try {
-      const result = await generateChapterContent(activeChapter);
+      const result = await generateChapterContent(activeChapter, options);
       return result;
-    } catch (error) { throw error; }
-    finally { setGeneratingChapter(false); setGenerating(false); }
+    } finally {
+      setGeneratingChapter(false);
+      setGenerating(false);
+    }
   }, [activeChapter, generateChapterContent]);
 
   const handleGenerateReferences = useCallback(async (currentChapter, currentContent = '') => {
@@ -383,7 +530,6 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
     autoGenerateReferences,
     handleApplyFeedback,
     preRenderDiagrams,
-    splitChapterContent,
     combineChapterContent,
   };
 };

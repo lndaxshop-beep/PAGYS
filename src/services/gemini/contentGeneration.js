@@ -77,12 +77,51 @@ Example: ["2.0 Introduction", "2.1 Theoretical Framework", "2.1.1 Key Theory", "
   } catch (error) { console.error('Error generating subtopics:', error); return null; }
 };
 
+const TOKENS_PER_WORD = 1.5;
+const OUTPUT_TOKEN_BUFFER = 800;
+const MAX_OUTPUT_TOKENS = 32768;
+
+export const budgetForWords = (min, max) => {
+  const safeMax = Math.max(Number(max) || 0, Number(min) || 0, 200);
+  const maxOutputTokens = Math.min(
+    MAX_OUTPUT_TOKENS,
+    Math.max(512, Math.ceil(safeMax * TOKENS_PER_WORD) + OUTPUT_TOKEN_BUFFER)
+  );
+  return { min: Math.max(0, Number(min) || 0), max: safeMax, maxOutputTokens };
+};
+
+const WORDS_PER_PARAGRAPH = 110;
+
+// The model reliably lands at roughly 80-90% of the requested length, so we aim at the
+// upper bound of the user's chosen range. That natural undershoot lands the final output
+// inside [min, max] instead of below min.
+const wordBudgetInstruction = (budget, childrenTopics) => {
+  if (!budget) return '';
+  const aim = budget.max;
+  const paragraphs = Math.max(3, Math.round(aim / WORDS_PER_PARAGRAPH));
+  const unit = childrenTopics?.length > 1 ? 'sub-sections' : 'paragraphs';
+  return `
+## LENGTH TARGET — STRICT
+Write **${budget.min}-${budget.max} words** for this section. Aim for about **${aim} words** (roughly ${paragraphs} ${unit} of about ${WORDS_PER_PARAGRAPH} words each).
+- Stay inside this range. Do not exceed ${budget.max} words.
+- Do not fall short of ${budget.min} words either.
+- Keep developing the argument until you reach the word target. Do NOT stop early.
+- Control length by how much you develop each point, never by padding with repetition or filler.
+- Never restate content that belongs in another section of this chapter.`;
+};
+
 export const generateAcademicContent = async (promptData) => {
   try {
-    const model = genAI.getGenerativeModel({ 
+    const budget = promptData.targetWords ? budgetForWords(promptData.targetWords.min, promptData.targetWords.max) : null;
+    const model = genAI.getGenerativeModel({
       model: MODEL,
       tools: [{ googleSearch: {} }],
-      generationConfig: { temperature: 0.7, topP: 0.85 }
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.85,
+        thinkingConfig: { thinkingBudget: 0 },
+        ...(budget ? { maxOutputTokens: budget.maxOutputTokens } : {}),
+      }
     });
     const structureInstruction = '';
 
@@ -135,7 +174,24 @@ THESIS TITLE: "${promptData.topic}"
 ${promptData.researchTopic ? `RESEARCH QUESTION: "${promptData.researchTopic}"` : ''}
 FIELD: ${promptData.field || 'Not specified'}
 CHAPTER: ${promptData.chapter}
-SUBSECTION: ${promptData.subsection}
+SUBSECTION: ${promptData.subsection}${promptData.continuity?.openingOfChapter ? `
+
+## CHAPTER OPENING (already written — continue from here, do NOT rewrite or repeat it)
+${promptData.continuity.openingOfChapter}` : ''}${promptData.continuity?.previousSubsection ? `
+
+## PREVIOUS SUBSECTION (${promptData.continuity.previousSubsection.title})
+The previous subsection ended like this:
+"${promptData.continuity.closingParagraph}"
+- Continue the argument naturally from this point.
+- Do NOT re-introduce concepts, definitions or sources already covered above.
+- Do NOT open with a transition that restates the previous subsection.` : ''}${promptData.continuity?.previousSegment ? `
+
+## CONTINUING THE SAME SECTION (${promptData.continuity.previousSegment.title})
+The immediately preceding part of this same section ended like this:
+"${promptData.continuity.previousSegment.closingParagraph}"
+- You are writing the NEXT PART of the same section. Continue the argument seamlessly from the quoted point.
+- Do NOT repeat, restate, summarise or re-introduce anything already written above.
+- Do NOT add an introduction, heading or conclusion; just continue the prose.` : ''}
 METHODOLOGY: ${promptData.methodology || 'mixed methods'}${promptData.organization ? `
 CASE STUDY: ${promptData.organization}` : ''}${sourceModeInstruction}
 ${promptData.findings ? `RESEARCH FINDINGS DATA: ${typeof promptData.findings === 'object' ? JSON.stringify(promptData.findings) : promptData.findings}
@@ -147,7 +203,7 @@ ${promptData.childrenTopics?.length > 0 ? `
 Include each of the following as subheadings within this section:
 
 ${promptData.childrenTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}
-` : ''}
+` : ''}${wordBudgetInstruction(budget, promptData.childrenTopics)}
 ${promptData.guidelines ? `
 ## CHAPTER-SPECIFIC GUIDELINES
 ${promptData.guidelines}
@@ -163,7 +219,9 @@ If you include a table, chart, or framework diagram, the system will automatical
 
 Do not use code fences or ASCII art for visuals.
 
-Write the complete content now.`;
+Write the complete content now.${budget ? `
+
+REMINDER: this section must be ${budget.min}-${budget.max} words (aim about ${budget.max}). Do not finish until you have written at least ${budget.min} words.` : ''}`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();

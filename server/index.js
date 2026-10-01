@@ -14,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_TIMEOUT_MS = parseInt(process.env.GEMINI_TIMEOUT_MS || '45000', 10);
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
@@ -68,9 +69,13 @@ try {
 app.use(helmet());
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 
+// Behind Hostinger's hPanel reverse proxy every socket looks like localhost, so without this
+// express sees one shared IP and the rate limiter becomes a single global bucket for all users.
+app.set('trust proxy', true);
+
 // Raw body capture for Paystack webhook signature verification (must be before express.json)
 app.use('/api/paystack-webhook', express.raw({ type: 'application/json' }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 
 const requireAuth = async (req, res, next) => {
   const idToken = req.headers.authorization?.replace('Bearer ', '');
@@ -101,10 +106,29 @@ app.use('/api/initialize-payment', paymentLimiter);
 app.use('/api/verify-payment', paymentLimiter);
 app.use('/api/upgrade-tier', paymentLimiter);
 
+const MAX_OUTPUT_TOKENS_CEILING = 32768;
+
+const buildGenerationConfig = (requested) => {
+  if (!requested || typeof requested !== 'object') return undefined;
+  const config = {};
+  if (typeof requested.temperature === 'number') config.temperature = Math.min(2, Math.max(0, requested.temperature));
+  if (typeof requested.topP === 'number') config.topP = Math.min(1, Math.max(0, requested.topP));
+  if (typeof requested.topK === 'number') config.topK = Math.min(64, Math.max(1, requested.topK));
+  if (typeof requested.maxOutputTokens === 'number') {
+    config.maxOutputTokens = Math.min(MAX_OUTPUT_TOKENS_CEILING, Math.max(256, Math.floor(requested.maxOutputTokens)));
+  }
+  if (requested.thinkingConfig && typeof requested.thinkingConfig === 'object') {
+    config.thinkingConfig = requested.thinkingConfig;
+  }
+  return Object.keys(config).length > 0 ? config : undefined;
+};
+
 app.post('/api/generate', requireAuth, async (req, res) => {
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), GEMINI_TIMEOUT_MS);
   try {
-    const { prompt, model } = req.body;
-    if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+    const { prompt, model, generationConfig } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Missing prompt', code: 'BAD_REQUEST' });
 
     const modelName = model || 'gemini-2.5-flash';
     let requestBody;
@@ -116,16 +140,20 @@ app.post('/api/generate', requireAuth, async (req, res) => {
     } else if (typeof prompt === 'object' && prompt.text) {
       requestBody = { contents: [{ role: 'user', parts: [{ text: prompt.text }] }] };
     } else {
-      return res.status(400).json({ error: 'Invalid prompt format' });
+      return res.status(400).json({ error: 'Invalid prompt format', code: 'BAD_REQUEST' });
     }
 
     if (req.body.tools) requestBody.tools = req.body.tools;
+
+    const resolvedConfig = buildGenerationConfig(generationConfig);
+    if (resolvedConfig) requestBody.generationConfig = resolvedConfig;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
       body: JSON.stringify(requestBody),
+      signal: abort.signal,
     });
 
     if (!response.ok) {
@@ -136,15 +164,27 @@ app.post('/api/generate', requireAuth, async (req, res) => {
         403: 'Service authentication failed. Please check your API key.',
         400: 'Service rejected the request due to invalid input.',
       };
-      return res.status(response.status).json({ error: messages[response.status] || 'Service error. Please try again.' });
+      return res.status(response.status).json({
+        error: messages[response.status] || 'Service error. Please try again.',
+        code: `GEMINI_${response.status}`,
+      });
     }
 
     const data = await response.json();
     const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
     res.json({ text, candidates: data.candidates });
   } catch (err) {
+    if (abort.signal.aborted) {
+      console.error('Gemini request timed out after', GEMINI_TIMEOUT_MS, 'ms');
+      return res.status(504).json({
+        error: 'The service took too long to respond. Please try again.',
+        code: 'GATEWAY_TIMEOUT',
+      });
+    }
     console.error('Server error:', err.message);
-    res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).json({ error: 'Internal server error.', code: 'INTERNAL' });
+  } finally {
+    clearTimeout(timeout);
   }
 });
 
@@ -407,6 +447,23 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return;
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(path.join(distPath, 'index.html'));
+});
+
+// Central error handler — must be registered last so it catches errors from every route
+// and from the JSON body parser. Returns JSON (never HTML) so the client can show a real message.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({
+      error: 'The content you uploaded is too large. Please use fewer or smaller files.',
+      code: 'PAYLOAD_TOO_LARGE',
+    });
+  }
+  if (err && (err.type === 'entity.parse.failed' || err.status === 400)) {
+    return res.status(400).json({ error: 'Malformed request body.', code: 'BAD_REQUEST' });
+  }
+  console.error('Unhandled server error:', err && err.message);
+  res.status(500).json({ error: 'Internal server error.', code: 'INTERNAL_ERROR' });
 });
 
 app.listen(PORT, () => {

@@ -136,7 +136,8 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     const project = deletedProjects.find(p => p.id === id);
     if (!project) { notify('Project not found.', 'error'); return; }
     try {
-      await saveProject(project, userId);
+      // Restore as regular: firestore.rules rejects client-side premium writes.
+      await saveProject({ ...project, tier: 'regular', isPremium: false }, userId);
       await permanentlyDeleteProject(id, userId);
       invalidateProgressCache(id);
       loadProjects();

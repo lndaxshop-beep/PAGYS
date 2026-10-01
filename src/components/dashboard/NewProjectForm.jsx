@@ -108,12 +108,18 @@ const NewProjectForm = ({
                 onMouseLeave={(e) => { if (selectedTier !== 'regular') e.currentTarget.style.borderColor = colors.border; }}
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
-                <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Regular — {fmt(getProjectPrice('regular', form.level))}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: '600', color: colors.text }}>Regular — Free</span>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#059669', backgroundColor: '#ecfdf5', border: '1px solid #059669', borderRadius: '999px', padding: '1px 8px' }}>NO PAYMENT</span>
+                </div>
+                <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#059669', fontWeight: '500', fontStyle: 'italic' }}>Every writing tool included:</p>
                 <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.6', listStyle: 'decimal' }}>
                   <li style={{ marginBottom: '8px' }}><strong>Write chapters</strong> — we generate each chapter from your topic, field, and methodology</li>
                   <li style={{ marginBottom: '8px' }}><strong>Feedback</strong> — paste supervisor corrections and we rewrite exactly</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Chapter guidelines</strong> — set per-chapter instructions we follow every time</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Search literature</strong> — find real academic papers by topic and add them instantly</li>
+                  <li style={{ marginBottom: '8px' }}><strong>All source modes</strong> — AI only, your uploaded sources, or mixed</li>
                   <li style={{ marginBottom: '8px' }}><strong>Remove AI</strong> — 5 uses to make text sound naturally human</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Upload sources</strong> — add PDFs, Word docs, or images as references</li>
                   <li style={{ marginBottom: '8px' }}><strong>Auto-citations</strong> — we verify every citation and format references for you</li>
                   <li style={{ marginBottom: '8px' }}><strong>Export</strong> — DOCX, PDF, Markdown, or LaTeX with proper thesis formatting</li>
                 </ol>
@@ -133,17 +139,16 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>💎</div>
                 <div style={{ fontWeight: '600', color: colors.text, marginBottom: '4px' }}>Premium — {fmt(getProjectPrice('premium', form.level))}</div>
-                <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#d97706', fontWeight: '500', fontStyle: 'italic' }}>Everything in Regular, plus:</p>
+                <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#d97706', fontWeight: '500', fontStyle: 'italic' }}>Everything in Regular, plus higher limits:</p>
                 <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.6', listStyle: 'decimal' }}>
-                  <li style={{ marginBottom: '8px' }}><strong>Double capacity</strong> — Remove AI (10 uses) + Feedback (12 per chapter)</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Search literature</strong> — find real academic papers by topic and add them instantly</li>
-                  <li style={{ marginBottom: '8px' }}><strong>Custom guidelines</strong> — set per-chapter instructions that we follow every time</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Double Remove AI</strong> — 10 uses instead of 5</li>
+                  <li style={{ marginBottom: '8px' }}><strong>Double defence regenerations</strong> — 2 instead of 1</li>
                   <li style={{ marginBottom: '8px' }}><strong>Lower reset costs</strong> — Remove AI resets at ₵2 instead of ₵5</li>
-                  <li style={{ marginBottom: '8px' }}>⭐ Built for serious thesis work</li>
+                  <li style={{ marginBottom: '8px' }}>⭐ Priority support for heavy thesis work</li>
                 </ol>
                 {selectedTier === 'premium' && (
                   <div style={{ marginTop: '8px', fontSize: '11px', color: '#d97706', fontWeight: '500' }}>
-                    ⭐ Best value for full features
+                    ⭐ Best value if you use Remove AI heavily
                   </div>
                 )}
               </div>

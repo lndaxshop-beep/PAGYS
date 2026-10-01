@@ -4,7 +4,7 @@ import ContentRenderer from '../../utils/writeHelpers.jsx';
 
 const ContentArea = ({
   content, isPreviewMode, onTogglePreview, onSaveEdit, onChange, showReferenceInTextarea, generatingReferences, highlightRanges, onEditVisual,
-  chapterSubsections, subsectionsContent, isPremium, onFeedback
+  chapterSubsections, subsectionsContent, onFeedback
 }) => {
   const { colors } = useTheme();
   const previewRef = useRef(null);
@@ -104,7 +104,7 @@ const ContentArea = ({
                     {i < chapterSubsections.filter(s => s.type !== 'references').length - 1 && (
                       <hr style={{ border: 'none', borderTop: `1px solid ${colors.border}40`, margin: '32px 0' }} />
                     )}
-                    {isPremium && onFeedback && (
+                    {onFeedback && (
                       <div style={{ position: 'absolute', top: '0', right: '0' }}>
                         <button
                           onClick={() => onFeedback(sub)}

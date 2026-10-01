@@ -5,11 +5,24 @@ service cloud.firestore {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
     match /projects/{projectId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Regular is free, so clients may always create regular projects.
+      // Premium may ONLY be granted by the server (Admin SDK bypasses these rules)
+      // after Paystack confirms a successful payment.
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.tier == 'regular'
+        && request.resource.data.isPremium == false;
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Clients may edit their own project content but must never escalate the tier.
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.tier == resource.data.tier
+        && request.resource.data.isPremium == resource.data.isPremium;
     }
     match /payments/{paymentId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Receipts are written only by the server (Admin SDK bypasses these rules)
+      // after Paystack confirms payment. Clients may read their own history but
+      // cannot create, edit or delete records.
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     match /deletedProjects/{projectId} {

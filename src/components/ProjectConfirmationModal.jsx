@@ -7,7 +7,7 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
   const { colors, isDarkMode } = useTheme();
   const { fmt } = useCurrency();
   const isPremium = tier === 'premium';
-  const amount = isPremium ? getProjectPrice('premium', project.level) : getProjectPrice('regular', project.level);
+  const amount = isPremium ? getProjectPrice('premium', project.level) : 0;
 
   const rowStyle = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -36,7 +36,7 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
           Review Your Project
         </h2>
         <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>
-          Please confirm the details below before proceeding to payment
+          {isPremium ? 'Please confirm the details below before proceeding to payment' : 'Please confirm the details below to create your free project'}
         </p>
 
         <div style={{
@@ -82,23 +82,39 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
               {isPremium ? '💎 Premium' : '📘 Regular'}
             </span>
           </div>
-          <div style={{
-            ...rowStyle, borderBottom: 'none', marginTop: '8px',
-            borderTop: `2px solid ${colors.primary}`, paddingTop: '14px'
-          }}>
-            <span style={{ color: colors.text, fontSize: '16px', fontWeight: '700' }}>Amount to Pay</span>
-            <span style={{ color: colors.primary, fontSize: '20px', fontWeight: '700' }}>{fmt(amount)}</span>
-          </div>
+          {isPremium ? (
+            <div style={{
+              ...rowStyle, borderBottom: 'none', marginTop: '8px',
+              borderTop: `2px solid ${colors.primary}`, paddingTop: '14px'
+            }}>
+              <span style={{ color: colors.text, fontSize: '16px', fontWeight: '700' }}>Amount to Pay</span>
+              <span style={{ color: colors.primary, fontSize: '20px', fontWeight: '700' }}>{fmt(amount)}</span>
+            </div>
+          ) : (
+            <div style={{
+              ...rowStyle, borderBottom: 'none', marginTop: '8px',
+              borderTop: `2px solid ${colors.primary}`, paddingTop: '14px'
+            }}>
+              <span style={{ color: colors.text, fontSize: '16px', fontWeight: '700' }}>Amount to Pay</span>
+              <span style={{ color: '#059669', fontSize: '20px', fontWeight: '700' }}>Free</span>
+            </div>
+          )}
         </div>
 
         <div style={{
-          backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '10px',
+          backgroundColor: isPremium ? '#fef3c7' : '#ecfdf5',
+          border: `1px solid ${isPremium ? '#f59e0b' : '#059669'}`,
+          borderRadius: '10px',
           padding: '12px 16px', marginBottom: '20px', display: 'flex', gap: '10px',
           alignItems: 'flex-start'
         }}>
-          <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
-          <div style={{ fontSize: '13px', color: '#92400e', lineHeight: '1.5' }}>
-            <strong style={{ fontWeight: '600' }}>Please verify carefully.</strong> Once payment is made, the project title, research topic, and all details above cannot be edited. Review everything before proceeding.
+          <span style={{ fontSize: '16px', flexShrink: 0 }}>{isPremium ? '⚠️' : '🎉'}</span>
+          <div style={{ fontSize: '13px', color: isPremium ? '#92400e' : '#065f46', lineHeight: '1.5' }}>
+            {isPremium ? (
+              <><strong style={{ fontWeight: '600' }}>Please verify carefully.</strong> Once payment is made, the project title, research topic, and all details above cannot be edited. Review everything before proceeding.</>
+            ) : (
+              <><strong style={{ fontWeight: '600' }}>This project is free.</strong> You can write it from start to finish with every writing tool included — feedback, chapter guidelines, literature search and all source modes. No payment is needed.</>
+            )}
           </div>
         </div>
 
@@ -107,7 +123,7 @@ const ProjectConfirmationModal = ({ project, tier, onConfirm, onEdit, onCancel }
             backgroundColor: colors.primary, color: 'white', padding: '14px',
             border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer',
             fontSize: '15px'
-          }}>Confirm & Pay {fmt(amount)}</button>
+          }}>{isPremium ? `Confirm & Pay ${fmt(amount)}` : 'Create Free Project'}</button>
           <button onClick={onEdit} style={{
             backgroundColor: 'transparent', color: colors.text,
             padding: '12px', border: `1px solid ${colors.border}`, borderRadius: '8px',

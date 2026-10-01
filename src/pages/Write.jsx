@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { useCurrency } from '../hooks/useCurrency';
 import { PRICES_GHS } from '../constants/pricing';
 import LeftPane from '../components/writing/LeftPane';
 import DataCollectionModal from '../components/instruments/DataCollectionModal';
@@ -43,7 +42,6 @@ const Write = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { colors, isDarkMode } = useTheme();
-  const { fmt } = useCurrency();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +96,7 @@ const Write = () => {
   const modals = useWriteModals();
   const sourceLibrary = useSourceLibrary(projectId);
   const { toasts, addToast, removeToast, success: toastSuccess, error: toastError } = useToast();
-  const { processing: processingPayment, processSmallPayment, devBypass, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(toastError);
+  const { processing: processingPayment, processSmallPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(toastError);
 
   const { saveStatus, lastSaved, saveNow } = useAutoSave({
     saveFn: (data) => saveGeneratedContent(projectId, data),
@@ -110,7 +108,7 @@ const Write = () => {
 
   const currentChapter = chapters.find(c => c.id === activeChapter);
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
-  const feedbackBase = project?.tier === 'premium' ? 12 : 6;
+  const feedbackBase = 12;
 
   const resolvedSourceMode = project?.referenceSourceMode === 'user' ? 'user-only' : project?.referenceSourceMode === 'random' ? 'ai-only' : sourceLibrary.sourceMode;
   const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, resolvedSourceMode, feedbackBase);
@@ -612,31 +610,15 @@ const Write = () => {
 
   const handleResetConfirm = async () => {
     if (processingReset) return;
-    const resetPrice = PRICES_GHS.feedbackReset;
     setProcessingReset(true);
-    const success = await processSmallPayment(projectId, resetPrice, { type: 'feedback_reset' }, () => {
-      setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
-      toastSuccess('Feedback pool reset for this chapter!', 'success');
-    });
-    if (success) {
-      setResetModalType(null);
-    }
-    setProcessingReset(false);
-  };
-
-  const handleResetDevBypass = async () => {
-    if (processingReset) return;
-    setProcessingReset(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
     setFeedbackUsed(prev => ({ ...prev, [activeChapter]: 0 }));
-    setProcessingReset(false);
+    toastSuccess('Feedback pool reset for this chapter!', 'success');
     setResetModalType(null);
-    toastSuccess('Feedback pool reset (dev mode)!', 'success');
+    setProcessingReset(false);
   };
 
-
-
-  const captureVersion = (chapterId, subsectionId, content, label) => {
+  
+    const captureVersion = (chapterId, subsectionId, content, label) => {
     if (!content || !subsectionId) return;
     setSubsectionVersions(prev => {
       const key = `${chapterId}_${subsectionId}`;
@@ -676,7 +658,6 @@ const Write = () => {
   };
 
   const currentWordCount = currentContent ? currentContent.split(/\s+/).filter(Boolean).length : 0;
-  const resetPrice = PRICES_GHS.feedbackReset;
 
   if (loading) return <PageSkeleton />;
   if (!project || !chapters.length) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: colors.background, color: colors.text }}>Project not found</div>;
@@ -704,7 +685,6 @@ const Write = () => {
           generatingChapter={generatingChapter} onGenerateChapter={(chId) => { if (chId === activeChapter) wrappedGenerateChapter(); }}
           onAddChapter={addChapter} onRemoveChapter={removeChapter} onRenameChapter={renameChapter} onChapterReorder={handleChapterDrop}
           onUpdateGuidelines={handleUpdateGuidelines}
-          isPremium={project?.tier === 'premium'}
           onEditWordCount={handleEditWordCount}
           regeneratingChapter={regeneratingChapter}
           generatingReferences={generatingReferences}
@@ -720,19 +700,17 @@ const Write = () => {
               </svg>
             </button>
             <div style={{ flex: 1 }}>
-              <WriteHeader onBack={() => navigate('/dashboard')} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleTour={() => setShowHelpModal(true)} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceCount={sourceLibrary.sources.length} isPremium={project?.tier === 'premium'} />
+              <WriteHeader onBack={() => navigate('/dashboard')} onToggleLitSearch={() => setShowLitSearchModal(true)} onToggleTour={() => setShowHelpModal(true)} saveStatus={saveStatus} lastSaved={lastSaved} onSaveNow={saveNow} wordCount={currentWordCount} sourceCount={sourceLibrary.sources.length} />
             </div>
           </div>
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
           <p style={{ fontSize: '12px', color: '#059669', marginBottom: '28px' }}>✅ Citations auto-verified, references auto-generated</p>
-          {project?.tier === 'premium' && (
-            <div style={{ fontSize: '12px', color: '#f59e0b', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <span>💎 Premium</span>
-              <span>Feedback: {feedbackUsed[activeChapter] || 0}/{feedbackBase} used</span>
+          <div style={{ fontSize: '12px', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+              {project?.tier === 'premium' && <span style={{ color: '#f59e0b' }}>💎 Premium</span>}
+              <span style={{ color: colors.textSecondary }}>Feedback: {feedbackUsed[activeChapter] || 0}/{feedbackBase} used</span>
             </div>
-          )}
 
           {generatingSubtopics ? (
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '32px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
@@ -757,7 +735,6 @@ const Write = () => {
                   highlightRanges={highlightRanges}
                   chapterSubsections={currentChapter?.subsections}
                   subsectionsContent={generatedSubsections[activeChapter]}
-                  isPremium={project?.tier === 'premium'}
                   onFeedback={(sub) => modals.openFeedbackModal(sub)}
                   onEditVisual={(blockIndex, newData) => {
                    const blocks = parseContentBlocks(currentContent);
@@ -911,7 +888,7 @@ const Write = () => {
               Reset Feedback
             </h2>
             <p style={{ textAlign: 'center', fontSize: '14px', color: colors.textSecondary, margin: '0 0 24px' }}>
-              Restore full feedback pool for this chapter.
+              Restore full feedback pool for this chapter. Free and unlimited.
             </p>
             <div style={{ backgroundColor: colors.background, borderRadius: '12px', padding: '20px', marginBottom: '24px', border: `1px solid ${colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -924,7 +901,7 @@ const Write = () => {
               </div>
               <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: colors.textSecondary, fontSize: '14px' }}>Amount</span>
-                <span style={{ color: colors.text, fontWeight: '700', fontSize: '18px' }}>{fmt(resetPrice)}</span>
+                <span style={{ color: '#059669', fontWeight: '700', fontSize: '18px' }}>Free</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -934,18 +911,8 @@ const Write = () => {
                 fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
                 fontSize: '15px', opacity: processingReset ? 0.7 : 1
               }}>
-                {processingReset ? 'Processing...' : `Pay ${fmt(resetPrice)} via Paystack`}
+                {processingReset ? 'Resetting...' : 'Reset for free'}
               </button>
-              {devBypass && (
-                <button onClick={handleResetDevBypass} disabled={processingReset} style={{
-                  backgroundColor: '#f59e0b',
-                  color: 'white', padding: '12px', border: 'none', borderRadius: '8px',
-                  fontWeight: '600', cursor: processingReset ? 'not-allowed' : 'pointer',
-                  fontSize: '13px'
-                }}>
-                  ⚡ Simulate Payment (Dev Mode)
-                </button>
-              )}
               <button onClick={() => setResetModalType(null)} disabled={processingReset} style={{
                 backgroundColor: 'transparent', color: colors.textSecondary,
                 padding: '10px', border: `1px solid ${colors.border}`, borderRadius: '8px',

@@ -95,7 +95,7 @@ Examples:
       progress: 0, status: 'active', unlocked: true,
       useOrganization, organizationName: useOrganization ? organizationName : '',
       hideOrganization, tier: tier || 'regular',
-      isPremium: (tier || 'regular') === 'premium',
+      isPremium: false,
     };
     await onSuccess(project, tier);
   };

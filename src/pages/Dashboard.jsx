@@ -28,8 +28,6 @@ import usePayment from '../hooks/usePayment';
 
 const DEV_BYPASS = import.meta.env.VITE_DEV_PAYMENT_BYPASS === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-const FREE_PROJECT_EMAILS = ['jawuitor75@gmail.com'];
-
 const Dashboard = () => {
   const { colors } = useTheme();
   const { isMobile } = useResponsive();
@@ -77,8 +75,8 @@ const Dashboard = () => {
         await saveProject({
           id: payment.projectId,
           userId: uid,
-          tier: payment.tier || 'regular',
-          isPremium: (payment.tier || 'regular') === 'premium',
+          tier: 'regular',
+          isPremium: false,
           title: 'Recovered Project',
           topic: '',
           field: 'Not specified',
@@ -118,7 +116,8 @@ const Dashboard = () => {
         const existing = await getProject(projectId, uid);
         if (existing) { sessionStorage.removeItem(key); continue; }
         project.userId = uid;
-        await saveProject(project, uid);
+        // Restore as regular; premium is only ever granted server-side.
+        await saveProject({ ...project, tier: 'regular', isPremium: false }, uid);
         sessionStorage.removeItem(key);
         restored++;
       } catch (e) {
@@ -203,7 +202,9 @@ const Dashboard = () => {
       const backupKey = 'pendingProject_' + project.id;
       localStorage.setItem(backupKey, JSON.stringify({ ...project, tier }));
       try {
-        await saveProject({ ...project, tier, isPremium: tier === 'premium' }, user?.uid);
+        // Always write as regular. firestore.rules rejects client-side premium writes;
+        // only the server may grant premium, and it does so after verifying payment.
+        await saveProject({ ...project, tier: 'regular', isPremium: false }, user?.uid);
         localStorage.removeItem(backupKey);
       } catch (e) {
         notify(receipt
@@ -221,7 +222,7 @@ const Dashboard = () => {
     setPaymentTier(null);
     if (successToast) notify(successToast, 'success');
     loadProjects();
-    if (!isUpgrade && tier === 'premium') setShowSourceSetup(true);
+    setShowSourceSetup(true);
   };
 
   const handlePaymentConfirm = async () => {
@@ -287,7 +288,7 @@ const Dashboard = () => {
       if (result && result.status === 'success') {
         sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
         try {
-          await saveProject(paymentProject, user?.uid);
+          await saveProject({ ...paymentProject, tier: 'regular', isPremium: false }, user?.uid);
           sessionStorage.removeItem('pendingProject_' + paymentProject.id);
         } catch (e) {
           notify('Project could not be saved. It will be restored automatically on your next visit.', 'error');
@@ -304,7 +305,7 @@ const Dashboard = () => {
     setPaymentTier(null);
     setPaymentIsUpgrade(false);
     loadProjects();
-    if (!paymentIsUpgrade && paymentTier === 'premium') {
+    if (!paymentIsUpgrade) {
       setShowSourceSetup(true);
     }
   };
@@ -319,8 +320,8 @@ const Dashboard = () => {
     setCreatedProjectId(project.id);
     setCreatedProjectTier(tier);
 
-    if (FREE_PROJECT_EMAILS.includes((user?.email || '').trim().toLowerCase())) {
-      await saveProjectAndFinalize(project, tier, { successToast: 'Project created! Your project is ready to use.' });
+    if (tier !== 'premium') {
+      await saveProjectAndFinalize(project, tier, { successToast: 'Free project created! Every writing tool is unlocked.' });
       return;
     }
 
@@ -465,7 +466,7 @@ const Dashboard = () => {
         />
       )}
 
-      {showSourceSetup && createdProjectId && createdProjectTier === 'premium' && (
+      {showSourceSetup && createdProjectId && (
         <SourceSetupModalWrapper
           projectId={createdProjectId}
           isPremium={createdProjectTier === 'premium'}

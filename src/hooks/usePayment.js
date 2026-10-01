@@ -38,6 +38,10 @@ export const getPendingPayment = () => {
 };
 
 const storePaymentRecord = async (paymentData) => {
+  // Payment receipts are written by the server after verifying with Paystack.
+  // firestore.rules blocks client-side writes here so users cannot forge receipts.
+  // In DEV_BYPASS mode no server call happens, so the mock record is written locally.
+  if (!DEV_BYPASS) return;
   try {
     const { db } = await import('../firebase');
     const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
@@ -51,12 +55,17 @@ const storePaymentRecord = async (paymentData) => {
 };
 
 const saveProjectTier = async (projectId, tier, isUpgrade) => {
+  // Premium is granted server-side only, after Paystack verification (see
+  // /api/verify-payment and /api/paystack-webhook). firestore.rules rejects any
+  // client-side write that would escalate tier, so we deliberately do not write
+  // premium from the browser.
+  if (isUpgrade || tier === 'premium') return;
   try {
     const { db } = await import('../firebase');
     const { doc, setDoc } = await import('firebase/firestore');
     await setDoc(doc(db, 'projects', projectId), {
-      tier: isUpgrade ? 'premium' : (tier || 'regular'),
-      isPremium: isUpgrade || tier === 'premium',
+      tier: 'regular',
+      isPremium: false,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
   } catch (e) {

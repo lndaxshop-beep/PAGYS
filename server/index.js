@@ -16,6 +16,14 @@ const PORT = process.env.PORT || 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_TIMEOUT_MS = parseInt(process.env.GEMINI_TIMEOUT_MS || '45000', 10);
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+// Minimum amounts (GHS) that justify granting premium. Used to reject payments
+// that were initialised for a cheaper action but tagged as premium/upgrade.
+// Keep in sync with src/constants/pricing.js.
+// Defaults mirror the lowest prices in src/constants/pricing.js so protection is
+// on even if the env vars are missing. PhD/Masters premium prices are higher and
+// still clear these floors.
+const PAYSTACK_MIN_PREMIUM = Number(process.env.PAYSTACK_MIN_PREMIUM || 70);
+const PAYSTACK_MIN_UPGRADE = Number(process.env.PAYSTACK_MIN_UPGRADE || 20);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
 const paystackConfigured = !!PAYSTACK_SECRET_KEY;
@@ -272,17 +280,43 @@ app.post('/api/paystack-webhook', async (req, res) => {
 
       if (adminDb && data.metadata?.projectId) {
         try {
-          const tier = data.metadata?.tier || 'regular';
+          // Validate the amount matches what the tier is actually worth before granting
+          // premium. Without this, a user could initiate a 1 GHS transaction with
+          // tier metadata set to premium and receive a premium project.
           const isUpgrade = data.metadata?.type === 'upgrade';
+          const metaTier = data.metadata?.tier === 'premium' ? 'premium' : 'regular';
+          const paidAmount = data.amount / 100;
+          let tier = metaTier;
+          if (metaTier === 'premium' || isUpgrade) {
+            const minimum = isUpgrade ? PAYSTACK_MIN_UPGRADE : PAYSTACK_MIN_PREMIUM;
+            if (paidAmount + 0.01 < minimum) {
+              console.warn('[Webhook] Amount below threshold for premium, not upgrading', {
+                projectId: data.metadata.projectId, paidAmount, minimum,
+              });
+              tier = 'regular';
+            }
+          }
           const projectRef = adminDb.collection('projects').doc(data.metadata.projectId);
-          await projectRef.update({
-            tier,
-            isPremium: tier === 'premium',
-            lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
+          // Confirm the project belongs to the payer before changing its tier,
+          // otherwise a crafted webhook could grant premium on someone else's project.
+          const existing = await projectRef.get();
+          const ownerId = existing.exists ? existing.data.userId : data.metadata.userId;
+          if (!ownerId || ownerId !== data.metadata.userId) {
+            console.warn('[Webhook] Project owner mismatch, skipping tier update', {
+              projectId: data.metadata.projectId,
+            });
+          } else {
+            // set() with merge, not update(): the project document may not exist
+            // yet when the webhook arrives before the client has finished saving it.
+            await projectRef.set({
+              tier,
+              isPremium: tier === 'premium',
+              lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+          }
 
           await adminDb.collection('payments').add({
-            userId: data.metadata.userId || '',
+            userId: ownerId || data.metadata.userId || '',
             projectId: data.metadata.projectId,
             tier,
             amount: data.amount / 100,
@@ -347,13 +381,38 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
       if (adminDb && projectId) {
         try {
           const isUpgrade = verifyData.data.metadata?.type === 'upgrade';
-          const projectTier = verifyData.data.metadata?.tier || tier || 'regular';
+          // Only Paystack metadata decides the tier. The client-supplied `tier` is
+          // never trusted, otherwise anyone could verify a cheap transaction and
+          // have the server mark the project premium.
+          const metaTier = verifyData.data.metadata?.tier === 'premium' ? 'premium' : 'regular';
+          const paidAmount = paymentData.amount;
+          let projectTier = metaTier;
+          if (metaTier === 'premium' || isUpgrade) {
+            const minimum = isUpgrade ? PAYSTACK_MIN_UPGRADE : PAYSTACK_MIN_PREMIUM;
+            if (paidAmount + 0.01 < minimum) {
+              console.warn('[Verify] Amount below threshold, not granting premium', {
+                projectId, paidAmount, minimum,
+              });
+              projectTier = 'regular';
+            }
+          }
           const projectRef = adminDb.collection('projects').doc(projectId);
-          await projectRef.update({
+          // Ownership check: never let a verified payment grant premium to a
+          // project belonging to a different account.
+          const existing = await projectRef.get();
+          if (existing.exists && existing.data.userId !== verifiedUserId) {
+            console.warn('[Verify] Project ownership mismatch, refusing tier update', { projectId });
+            return res.status(403).json({ error: 'Project does not belong to this account' });
+          }
+
+          // set() with merge, not update(): at verification time the client has often
+          // not written the project document yet, so update() throws NOT_FOUND and the
+          // whole block (including the payment record) is silently skipped.
+          await projectRef.set({
             tier: projectTier,
             isPremium: projectTier === 'premium',
             lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
+          }, { merge: true });
 
           await adminDb.collection('payments').add({
             userId: verifiedUserId || '',
@@ -376,7 +435,7 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
         }
       }
 
-      console.log('Payment verified:', { reference, amount: paymentData.amount, projectId, tier });
+      console.log('Payment verified:', { reference, amount: paymentData.amount, projectId, metadataTier: verifyData.data.metadata?.tier || 'regular' });
       return res.json(paymentData);
     }
 

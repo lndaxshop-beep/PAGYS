@@ -24,7 +24,7 @@ const LeftPane = ({
   generatedSubsections, onDragStart, onDragOver, onDrop, onDragEnd,
   draggedItem, dragOverItem,
   onAddChapter, onRemoveChapter, onRenameChapter, onChapterReorder,
-  onUpdateGuidelines, isPremium,
+  onUpdateGuidelines,
   generatingChapter, onGenerateChapter,
   generatingReferences,
 }) => {
@@ -264,7 +264,7 @@ const LeftPane = ({
                       </button>
                     );
                   })()}
-                  {isPremium && <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />}
+                  <ChapterGuidelines chapter={chapter} onUpdate={onUpdateGuidelines} />
                   <DeletedSubsections
                     chapterId={chapter.id}
                     deletedSubsections={chapter.deletedSubsections || []}

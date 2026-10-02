@@ -450,6 +450,21 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
           const projectTier = metaTier;
           const paidAt = paymentData.paidAt || new Date().toISOString();
 
+          // Every payment here belongs to a project. If Paystack did not carry the
+          // projectId, fail loudly instead of falling back to defaults: a silent
+          // default downgrades Premium to Regular and makes upgrades no-op, which
+          // looks like a successful payment with the wrong result.
+          if (!verifyData.data.metadata?.projectId) {
+            console.error('[Verify] Paystack metadata is missing projectId', {
+              reference, payType, metadataTier: metaTier, paidAmount,
+            });
+            return res.status(400).json({
+              error: 'Payment metadata is incomplete. Please contact support with your reference so the payment can be applied correctly.',
+              reference,
+              metadataMissing: true,
+            });
+          }
+
           if (isUpgrade) {
             // Upgrade path: the project already exists and only its tier changes.
             if (!meetsMinimum(paidAmount, PAYSTACK_MIN_UPGRADE)) {

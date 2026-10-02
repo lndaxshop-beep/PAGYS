@@ -200,7 +200,15 @@ if (reference && reference.startsWith('mock_')) {
           amount: Math.round(amount * 100),
           currency: 'GHS',
           ref: `PAGYSS_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`,
+          // These must be top-level metadata keys, not only custom_fields. The
+          // server reads metadata.projectId / .tier / .type to decide what the
+          // payment is for: omitting them made every popup purchase look like a
+          // Regular project creation, so Premium silently downgraded and upgrades
+          // took the creation branch and never applied the tier.
           metadata: {
+            projectId: metadata?.projectId,
+            tier: metadata?.tier || 'regular',
+            type: metadata?.type || 'project_creation',
             custom_fields: [{
               display_name: 'Project Type',
               variable_name: 'project_type',

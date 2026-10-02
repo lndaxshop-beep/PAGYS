@@ -1,6 +1,87 @@
 import { genAI, MODEL } from './config';
 import { cleanOutput, extractJSONArray } from './utils';
 
+const describeUserSources = (userSources) =>
+  JSON.stringify(userSources.map(s => ({
+    title: s.title, authors: s.authors, year: s.year,
+    methodology: s.methodology, keyFindings: s.keyFindings,
+    theoreticalFramework: s.theoreticalFramework
+  })), null, 2).substring(0, 15000);
+
+/**
+ * Builds the citation instructions for a generation prompt.
+ *
+ * The 'ai-only' branch used to be missing entirely. It is the DEFAULT source
+ * mode, so every user who did not upload their own papers was getting a prompt
+ * with no citation instructions at all, which is why generated chapters had
+ * almost no in-text citations and read as plagiarism-prone. Grounding is already
+ * enabled on the model, so real sources are available; the prompt just never
+ * asked for them to be cited.
+ *
+ * `caller` distinguishes whole-chapter generation from single-subsection work,
+ * because the density requirement has to be met per paragraph either way.
+ */
+const buildCitationInstruction = (sourceMode, userSources, caller = 'subsection', referenceStyle = 'apa') => {
+  const hasUserSources = userSources?.length > 0;
+
+  if (sourceMode === 'user-only' && hasUserSources) {
+    return `
+## USER-PROVIDED SOURCES (MANDATORY)
+The student has uploaded the following papers. These are the ONLY sources you may cite.
+${describeUserSources(userSources)}
+
+### USER SOURCE RULES
+- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
+- You MUST find and cite from the REAL published paper.
+- If Google Search Grounding cannot find a specific paper, do NOT cite it.
+- At least 2 different sources must be cited across ${caller}.
+- Reference the specific source inline: (Author, Year).`;
+  }
+
+  if (sourceMode === 'combine' && hasUserSources) {
+    return `
+## USER-PROVIDED SOURCES (PRIORITY)
+The student has uploaded the following papers. PRIORITIZE these sources for citations.
+${describeUserSources(userSources)}
+
+### COMBINED SOURCE RULES
+- Use Google Search Grounding to find the ACTUAL publications for the user's papers.
+- Supplement with additional sources found via Google Search Grounding where needed.
+- At least 60% of citations should come from the user's papers.`;
+  }
+
+  // 'ai-only' is the default mode. Without this branch, no citations were
+  // ever requested, which is the defect being fixed here.
+  return `
+## IN-TEXT CITATIONS (MANDATORY — NON-NEGOTIABLE)
+Uncited academic prose is a plagiarism risk. You MUST support the writing with in-text citations drawn from real, verifiable published scholarship.
+
+### HOW TO CITE
+- Use Google Search Grounding to find REAL academic sources for every substantive claim: theories, findings, statistics, frameworks, and contested arguments.
+- Cite immediately after the claim it supports, in author-date form: (Smith, 2020) or (Smith & Jones, 2020) or, for three or more authors, (Smith et al., 2020).
+- Narrative citation is also acceptable: Smith (2020) argued that...
+- Place the citation before the full stop: "...demonstrated a significant effect (Smith, 2020)."
+- Where several sources support one claim, group them: (Smith, 2020; Jones, 2019).
+- Author-date in-text form is used for every style, including MLA and IEEE. This is required so the reference list can be generated and matched back to these citations automatically. The chosen style (${String(referenceStyle || 'apa').toUpperCase()}) is applied when the reference list is built.
+
+### DENSITY REQUIREMENT
+- EVERY paragraph of analytical prose MUST contain at least one in-text citation.
+- Aim for roughly one citation per 2-3 sentences across ${caller}.
+- Vary which sources you cite. Do not stack the same source repeatedly in one paragraph.
+- Use different sources in different paragraphs so the section shows genuine breadth of reading.
+
+### WHAT MUST BE CITED
+- Every theory, model, or conceptual framework you name.
+- Every statistic, percentage, or quantitative finding you report.
+- Every claim attributed to a named researcher or school of thought.
+- Direct quotations.
+
+### WHAT NOT TO DO
+- Do NOT write a paragraph of uncited general assertion. If you cannot ground a claim in a real source, do not make it.
+- Do NOT invent authors, years, or journals. Every citation must correspond to a real publication you actually retrieved via grounding.
+- Do NOT cite a source for a claim it does not support.`;
+};
+
 export const generateSubtopics = async (promptData) => {
   try {
     const model = genAI.getGenerativeModel({ 
@@ -125,42 +206,7 @@ export const generateAcademicContent = async (promptData) => {
     });
     const structureInstruction = '';
 
-    let sourceModeInstruction = '';
-    if (promptData.sourceMode === 'user-only' && promptData.userSources?.length > 0) {
-      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
-        title: s.title, authors: s.authors, year: s.year,
-        methodology: s.methodology, keyFindings: s.keyFindings,
-        theoreticalFramework: s.theoreticalFramework
-      })), null, 2);
-      sourceModeInstruction = `
-## USER-PROVIDED SOURCES (MANDATORY)
-The student has uploaded the following papers. These are the ONLY sources you may cite.
-${sourcesJson.substring(0, 15000)}
-
-### USER SOURCE RULES
-- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
-- You MUST find and cite from the REAL published paper — not just the title and authors listed here.
-- If Google Search Grounding cannot find a specific paper after trying, do NOT cite it.
-- At least 2 different sources must be cited across the subsection.
-- When discussing a concept or finding, reference the specific source: (Author, Year).
-- Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`;
-    } else if (promptData.sourceMode === 'combine' && promptData.userSources?.length > 0) {
-      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
-        title: s.title, authors: s.authors, year: s.year,
-        methodology: s.methodology, keyFindings: s.keyFindings,
-        theoreticalFramework: s.theoreticalFramework
-      })), null, 2);
-      sourceModeInstruction = `
-## USER-PROVIDED SOURCES (PRIORITY)
-The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${sourcesJson.substring(0, 15000)}
-
-### COMBINED SOURCE RULES
-- Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
-- Supplement with additional sources found via Google Search Grounding where user sources do not provide sufficient coverage.
-- At least 60% of citations should come from the user's papers.
-- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`;
-    }
+    let sourceModeInstruction = buildCitationInstruction(promptData.sourceMode, promptData.userSources, 'the subsection', promptData.referenceStyle);
 
     const prompt = `You are a PhD candidate writing a formal academic thesis section. Write at a professional academic level — clear, authoritative, and naturally scholarly.
 ${promptData.thesisContext ? `
@@ -253,40 +299,7 @@ export const generateChapterContent = async (promptData) => {
       generationConfig: { temperature: 0.7, topP: 0.85, maxOutputTokens: 64000 }
     });
 
-    let sourceModeInstruction = '';
-    if (promptData.sourceMode === 'user-only' && promptData.userSources?.length > 0) {
-      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
-        title: s.title, authors: s.authors, year: s.year,
-        methodology: s.methodology, keyFindings: s.keyFindings,
-        theoreticalFramework: s.theoreticalFramework
-      })), null, 2);
-      sourceModeInstruction = `
-## USER-PROVIDED SOURCES (MANDATORY)
-The student has uploaded the following papers. These are the ONLY sources you may cite.
-${sourcesJson.substring(0, 15000)}
-
-### USER SOURCE RULES
-- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
-- You MUST find and cite from the REAL published paper.
-- If Google Search Grounding cannot find a specific paper, do NOT cite it.
-- At least 2 different sources must be cited across each subsection.
-- Reference sources specifically within each subsection: (Author, Year).`;
-    } else if (promptData.sourceMode === 'combine' && promptData.userSources?.length > 0) {
-      const sourcesJson = JSON.stringify(promptData.userSources.map(s => ({
-        title: s.title, authors: s.authors, year: s.year,
-        methodology: s.methodology, keyFindings: s.keyFindings,
-        theoreticalFramework: s.theoreticalFramework
-      })), null, 2);
-      sourceModeInstruction = `
-## USER-PROVIDED SOURCES (PRIORITY)
-The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${sourcesJson.substring(0, 15000)}
-
-### COMBINED SOURCE RULES
-- Use Google Search Grounding to find the ACTUAL publications for the user's papers.
-- Supplement with additional sources found via Google Search Grounding where needed.
-- At least 60% of citations should come from the user's papers.`;
-    }
+    let sourceModeInstruction = buildCitationInstruction(promptData.sourceMode, promptData.userSources, 'each subsection', promptData.referenceStyle);
 
     const subsOutline = promptData.subsections.map((sub, i) => {
       const children = (sub.children || []).map(c => `    - ${c.title}`).join('\n');
@@ -424,8 +437,8 @@ Check: Are robotic transitions used multiple times? ("Furthermore... Moreover...
 Fix: Remove most transitions entirely. Let ideas flow naturally. Use transitions only where genuinely needed, and vary them.
 
 ### 4. CITATION INTEGRITY
-Check: Does every paragraph have at least one (Author, Year) or [CITATION:...] marker?
-Fix: Do NOT add new citations. Do NOT remove existing ones. Keep [CITATION:...] markers untouched.
+Check: Does every paragraph carry at least one (Author, Year) or [CITATION:...] marker? Uncited paragraphs are a plagiarism risk.
+Fix: Preserve every existing citation exactly as written. If a paragraph has no citation at all, add a real, verifiable one from Google Search Grounding. Never invent an author, year, or publication.
 
 ### 5. DEPTH AND SPECIFICITY
 Check: Does the text make specific, grounded claims? Or does it use generic statements that could apply to any topic?
@@ -471,89 +484,60 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
       }
     }
 
-    let sourceModeInstruction = '';
-    if (sourceMode === 'user-only' && userSources?.length > 0) {
-      const sourcesJson = JSON.stringify(userSources.map(s => ({
-        title: s.title, authors: s.authors, year: s.year,
-        methodology: s.methodology, keyFindings: s.keyFindings,
-        theoreticalFramework: s.theoreticalFramework
-      })), null, 2);
-      sourceModeInstruction = `
-## USER-PROVIDED SOURCES (MANDATORY)
-The student has uploaded the following papers. These are the ONLY sources you may cite.
-${sourcesJson.substring(0, 15000)}
+    let sourceModeInstruction = buildCitationInstruction(sourceMode, userSources, 'the subsection', project?.referenceStyle);
 
-### USER SOURCE RULES
-- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
-- You MUST find and cite from the REAL published paper — not just the title and authors listed here.
-- If Google Search Grounding cannot find a specific paper after trying, do NOT cite it.
-- At least 2 different sources must be cited across the subsection.
-- When discussing a concept or finding, reference the specific source: (Author, Year).
-- Do NOT fabricate any citation. If you cannot find a real source for a claim, make the argument without a citation.`;
-    } else if (sourceMode === 'combine' && userSources?.length > 0) {
-      const sourcesJson = JSON.stringify(userSources.map(s => ({
-        title: s.title, authors: s.authors, year: s.year,
-        methodology: s.methodology, keyFindings: s.keyFindings,
-        theoreticalFramework: s.theoreticalFramework
-      })), null, 2);
-      sourceModeInstruction = `
-## USER-PROVIDED SOURCES (PRIORITY)
-The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${sourcesJson.substring(0, 15000)}
+    const hasUserSources = sourceModeInstruction.startsWith('\n## USER-PROVIDED SOURCES');
 
-### COMBINED SOURCE RULES
-- Use Google Search Grounding to find the ACTUAL publications for the user's papers, read them, and cite specific findings.
-- Supplement with additional sources found via Google Search Grounding where user sources do not provide sufficient coverage.
-- At least 60% of citations should come from the user's papers.
-- If Google cannot find a specific user paper, you may cite it using its listed title and authors as a last resort.`;
-    }
-
-    const prompt = `You are an expert academic editor applying supervisor feedback to a thesis subsection. Address the feedback while preserving academic quality and structural integrity.
+    const prompt = `You are an expert academic editor carrying out your supervisor's explicit revision instructions on a thesis subsection. Your ONLY task is to produce text that satisfies the feedback below. You are not reviewing, not suggesting, and not deciding whether the feedback is a good idea. You implement it.
 
 SUBSECTION: ${subsectionTitle}
 THESIS TITLE: "${project?.title}"
 ${project?.topic ? `RESEARCH QUESTION: "${project.topic}"` : ''}
-FIELD: ${project?.field}
+FIELD: ${project?.field || 'Not specified'}
 
-FEEDBACK TO APPLY:
-"${feedback.text}"${filesInstruction}
+## THE STUDENT'S EXACT REQUEST
+${feedback.text ? `"${feedback.text}"` : 'See the uploaded files below — apply the corrections they show.'}${filesInstruction}
 
-CURRENT TEXT:
+The request above is a command, not a suggestion. It is the single source of truth for what this subsection must become.
+
+## CURRENT TEXT (to be revised)
 ${cleanOutput(currentContent)}${sourceModeInstruction}
 
-## INSTRUCTION HIERARCHY (highest to lowest priority)
+## COMPLIANCE REQUIREMENTS
 
-### PRIORITY 1 — USER FEEDBACK (overrides everything else)
-- The user's feedback text is the MOST IMPORTANT instruction. Apply it EXACTLY as written.
-- If feedback asks to make it longer, MAKE IT LONGER. If it asks for two paragraphs, ADD TWO PARAGRAPHS.
-- If feedback asks to rewrite, REWRITE. If it asks to expand, EXPAND.
-- Do not second-guess or soften the user's instructions. Do what they say.
-- Only if the feedback is vague (e.g., "improve this section") should you use your best judgment for minimal improvements.
+### 1. THE REQUEST IS BINDING
+- Carry out every element of the request. If it asks for a rewrite, REWRITE. If it asks for expansion, EXPAND. If it asks to add paragraphs, ADD THEM. If it asks to remove something, REMOVE IT.
+- If the request specifies a quantity ("add three paragraphs", "make it twice as long", "shorten this by half"), hit that quantity precisely. Verify by counting before you return.
+- If the request changes tone, register, structure, argument, evidence, or emphasis, make that change throughout. Do not apply it to one sentence and leave the rest untouched.
+- Do NOT second-guess the request, soften it, or substitute a smaller change you think is more appropriate.
+- Do NOT reply with a plan, a summary, or a note about what you changed. Output the revised text itself.
+- If the request conflicts with any preservation rule below, THE REQUEST WINS. Preserve nothing that the request told you to change.
 
-### PRIORITY 2 — CITATION INTEGRITY
-- ${sourceModeInstruction ? 'INTEGRATE user-provided sources into the text using (Author, Year) citations where relevant.' : 'PRESERVE ALL in-text citations exactly as they appear — do not change, remove, or replace any (Author, Year) markers.'}
+### 2. CITATION INTEGRITY
+- ${hasUserSources ? 'INTEGRATE the user-provided sources into the text with (Author, Year) citations where they support the arguments.' : 'PRESERVE every existing in-text citation exactly as written. Never delete, reword, or renumber a (Author, Year) citation.'}
 - PRESERVE [CITATION:...] markers exactly as they appear.
-- ${sourceModeInstruction ? 'ADD new citations from user-provided sources where they support the arguments.' : 'DO NOT add new citations that were not in the original text.'}
-- Ensure every paragraph has at least one in-text citation after editing.
+- ${hasUserSources ? 'ADD new citations from the user-provided sources wherever they support the arguments.' : 'Do NOT introduce citations that were absent from the original text.'}
+- Never fabricate an author, year, or publication.
 
-### PRIORITY 3 — STRUCTURAL PRESERVATION
-- Keep ALL subsection headings exactly as they are — do not modify heading text.
-- Keep ALL existing tables, diagrams, [CHART:{...}] tags, and data intact.
-- Do not restructure or reorder paragraphs unless the feedback explicitly requests it.
+### 3. PRESERVE WHAT THE REQUEST DID NOT ASK YOU TO CHANGE
+- Keep ALL subsection headings exactly as they are.
+- Keep ALL existing tables, figures, [CHART:{...}] tags, numbers, and statistics intact and accurate.
+- Keep the scholarly register: formal third person, no contractions, no em dashes, no rhetorical questions.
+- Do not drift into a neighbouring subsection or introduce unrelated topics, UNLESS the request asks for exactly that.
+- If the request is genuinely broad ("improve this", "make it better"), apply your best judgement to raise clarity, coherence, specificity, and academic quality without padding.
 
-### PRIORITY 4 — SUBSECTION BOUNDARIES
-- Do not add content that belongs in a different subsection.
-- Do not introduce new topics or arguments not present in the original text.
-- Stay strictly within the scope of "${subsectionTitle}".
-
-### PRIORITY 5 — FORMATTING
-- Return ONLY the modified text — no explanations, no annotations, no meta-commentary.
-- NO markdown headings (###, ##), NO HTML tags.
-- NO word count footnotes.
-- NO em dashes.
+### 4. OUTPUT FORMAT
+- Return ONLY the complete revised text for this subsection.
+- No preamble, no closing remarks, no meta-commentary, no bracketed annotations.
+- No markdown headings (###, ##) and no HTML tags.
 - Plain text only.
 
-Return ONLY the complete modified text for this subsection.`;
+## FINAL CHECK BEFORE YOU RETURN
+Confirm all four of these, silently, then output the text only:
+1. Did I do literally what the request asked, in full?
+2. If the request named a number of paragraphs, sentences, or words, did I match it?
+3. Is every paragraph still supported by an in-text citation where one was present?
+4. Are all headings, tables, and statistics from the original still present and correct?`;
     const parts = imageParts.length > 0 ? [...imageParts, { text: prompt }] : [{ text: prompt }];
     const result = await model.generateContent({ contents: [{ role: "user", parts }] });
     return cleanOutput(result.response.text());

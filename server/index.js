@@ -24,6 +24,62 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 // still clear these floors.
 const PAYSTACK_MIN_PREMIUM = Number(process.env.PAYSTACK_MIN_PREMIUM || 70);
 const PAYSTACK_MIN_UPGRADE = Number(process.env.PAYSTACK_MIN_UPGRADE || 20);
+
+// Authoritative price table. Regular used to be free, but charging is enabled
+// again, so the server must decide what a given tier costs rather than trusting
+// whatever amount arrived. Without this, a GHS 1 transaction initialised for a
+// cheap action could be presented as a full Regular purchase.
+// Keep in sync with src/constants/pricing.js.
+const PROJECT_PRICES_GHS = {
+  undergraduate: { regular: 50, premium: 70 },
+  masters: { regular: 80, premium: 100 },
+  phd: { regular: 100, premium: 120 },
+};
+
+const getExpectedProjectPrice = (tier, level) => {
+  const table = PROJECT_PRICES_GHS[String(level || 'undergraduate').toLowerCase()]
+    || PROJECT_PRICES_GHS.undergraduate;
+  return table[tier] ?? PROJECT_PRICES_GHS.undergraduate[tier];
+};
+
+// Explicit allowlist for project fields written by the server. Building the
+// document from named fields only means a hostile client cannot smuggle extra
+// keys (or a spoofed userId/tier) into a project it paid for.
+const buildProjectDoc = (project, { userId, tier, projectId, paidAt }) => {
+  const str = (v, max = 500) => String(v ?? '').slice(0, max);
+  return {
+    id: projectId,
+    userId,
+    title: str(project.title, 200),
+    level: ['undergraduate', 'masters', 'phd'].includes(String(project.level).toLowerCase())
+      ? String(project.level).toLowerCase()
+      : 'undergraduate',
+    field: str(project.field, 150),
+    topic: str(project.topic, 2000),
+    methodology: str(project.methodology, 100),
+    referenceStyle: str(project.referenceStyle, 30) || 'apa',
+    useOrganization: project.useOrganization === true,
+    organizationName: project.useOrganization === true ? str(project.organizationName, 200) : '',
+    hideOrganization: project.hideOrganization === true,
+    tier,
+    isPremium: tier === 'premium',
+    // Both tiers are paid products now, so a project is only usable once the
+    // server has confirmed payment.
+    paymentStatus: 'paid',
+    progress: 0,
+    status: 'active',
+    unlocked: true,
+    createdAt: paidAt,
+    lastEdited: paidAt,
+    lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+};
+
+// Compares in integer pesewas to avoid float drift at the boundary: a naive
+// `amount + 0.01 < expected` admits 49.99 against a 50 price.
+const meetsMinimum = (amountGhs, expectedGhs) =>
+  Math.round(Number(amountGhs) * 100) >= Math.round(Number(expectedGhs) * 100);
+
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
 
 const paystackConfigured = !!PAYSTACK_SECRET_KEY;
@@ -280,45 +336,45 @@ app.post('/api/paystack-webhook', async (req, res) => {
 
       if (adminDb && data.metadata?.projectId) {
         try {
-          // Validate the amount matches what the tier is actually worth before granting
-          // premium. Without this, a user could initiate a 1 GHS transaction with
-          // tier metadata set to premium and receive a premium project.
-          const isUpgrade = data.metadata?.type === 'upgrade';
+          // Only Paystack metadata decides the tier, and the paid amount must cover
+          // the real price for it. Otherwise a cheap transaction carrying
+          // tier=premium in its metadata would grant a premium project.
+          const payType = data.metadata?.type || 'project_creation';
+          const isUpgrade = payType === 'upgrade';
           const metaTier = data.metadata?.tier === 'premium' ? 'premium' : 'regular';
           const paidAmount = data.amount / 100;
-          let tier = metaTier;
-          if (metaTier === 'premium' || isUpgrade) {
-            const minimum = isUpgrade ? PAYSTACK_MIN_UPGRADE : PAYSTACK_MIN_PREMIUM;
-            if (paidAmount + 0.01 < minimum) {
-              console.warn('[Webhook] Amount below threshold for premium, not upgrading', {
-                projectId: data.metadata.projectId, paidAmount, minimum,
+
+          // Project documents are created exclusively by the authenticated
+          // /api/verify-payment path, which knows the real signed-in userId. This
+          // webhook must never create one: merging onto a missing document would
+          // produce a stub holding nothing but a tier, with no title and no owner,
+          // which then shows up in the user's project list. It only upgrades a
+          // project that genuinely exists and is owned by the payer.
+          if (isUpgrade && paidAmount >= PAYSTACK_MIN_UPGRADE) {
+            const projectRef = adminDb.collection('projects').doc(data.metadata.projectId);
+            const existing = await projectRef.get();
+            // Ownership comes from the stored project, never from webhook metadata,
+            // which the client controls when it opens the transaction.
+            if (existing.exists) {
+              await projectRef.set({
+                tier: 'premium',
+                isPremium: true,
+                lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true });
+            } else {
+              console.warn('[Webhook] Upgrade target missing, leaving creation to /api/verify-payment', {
+                projectId: data.metadata.projectId,
               });
-              tier = 'regular';
             }
           }
-          const projectRef = adminDb.collection('projects').doc(data.metadata.projectId);
-          // Confirm the project belongs to the payer before changing its tier,
-          // otherwise a crafted webhook could grant premium on someone else's project.
-          const existing = await projectRef.get();
-          const ownerId = existing.exists ? existing.data.userId : data.metadata.userId;
-          if (!ownerId || ownerId !== data.metadata.userId) {
-            console.warn('[Webhook] Project owner mismatch, skipping tier update', {
-              projectId: data.metadata.projectId,
-            });
-          } else {
-            // set() with merge, not update(): the project document may not exist
-            // yet when the webhook arrives before the client has finished saving it.
-            await projectRef.set({
-              tier,
-              isPremium: tier === 'premium',
-              lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-          }
 
-          await adminDb.collection('payments').add({
-            userId: ownerId || data.metadata.userId || '',
+          // Keyed by reference so a webhook and a later inline verification of the
+          // same transaction collapse into one record. The owner is left to the
+          // authenticated verify path, which is the only place a trustworthy userId
+          // exists; the webhook never invents ownership from client metadata.
+          await adminDb.collection('payments').doc(data.reference).set({
             projectId: data.metadata.projectId,
-            tier,
+            tier: metaTier,
             amount: data.amount / 100,
             currency: data.currency || 'GHS',
             reference: data.reference,
@@ -330,7 +386,7 @@ app.post('/api/paystack-webhook', async (req, res) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           });
 
-          console.log(`[Webhook] Tier updated for project ${data.metadata.projectId}`);
+          console.log(`[Webhook] Recorded ${payType} payment for project ${data.metadata.projectId}`);
         } catch (dbErr) {
           console.error('[Webhook] Firestore update failed:', dbErr.message);
         }
@@ -380,41 +436,86 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
 
       if (adminDb && projectId) {
         try {
-          const isUpgrade = verifyData.data.metadata?.type === 'upgrade';
+          const payType = verifyData.data.metadata?.type || 'project_creation';
+          const isUpgrade = payType === 'upgrade';
+          const isProjectCreation = payType === 'project_creation';
+          // Add-on purchases (feedback resets, Remove-AI runs, defence
+          // regenerations, word-count edits) share this endpoint. They must record
+          // a payment but must never create or alter a project document.
           // Only Paystack metadata decides the tier. The client-supplied `tier` is
           // never trusted, otherwise anyone could verify a cheap transaction and
           // have the server mark the project premium.
           const metaTier = verifyData.data.metadata?.tier === 'premium' ? 'premium' : 'regular';
           const paidAmount = paymentData.amount;
-          let projectTier = metaTier;
-          if (metaTier === 'premium' || isUpgrade) {
-            const minimum = isUpgrade ? PAYSTACK_MIN_UPGRADE : PAYSTACK_MIN_PREMIUM;
-            if (paidAmount + 0.01 < minimum) {
-              console.warn('[Verify] Amount below threshold, not granting premium', {
-                projectId, paidAmount, minimum,
+          const projectTier = metaTier;
+          const paidAt = paymentData.paidAt || new Date().toISOString();
+
+          if (isUpgrade) {
+            // Upgrade path: the project already exists and only its tier changes.
+            if (!meetsMinimum(paidAmount, PAYSTACK_MIN_UPGRADE)) {
+              console.warn('[Verify] Upgrade amount below threshold', { projectId, paidAmount });
+              return res.status(402).json({ error: 'Payment amount is too low for this action.' });
+            }
+            const upgradeRef = adminDb.collection('projects').doc(projectId);
+            const existingProject = await upgradeRef.get();
+            if (existingProject.exists && existingProject.data.userId !== verifiedUserId) {
+              console.warn('[Verify] Project ownership mismatch, refusing tier update', { projectId });
+              return res.status(403).json({ error: 'Project does not belong to this account' });
+            }
+            if (!existingProject.exists) {
+              return res.status(404).json({ error: 'Project not found' });
+            }
+            await upgradeRef.set({
+              tier: 'premium',
+              isPremium: true,
+              lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+          } else if (isProjectCreation) {
+            // Project creation. Both tiers are paid, so the paid amount must meet
+            // the real price for that tier and level, otherwise a near-zero
+            // transaction would create a full project for free.
+            if (paymentData.currency !== 'GHS') {
+              return res.status(402).json({ error: 'Unexpected payment currency.' });
+            }
+            const expected = getExpectedProjectPrice(projectTier, req.body.project?.level);
+            if (!meetsMinimum(paidAmount, expected)) {
+              console.warn('[Verify] Amount below required price, refusing to create project', {
+                projectId, paidAmount, expected, projectTier,
               });
-              projectTier = 'regular';
+              return res.status(402).json({ error: `Payment amount is too low. This project requires GHS ${expected}.` });
+            }
+
+            const projectRef = adminDb.collection('projects').doc(projectId);
+            const existing = await projectRef.get();
+            if (existing.exists) {
+              // Never let a verified payment overwrite someone else's project.
+              if (existing.data.userId !== verifiedUserId) {
+                console.warn('[Verify] Project id collision, refusing', { projectId });
+                return res.status(409).json({ error: 'Project already exists.' });
+              }
+              // Retry of an already-completed purchase: keep the existing document
+              // intact rather than resetting a project the user may have written in.
+              console.log('[Verify] Project already exists, leaving it untouched', { projectId });
+            } else {
+              // The server owns project creation. Doing it here (Admin SDK bypasses
+              // firestore.rules) means the document already carries the correct
+              // tier and userId, so the browser never has to write a paid project
+              // and can never hit a rules rejection after paying.
+              await projectRef.create(buildProjectDoc(req.body.project || {}, {
+                userId: verifiedUserId,
+                tier: projectTier,
+                projectId,
+                paidAt,
+              }));
+              console.log(`[Verify] Project ${projectId} created as ${projectTier}`);
             }
           }
-          const projectRef = adminDb.collection('projects').doc(projectId);
-          // Ownership check: never let a verified payment grant premium to a
-          // project belonging to a different account.
-          const existing = await projectRef.get();
-          if (existing.exists && existing.data.userId !== verifiedUserId) {
-            console.warn('[Verify] Project ownership mismatch, refusing tier update', { projectId });
-            return res.status(403).json({ error: 'Project does not belong to this account' });
-          }
+          // Otherwise this is an add-on purchase: record the payment only. The
+          // client's remaining usage counter is intentionally not trusted here.
 
-          // set() with merge, not update(): at verification time the client has often
-          // not written the project document yet, so update() throws NOT_FOUND and the
-          // whole block (including the payment record) is silently skipped.
-          await projectRef.set({
-            tier: projectTier,
-            isPremium: projectTier === 'premium',
-            lastPaymentAt: admin.firestore.FieldValue.serverTimestamp(),
-          }, { merge: true });
-
-          await adminDb.collection('payments').add({
+          // Keyed by the Paystack reference so a retried verification updates the
+          // existing record instead of double-counting the same transaction.
+          await adminDb.collection('payments').doc(paymentData.reference).set({
             userId: verifiedUserId || '',
             projectId,
             tier: projectTier,
@@ -422,16 +523,24 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
             currency: paymentData.currency,
             reference: paymentData.reference,
             email: paymentData.email,
-            paidAt: paymentData.paidAt || new Date().toISOString(),
+            paidAt,
             channel: paymentData.channel || 'inline',
-            type: isUpgrade ? 'upgrade' : 'project_creation',
+            type: payType,
             status: 'verified',
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-
-          console.log(`[Verify] Tier updated server-side for project ${projectId}`);
+          }, { merge: true });
         } catch (dbErr) {
-          console.error('[Verify] Firestore update failed:', dbErr.message);
+          // The money has already moved, so this must not be reported as a plain
+          // failure: the client would offer to pay again and risk a double charge.
+          // It surfaces as an explicit provisioning error, and because the payment
+          // record and project creation are both idempotent, re-verifying the same
+          // reference completes the job instead of charging the user twice.
+          console.error('[Verify] Firestore write failed for reference', reference, dbErr.message);
+          return res.status(500).json({
+            error: 'Payment received but project setup did not complete. Please retry in a moment; you will not be charged twice.',
+            reference,
+            provisioningFailed: true,
+          });
         }
       }
 
@@ -448,6 +557,83 @@ app.post('/api/verify-payment', requireAuth, async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: paystackConfigured, firebaseAdmin: !!adminDb });
+});
+
+// Restoring from the recycle bin needs to recreate a project document, and
+// clients are no longer allowed to create project documents themselves (both
+// tiers are paid). Doing it server-side also means a previously paid Premium
+// project comes back as Premium instead of being silently downgraded to Regular.
+app.post('/api/restore-project', requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) return res.status(400).json({ error: 'Missing projectId' });
+    if (!adminDb) return res.status(500).json({ error: 'Database unavailable' });
+
+    const uid = req.user.uid;
+    const deletedRef = adminDb.collection('deletedProjects').doc(projectId);
+    const deleted = await deletedRef.get();
+    if (!deleted.exists) return res.status(404).json({ error: 'Project not found in recycle bin' });
+    if (deleted.data.userId !== uid) return res.status(403).json({ error: 'Project does not belong to this account' });
+
+    const projectRef = adminDb.collection('projects').doc(projectId);
+    const existing = await projectRef.get();
+    if (!existing.exists) {
+      const saved = deleted.data;
+      await projectRef.create({
+        ...saved,
+        id: projectId,
+        userId: uid,
+        // Preserve what the user originally paid for.
+        tier: saved.tier === 'premium' ? 'premium' : 'regular',
+        isPremium: saved.tier === 'premium',
+        paymentStatus: 'paid',
+        lastEdited: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+    await deletedRef.delete();
+    res.json({ restored: true });
+  } catch (err) {
+    console.error('[Restore] Failed:', err.message);
+    res.status(500).json({ error: 'Failed to restore project' });
+  }
+});
+
+// Local development only. The client-side payment bypass short-circuits Paystack
+// entirely, which means it never reaches /api/verify-payment, so nothing would
+// create the project document and local dev would be unusable now that clients
+// cannot create projects. This endpoint fills that gap.
+// Safety: it requires an explicit ALLOW_DEV_MOCK_PAYMENTS=true, which is absent by
+// default and must not be set on the production host. It still requires a valid
+// user token and only ever writes to the caller's own document.
+app.post('/api/dev-mock-payment', requireAuth, async (req, res) => {
+  if (process.env.ALLOW_DEV_MOCK_PAYMENTS !== 'true') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  try {
+    const { projectId, tier, project } = req.body;
+    if (!projectId || !adminDb) return res.status(400).json({ error: 'Missing projectId or database unavailable' });
+    const uid = req.user.uid;
+
+    if (tier === 'premium') {
+      const ref = adminDb.collection('projects').doc(projectId);
+      const existing = await ref.get();
+      if (!existing.exists || existing.data.userId !== uid) return res.status(404).json({ error: 'Project not found' });
+      await ref.set({ tier: 'premium', isPremium: true }, { merge: true });
+    } else {
+      const ref = adminDb.collection('projects').doc(projectId);
+      const existing = await ref.get();
+      if (!existing.exists) {
+        await ref.create(buildProjectDoc(project || {}, { userId: uid, tier: 'regular', projectId, paidAt: new Date().toISOString() }));
+      } else if (existing.data.userId !== uid) {
+        return res.status(403).json({ error: 'Project does not belong to this account' });
+      }
+    }
+    console.warn('[DEV MOCK] Project created/updated without payment:', projectId, tier);
+    res.json({ verified: true, dev: true });
+  } catch (err) {
+    console.error('[DEV MOCK] Failed:', err.message);
+    res.status(500).json({ error: 'Mock payment failed' });
+  }
 });
 
 // Serve built frontend in production

@@ -109,10 +109,10 @@ const NewProjectForm = ({
               >
                 <div style={{ fontSize: '18px', marginBottom: '6px' }}>📘</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: '600', color: colors.text }}>Regular — Free</span>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#059669', backgroundColor: '#ecfdf5', border: '1px solid #059669', borderRadius: '999px', padding: '1px 8px' }}>NO PAYMENT</span>
+                  <span style={{ fontWeight: '600', color: colors.text }}>Regular — {fmt(getProjectPrice('regular', form.level))}</span>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: colors.primary, backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff', border: `1px solid ${colors.primary}`, borderRadius: '999px', padding: '1px 8px' }}>ONE-TIME PAYMENT</span>
                 </div>
-                <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#059669', fontWeight: '500', fontStyle: 'italic' }}>Every writing tool included:</p>
+                <p style={{ margin: '0 0 8px', fontSize: '12px', color: colors.textSecondary, fontWeight: '500', fontStyle: 'italic' }}>Every writing tool included:</p>
                 <ol style={{ margin: 0, padding: '0 0 0 24px', fontSize: '13px', color: colors.textSecondary, lineHeight: '1.6', listStyle: 'decimal' }}>
                   <li style={{ marginBottom: '8px' }}><strong>Write chapters</strong> — we generate each chapter from your topic, field, and methodology</li>
                   <li style={{ marginBottom: '8px' }}><strong>Feedback</strong> — paste supervisor corrections and we rewrite exactly</li>

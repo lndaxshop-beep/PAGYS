@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNavigationLoading } from '../contexts/NavigationLoadingContext';
-import { saveProject, getProjects, updateProject, deleteProject, saveDeletedProject, getDeletedProjects, permanentlyDeleteProject, getGeneratedContent, getChapters } from '../services/firestoreService';
+import { getProjects, deleteProject, saveDeletedProject, getDeletedProjects, permanentlyDeleteProject, getGeneratedContent, getChapters } from '../services/firestoreService';
 import { calculateProjectProgress } from '../utils/dashboardHelpers';
 
 const PROGRESS_CACHE_KEY = 'dashboard_progress_cache';
@@ -136,9 +136,12 @@ export const useDashboardData = ({ confirmAction = () => Promise.resolve(false),
     const project = deletedProjects.find(p => p.id === id);
     if (!project) { notify('Project not found.', 'error'); return; }
     try {
-      // Restore as regular: firestore.rules rejects client-side premium writes.
-      await saveProject({ ...project, tier: 'regular', isPremium: false }, userId);
-      await permanentlyDeleteProject(id, userId);
+      // Projects can no longer be created client-side (both tiers are paid), so
+      // restore goes through the server. This also preserves the tier the user
+      // originally paid for instead of downgrading Premium to Regular.
+      const { restoreProject } = await import('../services/firestoreService');
+      const result = await restoreProject(id);
+      if (!result?.success) throw new Error(result?.error || 'Restore failed');
       invalidateProgressCache(id);
       loadProjects();
       loadDeletedProjects();

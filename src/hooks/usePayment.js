@@ -9,9 +9,13 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 const PENDING_PAYMENT_KEYS = [
   'paystack_return', 'paystack_reference', 'paystack_projectId',
   'paystack_tier', 'paystack_isUpgrade', 'paystack_amount', 'paystack_currency',
+  'paystack_project',
 ];
 
-const storePaymentSessionData = (reference, projectId, tier, isUpgrade, amount, currency) => {
+// The project details are carried across the Paystack redirect because the server
+// needs them to create the project document once payment succeeds, and the return
+// trip is a full page load that loses all React state.
+const storePaymentSessionData = (reference, projectId, tier, isUpgrade, amount, currency, project = null) => {
   sessionStorage.setItem('paystack_return', 'true');
   sessionStorage.setItem('paystack_reference', reference);
   sessionStorage.setItem('paystack_projectId', projectId);
@@ -19,10 +23,19 @@ const storePaymentSessionData = (reference, projectId, tier, isUpgrade, amount, 
   sessionStorage.setItem('paystack_isUpgrade', String(!!isUpgrade));
   sessionStorage.setItem('paystack_amount', String(amount));
   sessionStorage.setItem('paystack_currency', currency);
+  try {
+    sessionStorage.setItem('paystack_project', JSON.stringify(project));
+  } catch { /* project may be too large or storage unavailable; non-fatal */ }
 };
 
 export const clearPendingPayment = () => {
   PENDING_PAYMENT_KEYS.forEach(k => sessionStorage.removeItem(k));
+};
+
+const readPendingProject = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem('paystack_project') || 'null');
+  } catch { return null; }
 };
 
 export const getPendingPayment = () => {
@@ -54,24 +67,10 @@ const storePaymentRecord = async (paymentData) => {
   }
 };
 
-const saveProjectTier = async (projectId, tier, isUpgrade) => {
-  // Premium is granted server-side only, after Paystack verification (see
-  // /api/verify-payment and /api/paystack-webhook). firestore.rules rejects any
-  // client-side write that would escalate tier, so we deliberately do not write
-  // premium from the browser.
-  if (isUpgrade || tier === 'premium') return;
-  try {
-    const { db } = await import('../firebase');
-    const { doc, setDoc } = await import('firebase/firestore');
-    await setDoc(doc(db, 'projects', projectId), {
-      tier: 'regular',
-      isPremium: false,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-  } catch (e) {
-    console.error('Failed to save project tier:', e);
-  }
-};
+// Tier and paymentStatus are written by the server only, after Paystack
+// verification (see /api/verify-payment and /api/paystack-webhook). firestore.rules
+// rejects any client-side write to either field, and rejects project creation
+// outright now that both tiers are paid, so the browser never writes them.
 
 const usePayment = (onNotify) => {
   const { user, getIdToken } = useAuth();
@@ -80,9 +79,22 @@ const usePayment = (onNotify) => {
   const pendingCallbacksRef = useRef(new Map());
   const intervalRefs = useRef([]);
 
-  const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount, currency) => {
-    if (reference && reference.startsWith('mock_')) {
-      const country = getUserCountry(user);
+  const verifyPayment = useCallback(async (reference, projectId, tier, isUpgrade, amount, currency, project = null) => {
+if (reference && reference.startsWith('mock_')) {
+    // A mocked payment never reaches the server, but the server is the only thing
+    // allowed to create project documents now. Ask it to do so through the
+    // dev-only endpoint, which is disabled unless ALLOW_DEV_MOCK_PAYMENTS=true.
+    const idToken = await getIdToken();
+    const res = await fetch(`${PROXY_URL}/api/dev-mock-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}) },
+      body: JSON.stringify({ projectId, tier, project }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Mock payment failed. Is ALLOW_DEV_MOCK_PAYMENTS=true on the local server?');
+    }
+    const country = getUserCountry(user);
       const priceKey = isUpgrade ? 'upgrade' : tier;
       const ghsAmount = PRICES_GHS[priceKey] || PRICES_GHS.regular;
       if (onNotify) onNotify(
@@ -96,21 +108,8 @@ const usePayment = (onNotify) => {
       window.dispatchEvent(new CustomEvent(isUpgrade ? 'projectUpgraded' : 'projectPaymentComplete', {
         detail: { projectId, tier }
       }));
-      await storePaymentRecord({
-        userId: user?.uid,
-        projectId,
-        tier,
-        amount,
-        currency: currency || 'GHS',
-        reference,
-        email: user?.email,
-        paidAt: new Date().toISOString(),
-        channel: 'mock',
-        type: isUpgrade ? 'upgrade' : 'project_creation',
-        status: 'verified',
-      });
-      await saveProjectTier(projectId, tier, isUpgrade);
-      return { verified: true, amount, currency: currency || 'GHS' };
+// No client-side payment record: receipts are written server-side only.
+    return { verified: true, amount, currency: currency || 'GHS' };
     }
 
     try {
@@ -118,7 +117,7 @@ const usePayment = (onNotify) => {
       const res = await fetch(`${PROXY_URL}/api/verify-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
-        body: JSON.stringify({ reference, projectId, tier }),
+        body: JSON.stringify({ reference, projectId, tier, project }),
       });
       const data = await res.json();
       if (!res.ok || !data.verified) {
@@ -153,7 +152,7 @@ const usePayment = (onNotify) => {
         type: isUpgrade ? 'upgrade' : 'project_creation',
         status: 'verified',
       });
-      await saveProjectTier(projectId, tier, isUpgrade);
+      
       return data;
     } catch (e) {
       console.error('Payment verification error:', e);
@@ -228,7 +227,7 @@ const usePayment = (onNotify) => {
     intervalRefs.current = [];
   }, []);
 
-  const processPayment = useCallback(async (projectId, tier, level) => {
+  const processPayment = useCallback(async (projectId, tier, level, project = null) => {
     setProcessing(true);
     try {
       if (DEV_BYPASS) {
@@ -279,15 +278,20 @@ const usePayment = (onNotify) => {
         });
         if (!res.ok) throw new Error('Failed to initialize payment');
         const data = await res.json();
-        storePaymentSessionData(data.reference, projectId, tier, false, ghsPrice, 'GHS');
+        storePaymentSessionData(data.reference, projectId, tier, false, ghsPrice, 'GHS', project);
         window.location.href = data.authorizationUrl;
         return new Promise((resolve) => {
           const checkReturn = setInterval(() => {
             const pending = getPendingPayment();
             if (pending) {
               clearInterval(checkReturn);
+              // Must be read before clearPendingPayment(): the project payload the
+              // server needs in order to create the document lives in the same
+              // sessionStorage keys that get wiped here.
+              const pendingProject = readPendingProject();
               clearPendingPayment();
-              verifyPayment(pending.reference, pending.projectId, pending.tier, pending.isUpgrade, pending.amount, pending.currency).then((v) => resolve(!!v));
+              verifyPayment(pending.reference, pending.projectId, pending.tier, pending.isUpgrade, pending.amount, pending.currency, pendingProject)
+                .then((v) => resolve(!!v));
             }
           }, 500);
           intervalRefs.current.push(checkReturn);
@@ -296,7 +300,7 @@ const usePayment = (onNotify) => {
       }
 
       if (result.status === 'success' && result.reference) {
-        const verified = await verifyPayment(result.reference, projectId, tier, false, ghsPrice, 'GHS');
+        const verified = await verifyPayment(result.reference, projectId, tier, false, ghsPrice, 'GHS', project);
         return !!verified;
       }
       return false;

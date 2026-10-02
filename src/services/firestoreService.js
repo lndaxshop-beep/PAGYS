@@ -130,6 +130,22 @@ export const getPayments = async (userId) => {
   } catch (e) { logError('getPayments', e); throw e; }
 };
 
+export const restoreProject = async (projectId) => {
+  // Recreating a project document requires the server: clients are not permitted
+  // to create project documents now that both tiers are paid.
+  const { getAuth } = await import('firebase/auth');
+  const token = await getAuth().currentUser?.getIdToken();
+  const proxyUrl = import.meta.env.VITE_API_PROXY_URL || 'http://localhost:3001';
+  const res = await fetch(`${proxyUrl}/api/restore-project`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ projectId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { success: false, error: data.error || 'Failed to restore project' };
+  return { success: true };
+};
+
 export const permanentlyDeleteProject = async (projectId, userId) => {
   try {
     if (!userId) throw new Error('User not authenticated');

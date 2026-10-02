@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { getPendingPayment, clearPendingPayment } from '../hooks/usePayment';
-import { saveProject, getPayments } from '../services/firestoreService';
+
 import ResearchQuestionModal from '../components/ResearchQuestionModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
@@ -61,72 +61,17 @@ const Dashboard = () => {
     setToast({ message, type });
   }, []);
 
-  const recoverLostProjects = useCallback(async (uid) => {
-    try {
-      const payments = await getPayments(uid);
-      if (payments.length === 0) return 0;
-      const { getProjects } = await import('../services/firestoreService');
-      const existingProjects = await getProjects(uid);
-      const existingIds = new Set(existingProjects.map(p => p.id));
-      let count = 0;
+  // Previously this rebuilt projects client-side from the payments collection when a
+  // document was missing. That is both impossible now (clients cannot create project
+  // documents) and unnecessary: /api/verify-payment creates the project inside the
+  // same request that records the payment, so a payment can never exist without its
+  // project. A payment that completed without creating a project is therefore not a
+  // recoverable state, and is logged server-side instead of silently duplicated here.
+  const recoverLostProjects = useCallback(async () => 0, []);
 
-      for (const payment of payments) {
-        if (existingIds.has(payment.projectId)) continue;
-        await saveProject({
-          id: payment.projectId,
-          userId: uid,
-          tier: 'regular',
-          isPremium: false,
-          title: 'Recovered Project',
-          topic: '',
-          field: 'Not specified',
-          level: 'undergraduate',
-          methodology: 'mixed methods',
-          status: 'active',
-          unlocked: true,
-          useOrganization: false,
-          hideOrganization: false,
-          progress: 0,
-          createdAt: payment.paidAt || new Date().toISOString(),
-          lastEdited: new Date().toISOString(),
-        }, uid);
-        existingIds.add(payment.projectId);
-        count++;
-      }
-
-      return count;
-    } catch (e) {
-      console.error('recoverLostProjects error:', e);
-      return 0;
-    }
-  }, []);
-
-  const restorePendingBackup = useCallback(async (uid) => {
-    const keys = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key && key.startsWith('pendingProject_')) keys.push(key);
-    }
-    let restored = 0;
-    for (const key of keys) {
-      const projectId = key.replace('pendingProject_', '');
-      try {
-        const project = JSON.parse(sessionStorage.getItem(key));
-        const { getProject } = await import('../services/firestoreService');
-        const existing = await getProject(projectId, uid);
-        if (existing) { sessionStorage.removeItem(key); continue; }
-        project.userId = uid;
-        // Restore as regular; premium is only ever granted server-side.
-        await saveProject({ ...project, tier: 'regular', isPremium: false }, uid);
-        sessionStorage.removeItem(key);
-        restored++;
-      } catch (e) {
-        console.error('Failed to restore pending project:', e);
-        sessionStorage.removeItem(key);
-      }
-    }
-    return restored;
-  }, []);
+  // Projects are created by the server only after payment, so there is no client
+  // side project to restore from a local backup anymore.
+  const restorePendingBackup = useCallback(async () => 0, []);
 
   const { processing: processingPayment, processPayment, upgradeToPremium, verifyPayment, mockPaymentConfig, onMockPaymentSuccess, onMockPaymentClose } = usePayment(notify);
 
@@ -196,25 +141,17 @@ const Dashboard = () => {
     }
   };
 
+  // The server creates the project document after Paystack confirms payment, so
+  // nothing is written from the browser here. Both tiers are paid products.
   const saveProjectAndFinalize = async (project, tier, { isUpgrade = false, receipt = null, successToast = null } = {}) => {
     if (!project) return;
-    if (!isUpgrade) {
-      const backupKey = 'pendingProject_' + project.id;
-      localStorage.setItem(backupKey, JSON.stringify({ ...project, tier }));
-      try {
-        // Always write as regular. firestore.rules rejects client-side premium writes;
-        // only the server may grant premium, and it does so after verifying payment.
-        await saveProject({ ...project, tier: 'regular', isPremium: false }, user?.uid);
-        localStorage.removeItem(backupKey);
-      } catch (e) {
-        notify(receipt
-          ? 'Payment successful but project could not be saved. Your receipt is recorded. It will be restored automatically on your next visit.'
-          : 'Your project could not be saved. Please try again.', 'error');
-        setShowPaymentModal(false);
-        setPaymentProject(null);
-        setPaymentTier(null);
-        return;
-      }
+    if (isUpgrade) {
+      setShowPaymentModal(false);
+      if (receipt) setPaymentReceipt(receipt);
+      setPaymentProject(null);
+      setPaymentTier(null);
+      loadProjects();
+      return;
     }
     setShowPaymentModal(false);
     if (receipt) setPaymentReceipt(receipt);
@@ -227,9 +164,8 @@ const Dashboard = () => {
 
   const handlePaymentConfirm = async () => {
     if (!paymentProject) return;
-    const success = await processPayment(paymentProject.id, paymentTier, paymentProject.level);
+    const success = await processPayment(paymentProject.id, paymentTier, paymentProject.level, paymentProject);
     if (success) {
-      const country = getUserCountry(user);
       const priceKey = paymentIsUpgrade ? 'upgrade' : (paymentTier === 'premium' ? 'premium' : 'regular');
       const receiptData = {
         type: paymentIsUpgrade ? 'upgrade' : 'project_creation',
@@ -284,21 +220,7 @@ const Dashboard = () => {
     if (paymentIsUpgrade) {
       await upgradeToPremium(paymentProject.id);
     } else {
-      const result = await processPayment(paymentProject.id, paymentTier, paymentProject.level);
-      if (result && result.status === 'success') {
-        sessionStorage.setItem('pendingProject_' + paymentProject.id, JSON.stringify(paymentProject));
-        try {
-          await saveProject({ ...paymentProject, tier: 'regular', isPremium: false }, user?.uid);
-          sessionStorage.removeItem('pendingProject_' + paymentProject.id);
-        } catch (e) {
-          notify('Project could not be saved. It will be restored automatically on your next visit.', 'error');
-          setShowPaymentModal(false);
-          setPaymentProject(null);
-          setPaymentTier(null);
-          setPaymentIsUpgrade(false);
-          return;
-        }
-      }
+      await processPayment(paymentProject.id, paymentTier, paymentProject.level, paymentProject);
     }
     setShowPaymentModal(false);
     setPaymentProject(null);
@@ -320,11 +242,9 @@ const Dashboard = () => {
     setCreatedProjectId(project.id);
     setCreatedProjectTier(tier);
 
-    if (tier !== 'premium') {
-      await saveProjectAndFinalize(project, tier, { successToast: 'Free project created! Every writing tool is unlocked.' });
-      return;
-    }
-
+    // Both tiers are paid, so every new project goes through payment first. The
+    // server creates the project document once Paystack confirms, which means an
+    // abandoned payment can never leave a usable free project behind.
     setPaymentProject(project);
     setPaymentTier(tier);
     setPaymentIsUpgrade(false);

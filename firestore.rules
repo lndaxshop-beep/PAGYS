@@ -5,19 +5,24 @@ service cloud.firestore {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
     match /projects/{projectId} {
-      // Regular is free, so clients may always create regular projects.
-      // Premium may ONLY be granted by the server (Admin SDK bypasses these rules)
-      // after Paystack confirms a successful payment.
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.tier == 'regular'
-        && request.resource.data.isPremium == false;
+      // Both tiers are paid products, so projects are created by the server only
+      // (Admin SDK bypasses these rules) once Paystack confirms payment. There is
+      // deliberately no `create` rule: without one, all writes are denied, so no
+      // client can conjure a project without paying.
+      // Restoring from the recycle bin goes through /api/restore-project for the
+      // same reason.
       allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      // Clients may edit their own project content but must never escalate the tier.
+      // Clients may edit their own project content but must never escalate the tier,
+      // hand the project to someone else, or self-declare a payment.
+      // `.get(key, default)` keeps documents created before these fields existed
+      // editable; reading a missing key directly would error and deny the update,
+      // locking every pre-existing project out of edits.
       allow update: if request.auth != null
         && resource.data.userId == request.auth.uid
-        && request.resource.data.tier == resource.data.tier
-        && request.resource.data.isPremium == resource.data.isPremium;
+        && request.resource.data.get('userId', request.auth.uid) == resource.data.get('userId', request.auth.uid)
+        && request.resource.data.get('tier', 'regular') == resource.data.get('tier', 'regular')
+        && request.resource.data.get('isPremium', false) == resource.data.get('isPremium', false)
+        && request.resource.data.get('paymentStatus', 'paid') == resource.data.get('paymentStatus', 'paid');
     }
     match /payments/{paymentId} {
       // Receipts are written only by the server (Admin SDK bypasses these rules)

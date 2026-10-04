@@ -65,7 +65,9 @@ const useSourceLibrary = (projectId, userId) => {
     }, SAVE_DEBOUNCE);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [sources, loaded, projectId]);
-  const [sourceMode, setSourceMode] = useState('ai-only');
+  // sourceMode/setSourceMode were removed: which sources are used is derived from
+  // whether this library has any, so storing a separate preference only let the
+  // two disagree.
   const [extracting, setExtracting] = useState(false);
   const [matrix, setMatrix] = useState(null);
   const [generatingMatrix, setGeneratingMatrix] = useState(false);
@@ -230,7 +232,6 @@ const useSourceLibrary = (projectId, userId) => {
 
   return {
     sources,
-    sourceMode, setSourceMode,
     extracting,
     matrix, generatingMatrix,
     pendingMatrixRegen, processingMatrixPayment,

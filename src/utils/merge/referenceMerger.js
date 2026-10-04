@@ -74,7 +74,7 @@ export const mergeReferences = async (selectedChapters, generatedSubsections, st
 
     try {
       const { generateReferences } = await import('../../services/geminiService');
-      const aiResult = await generateReferences(uniqueAllCitations, style, userSources, 'combine');
+      const aiResult = await generateReferences(uniqueAllCitations, style, userSources);
       if (aiResult) {
         const lines = aiResult.split('\n').filter(l => l.trim());
         for (const line of lines) {

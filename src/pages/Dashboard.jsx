@@ -424,8 +424,6 @@ const SourceSetupModalWrapper = ({ projectId, isPremium, onClose, onContinue }) 
 
   return (
     <SourceSetupModal
-      sourceMode={sourceLibrary.sourceMode}
-      onModeChange={sourceLibrary.setSourceMode}
       sources={sourceLibrary.sources}
       extracting={sourceLibrary.extracting}
       onAddFile={handleAddFile}

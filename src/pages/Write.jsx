@@ -25,7 +25,7 @@ import FeedbackModal from '../components/writing/FeedbackModal';
 
 import LiteratureSearchModal from '../components/LiteratureSearchModal';
 import DiffModal from '../components/DiffModal';
-import SourceModePrompt from '../components/writing/SourceModePrompt';
+
 import { PageSkeleton } from '../components/Skeleton';
 import { saveChapters, getChapters, saveGeneratedContent, getGeneratedContent, saveCitations, getCitations, saveVisualData, getVisualData, getProject, updateProject, saveFindings, getFindings, getInstruments } from '../services/firestoreService';
 
@@ -79,8 +79,6 @@ const Write = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [regeneratingChapter, setRegeneratingChapter] = useState(null);
   const [isEditingWordCount, setIsEditingWordCount] = useState(null);
-  const [showSourceModePrompt, setShowSourceModePrompt] = useState(false);
-  const pendingChapterGeneration = useRef(false);
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
   const touchStartX = useRef(0);
@@ -110,8 +108,16 @@ const Write = () => {
   const activeSubsections = currentChapter?.subsections.filter(s => s.type !== 'references' && !s.deleted) || [];
   const feedbackBase = 12;
 
-  const resolvedSourceMode = project?.referenceSourceMode === 'user' ? 'user-only' : project?.referenceSourceMode === 'random' ? 'ai-only' : sourceLibrary.sourceMode;
-  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, resolvedSourceMode, feedbackBase);
+  // Whether the student supplied literature is read straight off the library
+  // rather than from a stored preference. A saved choice was previously both
+  // persisted (project.referenceSourceMode) and held in component state that
+  // reset on mount (sourceMode), and which one won depended on how the user
+  // arrived at this page — so papers sitting in the library were routinely
+  // ignored at generation time. Deriving it removes the choice entirely: their
+  // literature is used when they have some, and grounding carries the work when
+  // they do not.
+  const hasLiterature = (sourceLibrary.sources?.length || 0) > 0;
+  const { generating, generatingChapter, generatingVisual, handleGenerateConceptualFramework, handleGenerateTheoreticalFramework, handleGenerateResearchDesign, handleGenerateTable, handleGenerateChart, handleGenerateChapter, generateSubsectionContent, handleGenerateReferences, autoGenerateReferences, handleApplyFeedback, preRenderDiagrams, combineChapterContent } = useWriteContent(project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, modals.literatureReviewType, feedbackUsed, isViewingReferences, sourceLibrary.sources, feedbackBase);
 
   const { handleChapterClick, handleChapterStructureSubmit, handleWordCountSubmit, handleCustomizeSubsection, handleRenameSubsection, handleAddSubsection, isChapterComplete, handleCompleteChapter } = useWriteNavigation(project, projectId, navigate, chapters, setChapters, activeChapter, setActiveChapter, generatedSubsections, chapterWordCounts, chapterWordCountSet, setChapterWordCounts, setChapterWordCountSet, generateSubtopicsForChapter, buildSubsectionsFromHeadings, handleDrop, modals.literatureReviewType);
 
@@ -391,45 +397,21 @@ const Write = () => {
     }
   };
 
+  // Generation is no longer gated on asking which sources to use: the library
+  // itself answers that. wrappedGenerateChapter is kept so any caller wiring
+  // through it continues to work.
   const wrappedGenerateChapter = async () => {
-    if (!project?.referenceSourceMode) {
-      pendingChapterGeneration.current = true;
-      setShowSourceModePrompt(true);
-      return;
-    }
-    doGenerateChapter();
-  };
-
-  const handleSourceModeConfirm = async (choice, remember) => {
-    setShowSourceModePrompt(false);
-    if (remember && project?.id) {
-      try {
-        await updateProject(project.id, { referenceSourceMode: choice });
-        setProject(prev => prev ? { ...prev, referenceSourceMode: choice } : prev);
-      } catch (e) {
-        console.error('Failed to save source mode:', e);
-      }
-    } else {
-      setProject(prev => prev ? { ...prev, referenceSourceMode: choice } : prev);
-    }
-    if (pendingChapterGeneration.current) {
-      pendingChapterGeneration.current = false;
-      doGenerateChapter();
-    }
-  };
-
-  const handleSourceModeDismiss = () => {
-    setShowSourceModePrompt(false);
-    pendingChapterGeneration.current = false;
+    await doGenerateChapter();
   };
 
   const [chapterProgress, setChapterProgress] = useState(null);
 
   const doGenerateChapter = async () => {
-    const mode = project?.referenceSourceMode || 'user';
-    if (mode === 'user' && (!sourceLibrary.sources || sourceLibrary.sources.length === 0)) {
-      toastError('You chose "Use my sources" but no literature sources are uploaded yet. Go to MyFiles to add sources, or change your source choice.');
-      return;
+    if (!hasLiterature) {
+      // Not a blocker — grounding will source the claims instead. Worth saying
+      // once, since a student who expected their own library to be used may not
+      // realise it is empty.
+      toastSuccess('No literature uploaded yet — sourcing this chapter from published research.');
     }
     const activeChapterObj = chapters.find(c => c.id === activeChapter);
     const persistedEntries = {};
@@ -706,7 +688,21 @@ const Write = () => {
 
           <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: colors.text, marginBottom: '8px' }}>{currentChapter?.customTitle || currentChapter?.title}</h1>
           <p style={{ color: colors.textSecondary, fontSize: '18px', marginBottom: '4px' }}>{project?.title || 'Thesis Project'} • {project?.referenceStyle?.toUpperCase() || 'APA'} Style</p>
-          <p style={{ fontSize: '12px', color: '#059669', marginBottom: '28px' }}>✅ Citations auto-verified, references auto-generated</p>
+          {/* Replaces a static "citations auto-verified" line that was shown
+              regardless of what the verifier actually returned. Reports the real
+              figures for the chapter on screen instead. */}
+          {(() => {
+            const citations = chapterCitations[activeChapter] || [];
+            const uniqueCitations = new Set(citations.map(c => (typeof c === 'string' ? c : c?.raw))).size;
+            const generated = Object.values(generatedSubsections[activeChapter] || {}).filter(t => t && t.trim()).length;
+            return (
+              <p style={{ fontSize: '12px', color: colors.textSecondary, marginBottom: '28px' }}>
+                {generated > 0
+                  ? `${uniqueCitations} source${uniqueCitations === 1 ? '' : 's'} cited across ${generated} section${generated === 1 ? '' : 's'}`
+                  : 'Sources cited appear here once you generate'}
+              </p>
+            );
+          })()}
           <div style={{ fontSize: '12px', marginBottom: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
               {project?.tier === 'premium' && <span style={{ color: '#f59e0b' }}>💎 Premium</span>}
               <span style={{ color: colors.textSecondary }}>Feedback: {feedbackUsed[activeChapter] || 0}/{feedbackBase} used</span>
@@ -997,12 +993,6 @@ const Write = () => {
           onCancel={confirmModal.onCancel}
         />
       )}
-
-      <SourceModePrompt
-        isOpen={showSourceModePrompt}
-        onConfirm={handleSourceModeConfirm}
-        onDismiss={handleSourceModeDismiss}
-      />
 
       <HelpModal isOpen={showHelpModal} onClose={handleHelpClose} />
 

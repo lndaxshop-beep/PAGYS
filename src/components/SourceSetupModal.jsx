@@ -1,56 +1,17 @@
 import React, { useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
+// Which sources are used is no longer a choice: anything in the library is used,
+// and Google Search Grounding covers the rest. The modal is therefore just the
+// upload surface, with the derived behaviour stated rather than selected.
 const SourceSetupModal = ({
-  sourceMode, onModeChange, sources, extracting,
+  sources, extracting,
   onAddFile, onRemoveSource, onGenerateMatrix,
   generatingMatrix, matrix, onClose, onContinue,
   title = 'Set Up Your Sources'
 }) => {
   const { colors, isDarkMode } = useTheme();
   const fileInputRef = useRef(null);
-
-  const modes = [
-    {
-      id: 'user-only',
-      icon: '📚',
-      title: 'Use My Sources',
-      description: 'Upload your own papers, articles, and screenshots. We write using ONLY your sources.',
-      longDesc: 'You provide the papers. We extract key information and write your literature review based solely on what you upload. Recommended when you have specific sources you want to include.'
-    },
-    {
-      id: 'ai-only',
-      icon: '🤖',
-      title: 'We Find Sources',
-      description: 'We search for relevant sources automatically. No upload needed.',
-      longDesc: 'We use Google Search Grounding to find and cite real academic sources relevant to your topic. This is the default behavior.'
-    },
-    {
-      id: 'combine',
-      icon: '🔗',
-      title: 'Combine Both',
-      description: 'Your papers plus our search. We prioritize your sources and supplement with ours.',
-      longDesc: 'Upload your own papers as primary sources. We will prioritize those while also finding additional supporting sources through Google Search. Best of both worlds.'
-    }
-  ];
-
-  const containerStyle = {
-    padding: '24px',
-    maxWidth: '700px',
-    margin: '0 auto'
-  };
-
-  const cardStyle = (modeId) => ({
-    padding: '20px',
-    marginBottom: '16px',
-    borderRadius: '12px',
-    border: `2px solid ${sourceMode === modeId ? colors.primary : colors.border}`,
-    backgroundColor: sourceMode === modeId
-      ? (isDarkMode ? '#3a2a5c' : '#f5f3ff')
-      : (isDarkMode ? '#2d2d2d' : '#ffffff'),
-    cursor: 'pointer',
-    transition: 'all 0.2s'
-  });
 
   const uploadAreaStyle = {
     border: `2px dashed ${colors.primary}`,
@@ -71,6 +32,8 @@ const SourceSetupModal = ({
     backgroundColor: isDarkMode ? '#1a1a1a' : '#f9fafb',
     border: `1px solid ${colors.border}`
   };
+
+  const containerStyle = { padding: '24px', maxWidth: '700px', margin: '0 auto' };
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="source-setup-title" style={{
@@ -94,46 +57,13 @@ const SourceSetupModal = ({
             }}>✕</button>
           </div>
           <p style={{ color: colors.textSecondary, fontSize: '14px', marginTop: '8px' }}>
-            Choose how you want to handle sources for your literature review
+            Add any literature you want cited. We write from the papers you provide and
+            ground everything else in published research.
           </p>
         </div>
 
         <div style={containerStyle}>
-          {modes.map(mode => (
-            <div
-              key={mode.id}
-              style={cardStyle(mode.id)}
-              onClick={() => onModeChange(mode.id)}
-              onMouseEnter={(e) => { if (sourceMode !== mode.id) e.currentTarget.style.borderColor = colors.primary; }}
-              onMouseLeave={(e) => { if (sourceMode !== mode.id) e.currentTarget.style.borderColor = colors.border; }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-                <span style={{ fontSize: '32px', flexShrink: 0 }}>{mode.icon}</span>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: colors.text, margin: 0 }}>{mode.title}</h3>
-                    {sourceMode === mode.id && (
-                      <span style={{
-                        fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
-                        backgroundColor: colors.primary, color: 'white', fontWeight: '500'
-                      }}>Selected</span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: '14px', color: colors.textSecondary, margin: '0 0 4px 0', lineHeight: '1.4' }}>
-                    {mode.description}
-                  </p>
-                  {sourceMode === mode.id && (
-                    <p style={{ fontSize: '13px', color: colors.text, marginTop: '8px', lineHeight: '1.4', fontStyle: 'italic' }}>
-                      {mode.longDesc}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {(sourceMode === 'user-only' || sourceMode === 'combine') && (
-            <div style={{ marginTop: '24px' }}>
+          <div>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: colors.text, marginBottom: '16px' }}>
                 Upload Your Sources
               </h3>
@@ -221,8 +151,7 @@ const SourceSetupModal = ({
                   )}
                 </div>
               )}
-            </div>
-          )}
+          </div>
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: `1px solid ${colors.border}`, textAlign: 'right' }}>
@@ -234,9 +163,9 @@ const SourceSetupModal = ({
               fontWeight: '600', cursor: 'pointer', fontSize: '14px'
             }}
           >
-            {sourceMode === 'user-only' || sourceMode === 'combine'
+            {sources.length > 0
               ? `Continue with ${sources.length} source(s)`
-              : 'Continue with Our Search'}
+              : 'Continue'}
           </button>
         </div>
       </div>

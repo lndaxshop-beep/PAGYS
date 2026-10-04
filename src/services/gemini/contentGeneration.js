@@ -1,85 +1,124 @@
 import { genAI, MODEL } from './config';
 import { cleanOutput, extractJSONArray } from './utils';
 
-const describeUserSources = (userSources) =>
-  JSON.stringify(userSources.map(s => ({
-    title: s.title, authors: s.authors, year: s.year,
-    methodology: s.methodology, keyFindings: s.keyFindings,
-    theoreticalFramework: s.theoreticalFramework
-  })), null, 2).substring(0, 15000);
+// Builds the prompt section describing the literature the student supplied.
+//
+// Journal, DOI, URI and the abstract are included deliberately. With metadata
+// alone the model can only gesture at a title ("as shown in Smith (2020)"),
+// whereas the abstract lets it attribute an actual finding, which is what makes
+// the in-text citation worth reading.
+//
+// Sources are emitted as a JSON array and entries are dropped whole rather than
+// truncated mid-object. The old substring(0, 15000) could cut the final entry in
+// half, leaving malformed JSON that the model would either misread or ignore.
+const MAX_SOURCE_CHARS = 60000;
+
+const describeUserSources = (userSources) => {
+  const entries = [];
+  let total = 0;
+  let omitted = 0;
+
+  for (const s of userSources) {
+    const abstract = (Array.isArray(s.keyFindings) ? s.keyFindings.filter(Boolean).join(' ') : s.keyFindings) || '';
+    const entry = {
+      title: s.title,
+      authors: s.authors,
+      year: s.year,
+      // Drop the placeholders the library assigns to unknown fields so they do
+      // not read as real attributes of the paper.
+      ...(s.journal && s.journal !== 'Not specified' ? { journal: s.journal } : {}),
+      ...(s.doi ? { doi: s.doi } : {}),
+      ...(s.uri ? { link: s.uri } : {}),
+      ...(s.methodology && s.methodology !== 'Not specified' ? { methodology: s.methodology } : {}),
+      ...(s.theoreticalFramework && s.theoreticalFramework !== 'Not specified' ? { theoreticalFramework: s.theoreticalFramework } : {}),
+      ...(abstract ? { abstract: abstract.substring(0, 3000) } : {}),
+    };
+    const serialized = JSON.stringify(entry, null, 2);
+    if (total + serialized.length > MAX_SOURCE_CHARS) { omitted++; continue; }
+    entries.push(entry);
+    total += serialized.length;
+  }
+
+  return JSON.stringify(entries, null, 2) + (omitted > 0
+    ? `\n\n(${omitted} further source(s) omitted to fit the context window.)`
+    : '');
+};
 
 /**
  * Builds the citation instructions for a generation prompt.
  *
- * The 'ai-only' branch used to be missing entirely. It is the DEFAULT source
- * mode, so every user who did not upload their own papers was getting a prompt
- * with no citation instructions at all, which is why generated chapters had
- * almost no in-text citations and read as plagiarism-prone. Grounding is already
- * enabled on the model, so real sources are available; the prompt just never
- * asked for them to be cited.
+ * One instruction set, whichever material is available. If the student supplied
+ * literature we hand it over as the primary material; otherwise we tell the
+ * model to ground its claims in real published work. Google Search Grounding is
+ * enabled on the model either way, so the model remains free to bring in
+ * whatever else genuinely supports the argument — the aim is a well-sourced
+ * thesis, not a restricted one.
+ *
+ * The inline format is author-date for every style, including MLA and IEEE.
+ * That is a hard requirement of the pipeline rather than a stylistic choice:
+ * `extractCitations` parses (Author, Year) to build the reference list, so a
+ * different inline shape would silently produce an empty bibliography. The
+ * chosen style is applied when the reference list is generated.
  *
  * `caller` distinguishes whole-chapter generation from single-subsection work,
- * because the density requirement has to be met per paragraph either way.
+ * because the density expectation is expressed per paragraph either way.
  */
-const buildCitationInstruction = (sourceMode, userSources, caller = 'subsection', referenceStyle = 'apa') => {
+const buildCitationInstruction = (userSources, caller = 'subsection', referenceStyle = 'apa') => {
   const hasUserSources = userSources?.length > 0;
+  const style = String(referenceStyle || 'apa').toUpperCase();
 
-  if (sourceMode === 'user-only' && hasUserSources) {
+  const shared = `
+## CITATION — READ THIS FIRST
+Write the way a published thesis is written. Every substantive claim carries the
+weight of real scholarship behind it. This is what separates a thesis from an
+essay, and it should be unmissable in the prose.
+
+Cite in author-date form, placed immediately before the full stop:
+"...produced a significant effect (Smith, 2020)." Use (Smith & Jones, 2020),
+or (Smith et al., 2020) for three or more authors. Narrative citation is also
+natural and welcome: Smith (2020) argued that... Where several sources support
+one claim, group them: (Smith, 2020; Jones, 2019).
+
+Every paragraph of analytical prose should be supported by at least one
+citation, and a short run of sentences carrying two or three is stronger than
+one citation stretched across a long stretch of text. Cite every theory, model
+or framework you name; every statistic, percentage or quantitative finding you
+report; every claim attributed to a named researcher or school of thought; and
+every direct quotation. Draw on different sources across paragraphs so the
+section shows genuine breadth of reading rather than one source carrying the
+whole section.
+
+Where the student's own literature below covers a claim, cite it. Where it does
+not, ground the claim in whatever real published work genuinely supports it and
+cite that instead. Either way the citation must be one you are confident
+actually exists and actually says what you are attributing to it.
+
+## STYLE
+The reference list will be generated in ${style} style. Cite in author-date form
+inline so it can be matched back automatically; the ${style} formatting itself is
+applied when the reference list is built.`;
+
+  if (hasUserSources) {
     return `
-## USER-PROVIDED SOURCES (MANDATORY)
-The student has uploaded the following papers. These are the ONLY sources you may cite.
+${shared}
+
+## THE STUDENT'S LITERATURE
+These are the papers this student collected for this thesis. They are the
+primary material for ${caller}. Read the abstracts closely and cite the specific
+findings they report, naming the finding as well as the source.
+
 ${describeUserSources(userSources)}
 
-### USER SOURCE RULES
-- For EACH paper listed above, use Google Search Grounding to find the ACTUAL publication, read its content, and cite specific findings from it.
-- You MUST find and cite from the REAL published paper.
-- If Google Search Grounding cannot find a specific paper, do NOT cite it.
-- At least 2 different sources must be cited across ${caller}.
-- Reference the specific source inline: (Author, Year).`;
+Use Google Search Grounding where helpful to confirm publication details or to
+locate a fuller version of any of these papers, and to support any claim they do
+not cover.`;
   }
 
-  if (sourceMode === 'combine' && hasUserSources) {
-    return `
-## USER-PROVIDED SOURCES (PRIORITY)
-The student has uploaded the following papers. PRIORITIZE these sources for citations.
-${describeUserSources(userSources)}
-
-### COMBINED SOURCE RULES
-- Use Google Search Grounding to find the ACTUAL publications for the user's papers.
-- Supplement with additional sources found via Google Search Grounding where needed.
-- At least 60% of citations should come from the user's papers.`;
-  }
-
-  // 'ai-only' is the default mode. Without this branch, no citations were
-  // ever requested, which is the defect being fixed here.
   return `
-## IN-TEXT CITATIONS (MANDATORY — NON-NEGOTIABLE)
-Uncited academic prose is a plagiarism risk. You MUST support the writing with in-text citations drawn from real, verifiable published scholarship.
+${shared}
 
-### HOW TO CITE
-- Use Google Search Grounding to find REAL academic sources for every substantive claim: theories, findings, statistics, frameworks, and contested arguments.
-- Cite immediately after the claim it supports, in author-date form: (Smith, 2020) or (Smith & Jones, 2020) or, for three or more authors, (Smith et al., 2020).
-- Narrative citation is also acceptable: Smith (2020) argued that...
-- Place the citation before the full stop: "...demonstrated a significant effect (Smith, 2020)."
-- Where several sources support one claim, group them: (Smith, 2020; Jones, 2019).
-- Author-date in-text form is used for every style, including MLA and IEEE. This is required so the reference list can be generated and matched back to these citations automatically. The chosen style (${String(referenceStyle || 'apa').toUpperCase()}) is applied when the reference list is built.
-
-### DENSITY REQUIREMENT
-- EVERY paragraph of analytical prose MUST contain at least one in-text citation.
-- Aim for roughly one citation per 2-3 sentences across ${caller}.
-- Vary which sources you cite. Do not stack the same source repeatedly in one paragraph.
-- Use different sources in different paragraphs so the section shows genuine breadth of reading.
-
-### WHAT MUST BE CITED
-- Every theory, model, or conceptual framework you name.
-- Every statistic, percentage, or quantitative finding you report.
-- Every claim attributed to a named researcher or school of thought.
-- Direct quotations.
-
-### WHAT NOT TO DO
-- Do NOT write a paragraph of uncited general assertion. If you cannot ground a claim in a real source, do not make it.
-- Do NOT invent authors, years, or journals. Every citation must correspond to a real publication you actually retrieved via grounding.
-- Do NOT cite a source for a claim it does not support.`;
+## SOURCING
+The student has not supplied their own literature for ${caller}. Use Google Search Grounding to find real, published academic work for every substantive claim: established theories, empirical findings, reported statistics, frameworks, and the main positions in any contested debate. Prefer peer-reviewed journal articles and credible academic publishers. Draw the work from a range of authors, years and perspectives rather than leaning on one study.`;
 };
 
 export const generateSubtopics = async (promptData) => {
@@ -206,7 +245,7 @@ export const generateAcademicContent = async (promptData) => {
     });
     const structureInstruction = '';
 
-    let sourceModeInstruction = buildCitationInstruction(promptData.sourceMode, promptData.userSources, 'the subsection', promptData.referenceStyle);
+    let sourceModeInstruction = buildCitationInstruction(promptData.userSources, 'the subsection', promptData.referenceStyle);
 
     const prompt = `You are a PhD candidate writing a formal academic thesis section. Write at a professional academic level — clear, authoritative, and naturally scholarly.
 ${promptData.thesisContext ? `
@@ -299,7 +338,7 @@ export const generateChapterContent = async (promptData) => {
       generationConfig: { temperature: 0.7, topP: 0.85, maxOutputTokens: 64000 }
     });
 
-    let sourceModeInstruction = buildCitationInstruction(promptData.sourceMode, promptData.userSources, 'each subsection', promptData.referenceStyle);
+    let sourceModeInstruction = buildCitationInstruction(promptData.userSources, 'each subsection', promptData.referenceStyle);
 
     const subsOutline = promptData.subsections.map((sub, i) => {
       const children = (sub.children || []).map(c => `    - ${c.title}`).join('\n');
@@ -459,7 +498,7 @@ Fix: Maintain third person, no contractions, formal register, no em dashes.
   } catch (error) { console.error('Error in self-review:', error); return text; }
 };
 
-export const applyFeedbackToContent = async (currentContent, feedback, subsectionTitle, project, userSources = null, sourceMode = 'ai-only') => {
+export const applyFeedbackToContent = async (currentContent, feedback, subsectionTitle, project, userSources = null) => {
   try {
     const model = genAI.getGenerativeModel({ 
       model: MODEL,
@@ -484,9 +523,12 @@ export const applyFeedbackToContent = async (currentContent, feedback, subsectio
       }
     }
 
-    let sourceModeInstruction = buildCitationInstruction(sourceMode, userSources, 'the subsection', project?.referenceStyle);
+    let sourceModeInstruction = buildCitationInstruction(userSources, 'the subsection', project?.referenceStyle);
 
-    const hasUserSources = sourceModeInstruction.startsWith('\n## USER-PROVIDED SOURCES');
+    // Whether the student supplied literature, decided from the library rather
+    // than from a stored mode. A rewrite must not silently drop citations the
+    // original text already had just because no sources were uploaded.
+    const hasUserSources = (userSources?.length || 0) > 0;
 
     const prompt = `You are an expert academic editor carrying out your supervisor's explicit revision instructions on a thesis subsection. Your ONLY task is to produce text that satisfies the feedback below. You are not reviewing, not suggesting, and not deciding whether the feedback is a good idea. You implement it.
 
@@ -514,10 +556,12 @@ ${cleanOutput(currentContent)}${sourceModeInstruction}
 - If the request conflicts with any preservation rule below, THE REQUEST WINS. Preserve nothing that the request told you to change.
 
 ### 2. CITATION INTEGRITY
-- ${hasUserSources ? 'INTEGRATE the user-provided sources into the text with (Author, Year) citations where they support the arguments.' : 'PRESERVE every existing in-text citation exactly as written. Never delete, reword, or renumber a (Author, Year) citation.'}
+- PRESERVE every existing in-text citation exactly as written. Never delete, reword, or renumber an (Author, Year) citation.
 - PRESERVE [CITATION:...] markers exactly as they appear.
-- ${hasUserSources ? 'ADD new citations from the user-provided sources wherever they support the arguments.' : 'Do NOT introduce citations that were absent from the original text.'}
-- Never fabricate an author, year, or publication.
+- ${hasUserSources
+      ? 'Work the student\'s own sources into the text, and where they support the arguments, cite them alongside the existing citations.'
+      : 'Where the existing text is under-supported, strengthen it with further grounded citations from real published work, in the same author-date form.'}
+- Any citation you add must be one you are confident actually exists and actually says what you attribute to it.
 
 ### 3. PRESERVE WHAT THE REQUEST DID NOT ASK YOU TO CHANGE
 - Keep ALL subsection headings exactly as they are.
@@ -650,9 +694,16 @@ export const humaniseContent = async (text, promptData = null, humaniseLevel = 1
   } catch (error) { console.error('Error humanising:', error); throw error; }
 };
 
-export const generateReferences = async (citations, style, userSources = null, sourceMode = 'ai-only') => {
+export const generateReferences = async (citations, style, userSources = null) => {
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
+    // Grounding is enabled here for the same reason it is on the writing model:
+    // a reference list assembled from recalled publication details produces
+    // plausible-looking but wrong volume and page numbers. The model can look
+    // the work up instead.
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      tools: [{ googleSearch: {} }],
+    });
     const styleGuide = style === 'apa'
       ? 'APA 7th edition: Author, A. A. (Year). Title of work. Source/Publisher. DOI or URL if available.'
       : style === 'mla'
@@ -662,19 +713,14 @@ export const generateReferences = async (citations, style, userSources = null, s
     let userSourcesSection = '';
     if (userSources?.length > 0) {
       userSourcesSection = `
-## USER-PROVIDED SOURCES
-The student has uploaded the following papers. These are REAL sources with verified metadata. Use them to create reference entries when the in-text citations match.
- 
-${JSON.stringify(userSources.map(s => ({
-  title: s.title, authors: s.authors, year: s.year,
-  methodology: s.methodology, keyFindings: s.keyFindings,
-  theoreticalFramework: s.theoreticalFramework
-})), null, 2)}
- 
-### USER SOURCE RULES
-- If an in-text citation matches one of these user sources (by author and year), use this metadata to format the reference.
-- Format using the standard publication details from your training data, falling back to user-provided metadata when needed.
-- When formatting from user metadata, produce a complete reference following the style guide: Author, A. A. (Year). Title. Retrieved from thesis sources.`;
+## THE STUDENT'S LITERATURE
+These are the papers this student collected. Where an in-text citation matches
+one of them by author and year, this is the authoritative record of the work —
+use it in preference to anything you might recall.
+
+${describeUserSources(userSources)}
+
+Match on author and year. Include journal, DOI and link where they appear above.`;
     }
 
     const prompt = `You are an expert academic reference librarian. Given in-text citations from a thesis, produce a properly formatted reference list.
@@ -689,15 +735,13 @@ ${userSourcesSection}
 ## CRITICAL RULES
 
 ### NO ANNOTATIONS WHATSOEVER
-- NEVER output any warning, annotation, placeholder, bracket text, or meta-commentary.
-- No "⚠️", no "UNVERIFIED", no "NOTE:", no "[Source details unavailable]", no "[Retrieved from]", no "[Unpublished source]".
-- Every entry must be a clean, complete reference that looks professionally researched.
-- The output must be indistinguishable from a reference list in a published thesis.
+- Output the reference entries themselves. No preamble, no commentary, no notes about how you assembled the list.
+- Every entry should read as a finished, professional reference.
 
 ### PRODUCE A REFERENCE FOR EVERY CITATION
 - You MUST produce a formatted reference entry for EVERY citation in the list above. Do not skip any.
-- Use your training knowledge of academic publications to format each reference with the appropriate title, journal, volume, pages, and DOI/URL.
-- If user-provided metadata is available for a citation, use it to construct the reference.
+- Establish the publication details for each work: use the student's own metadata above where it matches, and otherwise use Google Search Grounding to confirm the title, journal, volume, pages and DOI/URL.
+- Do not rely on recollection for volume, issue or page numbers. Look them up, or omit the detail you cannot confirm rather than guess at it — an entry that is correct as far as it goes is better than one padded with invented numbers.
 - CROSS-CHECK: Ensure author names and year match the in-text citation exactly.
 
 ### NO NEW CITATIONS

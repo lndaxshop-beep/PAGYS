@@ -65,7 +65,11 @@ const combineChapterContent = (subsections, contentMap) => {
     .join('\n\n');
 };
 
-const useWriteContent = (project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, feedbackUsed, isViewingReferences, userSources = null, sourceMode = 'ai-only', feedbackLimit = 6) => {
+// `sourceMode` used to sit between userSources and feedbackLimit. Which sources
+// to use is now decided upstream from whether the library has any, so the flag
+// carried no information and was removed. The caller must pass feedbackLimit in
+// its place.
+const useWriteContent = (project, activeChapter, chapters, generatedSubsections, chapterCitations, uploadedFindings, literatureReviewType, feedbackUsed, isViewingReferences, userSources = null, feedbackLimit = 6) => {
   const [generating, setGenerating] = useState(false);
   const [generatingChapter, setGeneratingChapter] = useState(false);
   const [generatingVisual, setGeneratingVisual] = useState(false);
@@ -171,7 +175,7 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
       hideOrganization: project?.hideOrganization || false,
       findings: chapterId === 'chapter4' ? uploadedFindings : null,
       literatureType: literatureReviewType, isFirstSubsection: subIndex === 0,
-      userSources, sourceMode,
+      userSources,
       referenceStyle: project?.referenceStyle || 'apa',
       guidelines: ch.guidelines || '',
       childrenTopics,
@@ -194,7 +198,7 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
     const finalCitations = verifyCitations(generatedContent, groundedSources);
     if (!force) contentCache.current.set(cacheKey, { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId });
     return { content: generatedContent, citations: finalCitations.verified || [], subsectionId: subId, sources };
-  }, [chapters, project, generatedSubsections, literatureReviewType, userSources, sourceMode, uploadedFindings]);
+  }, [chapters, project, generatedSubsections, literatureReviewType, userSources, uploadedFindings]);
 
   const generateChapterContent = useCallback(async (chapterId, options = {}) => {
     const ch = chapters.find(c => c.id === chapterId);
@@ -399,7 +403,7 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
 
     try {
       const { generateReferences } = await import('../services/geminiService');
-      const aiResult = await generateReferences(uniqueCitations, style, userSources, sourceMode);
+      const aiResult = await generateReferences(uniqueCitations, style, userSources);
       if (aiResult) {
         referenceEntries = aiResult.split('\n').filter(line => line.trim());
         usedGrounding = true;
@@ -448,7 +452,7 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
 
     referenceEntries.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     return { content: `References\n\n${referenceEntries.join('\n')}`, subsectionsUpdated: allGeneratedSubsections, usedGrounding };
-  }, [project, activeChapter, generatedSubsections, userSources, sourceMode]);
+  }, [project, activeChapter, generatedSubsections, userSources]);
 
   const autoGenerateReferences = useCallback(async (chapterId, skipCheck = false) => {
     const ch = chapters.find(c => c.id === chapterId);
@@ -490,7 +494,7 @@ const useWriteContent = (project, activeChapter, chapters, generatedSubsections,
           processedFiles.push({ name: file.name, type: 'document', extractedText: extracted?.text || '' });
         }
       }
-      const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: processedFiles }, currentFeedbackSubsection.title, project, userSources, sourceMode);
+      const modifiedContent = await applyFeedbackToContent(currentContentText, { text: feedbackText, files: processedFiles }, currentFeedbackSubsection.title, project, userSources);
       return { modifiedContent, feedbackKey };
     } catch (error) { throw error; }
     finally { setApplyingSubFeedback(false); }

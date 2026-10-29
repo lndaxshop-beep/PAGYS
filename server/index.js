@@ -603,6 +603,107 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', model: 'gemini-2.5-flash', paystack: paystackConfigured, firebaseAdmin: !!adminDb });
 });
 
+// Self-check page for a device that cannot sign in. Firebase reports any failed
+// fetch to Google as auth/network-request-failed, which is indistinguishable
+// from a real outage, so this page runs the same requests the SDK makes and
+// shows the raw outcome plus the device clock. The script is a separate
+// same-origin file because script-src has no 'unsafe-inline'.
+app.get('/diag.js', (req, res) => {
+  res.type('application/javascript').send(`
+const key = 'AIzaSyB_HZ4OS12GqdkuYOLutCeCRkFU_VywOo0';
+const rows = document.getElementById('rows');
+
+function add(name, status, detail) {
+  const tr = document.createElement('tr');
+  const cells = [name, status, detail];
+  cells.forEach((text, i) => {
+    const td = document.createElement('td');
+    td.textContent = text;
+    td.style.padding = '8px';
+    td.style.borderBottom = '1px solid #e5e7eb';
+    td.style.fontSize = '13px';
+    if (i === 1) td.style.fontWeight = '700';
+    if (i === 1) td.style.color = status === 'OK' ? '#059669' : status === 'FAIL' ? '#dc2626' : '#4b5563';
+    tr.appendChild(td);
+  });
+  rows.appendChild(tr);
+}
+
+async function probe(name, fn) {
+  try {
+    add(name, 'OK', await fn());
+  } catch (e) {
+    add(name, 'FAIL', (e && e.name ? e.name + ': ' : '') + (e && e.message ? e.message : String(e)));
+  }
+}
+
+(async () => {
+  const serverTime = new Date(document.body.getAttribute('data-server-time')).getTime();
+  const skewSeconds = Math.round((Date.now() - serverTime) / 1000);
+
+  add('Page URL', 'INFO', location.href);
+  add('Browser reports online', 'INFO', String(navigator.onLine));
+  add('Device clock', 'INFO', new Date().toISOString());
+  add('Clock vs server', Math.abs(skewSeconds) > 300 ? 'FAIL' : 'OK',
+    skewSeconds + 's difference' + (Math.abs(skewSeconds) > 300 ? ' — wrong clock breaks TLS to Google' : ''));
+  add('User agent', 'INFO', navigator.userAgent);
+
+  await probe('Firebase Auth (identitytoolkit)', async () => {
+    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + key, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'diag-probe@example.com', password: 'not-a-real-password', returnSecureToken: true }),
+    });
+    return 'reached it — HTTP ' + r.status;
+  });
+
+  await probe('Firebase Installations', async () => {
+    const r = await fetch('https://firebaseinstallations.googleapis.com/v1/projects/pagys-d1b60/installations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    return 'reached it — HTTP ' + r.status;
+  });
+
+  await probe('Secure token service', async () => {
+    const r = await fetch('https://securetoken.googleapis.com/v1/token?key=' + key, { method: 'POST' });
+    return 'reached it — HTTP ' + r.status;
+  });
+
+  await probe('OpenAlex (other external API)', async () => {
+    const r = await fetch('https://api.openalex.org/works?per_page=1', { cache: 'no-store' });
+    return 'reached it — HTTP ' + r.status;
+  });
+
+  await probe('This site (same-origin API)', async () => {
+    const r = await fetch('/api/health', { cache: 'no-store' });
+    return 'HTTP ' + r.status;
+  });
+})();
+`);
+});
+
+app.get('/diag', (req, res) => {
+  res.type('html').send(`<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PAGYS connection check</title></head>
+<body data-server-time="${new Date().toISOString()}" style="font-family:system-ui,sans-serif;margin:0;padding:20px;background:#f9fafb;color:#111827">
+<h1 style="font-size:20px;margin:0 0 4px">Connection check</h1>
+<p style="font-size:13px;color:#4b5563;margin:0 0 16px">Open this on the device that cannot sign in. Send a screenshot of the table.</p>
+<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden">
+<thead><tr style="background:#f3f4f6">
+<th style="text-align:left;padding:8px;font-size:12px">Check</th>
+<th style="text-align:left;padding:8px;font-size:12px">Result</th>
+<th style="text-align:left;padding:8px;font-size:12px">Detail</th>
+</tr></thead>
+<tbody id="rows"></tbody>
+</table>
+<p style="font-size:12px;color:#6b7280;margin-top:16px">A FAIL on a Google/Firebase row means this device cannot reach Google, which is what produces "Network error" at sign-in.</p>
+<script src="/diag.js"></script>
+</body></html>`);
+});
+
 // Restoring from the recycle bin needs to recreate a project document, and
 // clients are no longer allowed to create project documents themselves (both
 // tiers are paid). Doing it server-side also means a previously paid Premium

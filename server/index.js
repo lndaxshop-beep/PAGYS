@@ -130,7 +130,36 @@ try {
   console.warn('Firebase Admin not initialized:', err.message);
 }
 
-app.use(helmet());
+// Helmet's default CSP omits connect-src, so it inherits default-src 'self' and
+// the browser blocks every cross-origin request the app makes: Firebase Auth
+// (identitytoolkit/securetoken), Firestore, and OpenAlex. Sign-in then surfaces
+// as auth/network-request-failed even on a healthy connection. script-src also
+// defaults to 'self', which blocks the Paystack inline script in index.html.
+// Helmet still applies its other defaults (useDefaults is on); these entries
+// extend rather than replace them.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      'connect-src': [
+        "'self'",
+        'https://pagyss.com',
+        'https://www.pagyss.com',
+        'https://*.googleapis.com',      // identitytoolkit, securetoken, firestore, storage
+        'https://*.firebaseapp.com',
+        'wss://*.firebaseio.com',
+        'https://api.openalex.org',
+        'https://api.paystack.co',
+      ],
+      'script-src': ["'self'", 'https://js.paystack.co'],
+      'frame-src': [
+        "'self'",
+        'https://js.paystack.co',
+        'https://checkout.paystack.com',
+        'https://*.firebaseapp.com',
+      ],
+    },
+  },
+}));
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 
 // Behind Hostinger's hPanel reverse proxy every socket looks like localhost, so without this
